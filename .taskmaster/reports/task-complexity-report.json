@@ -1,0 +1,93 @@
+{
+	"meta": {
+		"generatedAt": "2025-08-20T00:06:04.639Z",
+		"tasksAnalyzed": 10,
+		"totalTasks": 10,
+		"analysisCount": 10,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": true
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Spring Boot WebFlux 프로젝트 초기 설정 및 멀티모듈 구조 구성",
+			"complexityScore": 7,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Spring Boot WebFlux 멀티모듈 프로젝트를 Gradle 8.14 Kotlin DSL 기반으로 생성할 때, 각 모듈별(예: api, domain, infrastructure) 디렉토리 구조, 공통 의존성 관리, 환경별 설정 파일, CORS 및 보안 기본 설정, 빌드 및 테스트 자동화, 코드 컨벤션 적용, CI/CD 연동 등 세부 작업으로 분해하세요.",
+			"reasoning": "멀티모듈 구조, 최신 Gradle/Kotlin DSL, WebFlux, 보안, 환경설정, 공통 의존성 관리 등 다양한 초기 설정이 요구되며, 각 단계별로 독립적인 검증과 표준화가 필요합니다. 업계에서는 모듈화, 환경별 분리, 보안 기본값, 테스트 자동화, CI/CD 연동까지 초기화 단계에서 세분화하는 것이 일반적입니다.[1][2]"
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "PostgreSQL R2DBC 연동 및 사용자 도메인 구현",
+			"complexityScore": 6,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "PostgreSQL R2DBC 연동 및 User 도메인 구현 시, 의존성 추가, DB 연결 설정, 엔티티 및 Repository 구현, 스키마 및 초기 데이터 스크립트, 트랜잭션 및 예외 처리, 테스트 환경 분리, 데이터 유효성 검증 등으로 세분화하세요.",
+			"reasoning": "Reactive R2DBC 연동, DB 스키마 설계, 엔티티/Repository 구현, 트랜잭션, 테스트 환경 분리 등 실무에서 요구하는 표준 작업이 많으며, 각 단계별로 오류 가능성이 높아 세분화가 필요합니다."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "JWT 기반 인증 시스템 및 사용자 API 구현",
+			"complexityScore": 8,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "JWT 인증 시스템 구현 시, JWT 라이브러리 설정, 토큰 발급/검증/갱신 로직, 비밀번호 암호화, 인증/인가 서비스, REST API, 인증 필터, 보안 설정, 예외 처리, 통합 테스트 등으로 세분화하세요.",
+			"reasoning": "JWT 인증은 보안상 민감하며, 토큰 관리, 암호화, 인증/인가, 예외 처리, 테스트 등 각 단계별로 실수 시 보안 취약점이 발생할 수 있어 세밀한 분할이 필요합니다. 업계 표준으로 각 기능별 책임 분리가 요구됩니다."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "채팅방 도메인 모델링 및 CRUD API 구현",
+			"complexityScore": 7,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "채팅방 도메인 모델링 및 CRUD API 구현 시, 엔티티/Repository 설계, 사용자-채팅방 관계 모델링, 서비스 계층 비즈니스 로직, 권한 검증, 참여자 관리, REST API, 트랜잭션 및 예외 처리, 통합 테스트 등으로 세분화하세요.",
+			"reasoning": "다대다 관계, 권한 검증, 참여자 관리, 트랜잭션, API 설계 등 복합적인 도메인 로직이 포함되어 있어 각 책임별로 분리 구현이 필요합니다. 실무에서는 도메인 모델, 서비스, API, 권한, 테스트를 별도 관리합니다."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "MongoDB 연동 및 메시지 저장소 구현",
+			"complexityScore": 6,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "MongoDB 연동 및 메시지 저장소 구현 시, 의존성 추가, 연결 설정, 도큐먼트/Repository 구현, 인덱스 설계, 메시지 저장/조회 서비스, 페이지네이션, 성능 테스트 및 최적화 등으로 세분화하세요.",
+			"reasoning": "Reactive MongoDB 연동, 도큐먼트 설계, 인덱스, 페이지네이션, 성능 최적화 등 데이터 저장/조회의 다양한 패턴과 성능 이슈를 고려해야 하므로 단계별 분할이 필요합니다."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Redis Pub/Sub 및 캐싱 시스템 구현",
+			"complexityScore": 7,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Redis Pub/Sub 및 캐싱 시스템 구현 시, 의존성 및 연결 설정, Pub/Sub 메시지 브로드캐스팅, 채널 관리, 세션/온라인 상태 캐싱, 메시지 브로커 서비스, 장애 복구 및 모니터링, 성능 테스트 등으로 세분화하세요.",
+			"reasoning": "Reactive Redis, Pub/Sub, 세션/상태 캐싱, 장애 복구, 성능 모니터링 등 실시간성과 신뢰성이 요구되는 작업이 많아 각 기능별로 분리 구현이 필요합니다."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Reactive WebSocket Handler 및 실시간 메시징 엔진 구현",
+			"complexityScore": 9,
+			"recommendedSubtasks": 9,
+			"expansionPrompt": "WebSocket 기반 실시간 메시징 엔진 구현 시, 메시지 프로토콜/모델 정의, 세션 관리, JWT 인증, 메시지 라우팅/브로드캐스팅, WebSocketHandler 구현, 엔드포인트/설정, 에러 처리, 연결 상태 모니터링, 부하 테스트 등으로 세분화하세요.",
+			"reasoning": "실시간성, 동시성, 인증, 세션/상태 관리, 메시지 라우팅, 장애 처리 등 고난도 기술이 복합적으로 요구되며, 각 단계별로 분리하지 않으면 유지보수와 확장성이 크게 저하됩니다."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "메시지 히스토리 API 및 페이지네이션 구현",
+			"complexityScore": 6,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "메시지 히스토리 API 구현 시, REST API 엔드포인트, 페이지네이션, 정렬/검색, 캐싱 전략, 성능 최적화, 테스트 및 모니터링 등으로 세분화하세요.",
+			"reasoning": "메시지 조회, 페이지네이션, 검색, 캐싱, 성능 최적화 등 데이터 접근 패턴이 다양하고, API 응답 성능이 중요하므로 각 기능별로 분리 구현이 필요합니다."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "기본 채팅 웹 인터페이스 구현",
+			"complexityScore": 7,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "채팅 웹 UI 구현 시, 정적 리소스 서빙, 인증 폼, 채팅방 목록, 실시간 채팅 UI, WebSocket 클라이언트, 메시지 히스토리 로딩, 반응형 디자인, 실시간 피드백 UI 등으로 세분화하세요.",
+			"reasoning": "실시간 UI, WebSocket 연동, 반응형 디자인, 상태 피드백 등 다양한 프론트엔드 기술과 UX 요소가 결합되어 있어 각 UI/기능별로 분리 구현이 필요합니다."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "성능 최적화 및 에러 처리 시스템 완성",
+			"complexityScore": 8,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "성능 최적화 및 에러 처리 시스템 구현 시, Redis 캐싱, WebSocket 연결 풀 관리, 글로벌 예외 처리, Actuator 헬스체크, 로깅, 메트릭 수집, 모니터링 대시보드, 메모리/리소스 관리 등으로 세분화하세요.",
+			"reasoning": "시스템 전반의 성능, 안정성, 모니터링, 에러 처리, 리소스 관리 등 운영 품질에 직결되는 고난도 작업이 많아 각 책임별로 분리 구현이 필요합니다."
+		}
+	]
+}

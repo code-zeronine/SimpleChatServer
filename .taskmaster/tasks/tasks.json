@@ -1,0 +1,771 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Spring Boot WebFlux 프로젝트 초기 설정 및 멀티모듈 구조 구성",
+        "description": "Gradle 9.0.0 Kotlin DSL 기반으로 Spring Boot 3.5.4 WebFlux 프로젝트를 생성하고 멀티모듈 구조를 설정합니다.",
+        "details": "1. Gradle 멀티모듈 프로젝트 구조 생성 (api, domain, infrastructure 모듈)\n2. Spring Boot 3.5.4, WebFlux, Kotlin 2.2.10 의존성 설정\n3. OpenJDK 21 LTS 타겟 설정\n4. 기본 Application 클래스 및 설정 파일 생성\n5. CORS 설정 및 기본 보안 구성\n6. build.gradle.kts에 공통 의존성 및 버전 관리 설정\n\n```kotlin\n// build.gradle.kts (root)\nsubprojects {\n    apply(plugin = \"org.springframework.boot\")\n    apply(plugin = \"org.jetbrains.kotlin.jvm\")\n    \n    dependencies {\n        implementation(\"org.springframework.boot:spring-boot-starter-webflux\")\n        implementation(\"org.jetbrains.kotlin:kotlin-reflect\")\n        implementation(\"org.jetbrains.kotlinx:kotlinx-coroutines-reactor\")\n    }\n}\n```",
+        "testStrategy": "프로젝트 빌드 성공 확인, Spring Boot 애플리케이션 정상 기동 테스트, 기본 헬스체크 엔드포인트 응답 확인",
+        "priority": "high",
+        "dependencies": [],
+        "status": "in-progress",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Gradle 멀티모듈 프로젝트 구조 생성 및 기본 설정",
+            "description": "루트 프로젝트와 api, domain, infrastructure 서브모듈을 생성하고 Gradle 9.0.0 Kotlin DSL 기반 빌드 스크립트를 구성합니다.",
+            "dependencies": [],
+            "details": "1. 루트 디렉토리에 settings.gradle.kts 생성 및 서브모듈 포함 설정\n2. api, domain, infrastructure 모듈 디렉토리 구조 생성\n3. 각 모듈별 build.gradle.kts 파일 생성\n4. 모듈 간 의존성 관계 설정 (api -> domain, infrastructure -> domain)\n5. Gradle wrapper 9.0.0 버전 설정",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Spring Boot 및 Kotlin 의존성 설정",
+            "description": "Spring Boot 3.5.4, WebFlux, Kotlin 2.2.10 의존성을 설정하고 OpenJDK 21 타겟을 구성합니다.",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "1. 루트 build.gradle.kts에 Spring Boot 플러그인 및 Kotlin 플러그인 설정\n2. 버전 카탈로그 또는 ext 속성으로 버전 관리 설정\n3. subprojects 블록에 공통 의존성 설정 (webflux, kotlin-reflect, coroutines-reactor)\n4. Java 21 타겟 컴파일 설정\n5. Kotlin 컴파일러 옵션 설정 (jvm-default=all)",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Spring Boot Application 클래스 및 기본 설정 파일 생성",
+            "description": "메인 Application 클래스를 생성하고 application.yml 기본 설정을 구성합니다.",
+            "dependencies": [
+              "1.2"
+            ],
+            "details": "1. api 모듈에 @SpringBootApplication 어노테이션이 적용된 메인 클래스 생성\n2. application.yml 파일 생성 및 기본 서버 포트 설정 (8080)\n3. 프로파일별 설정 파일 구조 준비 (dev, prod)\n4. 로깅 설정 (logback-spring.xml)\n5. WebFlux 기본 설정 확인",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "WebFlux 라우터 및 핸들러 기본 구조 설정",
+            "description": "WebFlux 라우터 함수와 핸들러를 구성하고 기본 엔드포인트를 생성합니다.",
+            "dependencies": [
+              "1.3"
+            ],
+            "details": "1. api 모듈에 RouterFunction 설정 클래스 생성\n2. 기본 핸들러 클래스 구현 (HealthCheckHandler)\n3. /health 엔드포인트 구현\n4. 함수형 라우팅 설정 (@Bean RouterFunction)\n5. 기본 에러 핸들링 설정",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "CORS 설정 및 기본 보안 구성",
+            "description": "WebFlux 환경에서 CORS 정책을 설정하고 기본적인 보안 구성을 적용합니다.",
+            "dependencies": [
+              "1.4"
+            ],
+            "details": "1. WebFluxConfigurer 구현 클래스 생성\n2. CORS 매핑 설정 (allowedOrigins, allowedMethods, allowedHeaders)\n3. Spring Security WebFlux 의존성 추가\n4. SecurityWebFilterChain 기본 설정\n5. 개발 환경용 permissive 보안 설정\n6. 프로덕션 환경 대비 보안 설정 준비",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "프로젝트 빌드 검증 및 통합 테스트",
+            "description": "전체 프로젝트 빌드를 수행하고 Spring Boot 애플리케이션 기동 테스트를 실행합니다.",
+            "dependencies": [
+              "1.5"
+            ],
+            "details": "1. ./gradlew clean build 명령어로 전체 빌드 검증\n2. Spring Boot 애플리케이션 정상 기동 테스트\n3. /health 엔드포인트 응답 확인 (curl 또는 WebTestClient)\n4. 각 모듈별 테스트 클래스 기본 구조 생성\n5. 통합 테스트 설정 및 실행\n6. 빌드 성공 및 애플리케이션 기동 로그 확인",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "PostgreSQL R2DBC 연동 및 사용자 도메인 구현",
+        "description": "PostgreSQL 15+ 데이터베이스와 R2DBC를 연동하고 User 엔티티 및 Repository를 구현합니다.",
+        "details": "1. R2DBC PostgreSQL 드라이버 의존성 추가\n2. application.yml에 PostgreSQL 연결 설정\n3. User 엔티티 클래스 구현 (id, email, passwordHash, nickname, createdAt)\n4. UserRepository 인터페이스 구현 (ReactiveCrudRepository 상속)\n5. 데이터베이스 스키마 초기화 스크립트 작성\n6. R2DBC 설정 클래스 구현\n\n```kotlin\n@Entity\n@Table(\"users\")\ndata class User(\n    @Id val id: Long? = null,\n    val email: String,\n    val passwordHash: String,\n    val nickname: String,\n    val createdAt: LocalDateTime = LocalDateTime.now()\n)\n\ninterface UserRepository : ReactiveCrudRepository<User, Long> {\n    fun findByEmail(email: String): Mono<User>\n    fun existsByEmail(email: String): Mono<Boolean>\n    fun existsByNickname(nickname: String): Mono<Boolean>\n}\n```",
+        "testStrategy": "데이터베이스 연결 테스트, User 엔티티 CRUD 작업 테스트, Repository 메서드 단위 테스트, 트랜잭션 롤백 테스트",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "R2DBC PostgreSQL 의존성 및 데이터베이스 연결 설정",
+            "description": "R2DBC PostgreSQL 드라이버 의존성을 추가하고 application.yml에 데이터베이스 연결 설정을 구성합니다.",
+            "dependencies": [],
+            "details": "1. build.gradle.kts에 R2DBC PostgreSQL 드라이버 의존성 추가\n2. application.yml에 PostgreSQL 연결 정보 설정 (host, port, database, username, password)\n3. R2DBC 연결 풀 설정 (initial-size, max-size, validation-query)\n4. 데이터베이스 연결 테스트 코드 작성\n5. 연결 실패 시 에러 핸들링 설정",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "User 엔티티 클래스 구현",
+            "description": "사용자 정보를 담는 User 엔티티 클래스를 R2DBC 어노테이션과 함께 구현합니다.",
+            "dependencies": [
+              "2.1"
+            ],
+            "details": "1. User 데이터 클래스 생성 (@Entity, @Table 어노테이션 적용)\n2. 필드 정의 (id, email, passwordHash, nickname, createdAt)\n3. @Id 어노테이션으로 기본키 설정\n4. LocalDateTime 타입 매핑 설정\n5. 엔티티 유효성 검증 어노테이션 추가\n6. toString, equals, hashCode 메서드 적절한 구현",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "데이터베이스 스키마 초기화 스크립트 작성",
+            "description": "PostgreSQL users 테이블 생성 및 초기 데이터 설정을 위한 SQL 스크립트를 작성합니다.",
+            "dependencies": [
+              "2.1"
+            ],
+            "details": "1. schema.sql 파일 생성 (users 테이블 DDL)\n2. 테이블 컬럼 정의 (id SERIAL PRIMARY KEY, email VARCHAR UNIQUE, password_hash VARCHAR, nickname VARCHAR UNIQUE, created_at TIMESTAMP)\n3. 인덱스 생성 (email, nickname 컬럼)\n4. 제약조건 설정 (NOT NULL, UNIQUE)\n5. data.sql 파일 생성 (테스트용 초기 데이터)\n6. 스키마 초기화 설정 (spring.sql.init.mode)",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "UserRepository 인터페이스 구현",
+            "description": "User 엔티티에 대한 리액티브 데이터 접근을 위한 Repository 인터페이스를 구현합니다.",
+            "dependencies": [
+              "2.2"
+            ],
+            "details": "1. UserRepository 인터페이스 생성 (ReactiveCrudRepository 상속)\n2. findByEmail 메서드 정의 (Mono<User> 반환)\n3. existsByEmail 메서드 정의 (Mono<Boolean> 반환)\n4. existsByNickname 메서드 정의 (Mono<Boolean> 반환)\n5. 커스텀 쿼리 메서드 추가 (@Query 어노테이션 활용)\n6. Repository 메서드 네이밍 컨벤션 적용",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "R2DBC 설정 클래스 및 연동 테스트 구현",
+            "description": "R2DBC 설정 클래스를 구현하고 데이터베이스 연동이 정상 동작하는지 테스트합니다.",
+            "dependencies": [
+              "2.3",
+              "2.4"
+            ],
+            "details": "1. R2dbcConfig 설정 클래스 생성 (@Configuration)\n2. ConnectionFactory 빈 설정\n3. R2dbcTransactionManager 설정\n4. DatabaseClient 설정\n5. UserRepository 단위 테스트 작성 (CRUD 작업)\n6. 데이터베이스 연결 및 트랜잭션 테스트\n7. 테스트 데이터베이스 설정 (TestContainers 또는 H2)",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "JWT 기반 인증 시스템 및 사용자 API 구현",
+        "description": "JWT 토큰 기반 인증 시스템을 구현하고 회원가입/로그인 REST API를 제공합니다.",
+        "details": "1. JWT 라이브러리 의존성 추가 (jjwt-api, jjwt-impl, jjwt-jackson)\n2. JwtTokenProvider 클래스 구현 (토큰 생성/검증/갱신)\n3. PasswordEncoder 설정 (BCrypt)\n4. AuthService 구현 (회원가입/로그인 비즈니스 로직)\n5. AuthController 구현 (/api/auth/signup, /api/auth/login)\n6. JWT 인증 필터 구현 (WebFilter)\n7. SecurityConfig 설정 (WebFluxSecurity)\n\n```kotlin\n@RestController\n@RequestMapping(\"/api/auth\")\nclass AuthController(private val authService: AuthService) {\n    \n    @PostMapping(\"/signup\")\n    suspend fun signup(@RequestBody request: SignupRequest): ResponseEntity<AuthResponse> {\n        return authService.signup(request)\n            .map { ResponseEntity.ok(it) }\n            .awaitSingle()\n    }\n    \n    @PostMapping(\"/login\")\n    suspend fun login(@RequestBody request: LoginRequest): ResponseEntity<AuthResponse> {\n        return authService.login(request)\n            .map { ResponseEntity.ok(it) }\n            .awaitSingle()\n    }\n}\n```",
+        "testStrategy": "JWT 토큰 생성/검증 단위 테스트, 회원가입/로그인 API 통합 테스트, 인증 필터 동작 테스트, 비밀번호 암호화 검증",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "JWT 라이브러리 의존성 추가 및 기본 설정",
+            "description": "JWT 토큰 처리를 위한 라이브러리 의존성을 추가하고 기본 설정을 구성합니다.",
+            "dependencies": [],
+            "details": "1. build.gradle.kts에 jjwt-api, jjwt-impl, jjwt-jackson 의존성 추가\n2. JWT 관련 설정 프로퍼티 정의 (application.yml)\n3. 토큰 만료 시간, 시크릿 키 등 기본 설정값 구성\n4. 의존성 버전 호환성 확인 및 테스트",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "JwtTokenProvider 클래스 구현",
+            "description": "JWT 토큰의 생성, 검증, 갱신 기능을 담당하는 핵심 컴포넌트를 구현합니다.",
+            "dependencies": [
+              "3.1"
+            ],
+            "details": "1. JWT 토큰 생성 메서드 구현 (generateToken)\n2. 토큰 유효성 검증 메서드 구현 (validateToken)\n3. 토큰에서 사용자 정보 추출 메서드 구현 (getUsernameFromToken)\n4. 토큰 만료 시간 확인 메서드 구현\n5. 리프레시 토큰 생성 및 검증 로직 구현\n6. 예외 처리 (만료, 변조, 형식 오류)",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "PasswordEncoder 설정 및 AuthService 구현",
+            "description": "비밀번호 암호화 설정과 회원가입/로그인 비즈니스 로직을 구현합니다.",
+            "dependencies": [
+              "3.2"
+            ],
+            "details": "1. BCryptPasswordEncoder Bean 설정\n2. AuthService 클래스 구현\n3. 회원가입 로직 구현 (중복 검사, 비밀번호 암호화)\n4. 로그인 로직 구현 (인증, 토큰 발급)\n5. 사용자 검증 및 권한 확인 로직\n6. 비즈니스 예외 처리 (중복 사용자, 인증 실패 등)",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "AuthController REST API 구현",
+            "description": "회원가입과 로그인을 위한 REST API 엔드포인트를 구현합니다.",
+            "dependencies": [
+              "3.3"
+            ],
+            "details": "1. AuthController 클래스 구현\n2. /api/auth/signup POST 엔드포인트 구현\n3. /api/auth/login POST 엔드포인트 구현\n4. 요청/응답 DTO 클래스 정의 (SignupRequest, LoginRequest, AuthResponse)\n5. 입력값 검증 어노테이션 적용\n6. HTTP 상태 코드 및 에러 응답 처리",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "JWT 인증 WebFilter 구현",
+            "description": "HTTP 요청에서 JWT 토큰을 검증하고 인증 정보를 설정하는 필터를 구현합니다.",
+            "dependencies": [
+              "3.2"
+            ],
+            "details": "1. JwtAuthenticationWebFilter 클래스 구현\n2. Authorization 헤더에서 Bearer 토큰 추출\n3. JWT 토큰 유효성 검증 로직\n4. SecurityContext에 인증 정보 설정\n5. 인증 실패 시 401 Unauthorized 응답 처리\n6. 공개 엔드포인트 예외 처리 (/api/auth/*)",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Spring Security WebFlux 설정 구성",
+            "description": "WebFlux 환경에서 JWT 기반 보안 설정을 구성하고 전체 인증 시스템을 통합합니다.",
+            "dependencies": [
+              "3.4",
+              "3.5"
+            ],
+            "details": "1. SecurityConfig 클래스 구현\n2. WebFluxSecurity 설정 구성\n3. JWT 인증 필터를 필터 체인에 등록\n4. 경로별 접근 권한 설정 (permitAll, authenticated)\n5. CORS 설정 구성\n6. 세션 관리 정책 설정 (STATELESS)\n7. 예외 처리 핸들러 설정 (AuthenticationEntryPoint)",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "채팅방 도메인 모델링 및 CRUD API 구현",
+        "description": "ChatRoom 엔티티와 사용자-채팅방 관계를 모델링하고 채팅방 관리 API를 구현합니다.",
+        "details": "1. ChatRoom 엔티티 클래스 구현 (id, name, description, createdAt)\n2. ChatRoomRepository 인터페이스 구현\n3. 사용자-채팅방 참여 관계 테이블 설계 (user_chat_rooms)\n4. ChatRoomService 구현 (생성/조회/참여/퇴장 로직)\n5. ChatRoomController 구현 (/api/rooms/*)\n6. 채팅방 참여자 목록 관리 기능\n7. 채팅방 권한 검증 로직\n\n```kotlin\n@Entity\n@Table(\"chat_rooms\")\ndata class ChatRoom(\n    @Id val id: Long? = null,\n    val name: String,\n    val description: String?,\n    val createdAt: LocalDateTime = LocalDateTime.now()\n)\n\n@RestController\n@RequestMapping(\"/api/rooms\")\nclass ChatRoomController(private val chatRoomService: ChatRoomService) {\n    \n    @PostMapping\n    suspend fun createRoom(@RequestBody request: CreateRoomRequest): ResponseEntity<ChatRoom> {\n        return chatRoomService.createRoom(request)\n            .map { ResponseEntity.ok(it) }\n            .awaitSingle()\n    }\n    \n    @GetMapping\n    suspend fun getRooms(): ResponseEntity<List<ChatRoom>> {\n        return chatRoomService.getAllRooms()\n            .collectList()\n            .map { ResponseEntity.ok(it) }\n            .awaitSingle()\n    }\n}\n```",
+        "testStrategy": "채팅방 CRUD 작업 테스트, 사용자-채팅방 관계 테스트, 권한 검증 테스트, API 엔드포인트 통합 테스트",
+        "priority": "medium",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "ChatRoom 엔티티 및 Repository 구현",
+            "description": "ChatRoom 엔티티 클래스와 ChatRoomRepository 인터페이스를 구현합니다.",
+            "dependencies": [],
+            "details": "1. ChatRoom 엔티티 클래스 구현 (id, name, description, createdAt, updatedAt)\n2. R2DBC 어노테이션 설정 (@Table, @Id, @Column)\n3. ChatRoomRepository 인터페이스 구현 (ReactiveCrudRepository 상속)\n4. 커스텀 쿼리 메서드 정의 (findByNameContaining, findByCreatedAtAfter)\n5. 엔티티 검증 어노테이션 추가 (@NotBlank, @Size)",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "사용자-채팅방 관계 테이블 및 엔티티 설계",
+            "description": "사용자와 채팅방 간의 다대다 관계를 관리하는 UserChatRoom 엔티티와 테이블을 설계합니다.",
+            "dependencies": [
+              "4.1"
+            ],
+            "details": "1. UserChatRoom 엔티티 클래스 구현 (userId, chatRoomId, joinedAt, role)\n2. user_chat_rooms 테이블 스키마 설계\n3. UserChatRoomRepository 인터페이스 구현\n4. 복합키 설정 및 인덱스 최적화\n5. 채팅방 역할 enum 정의 (OWNER, ADMIN, MEMBER)\n6. 관계 조회 쿼리 메서드 구현",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "ChatRoomService 비즈니스 로직 구현",
+            "description": "채팅방 생성, 조회, 참여, 퇴장 등의 핵심 비즈니스 로직을 구현합니다.",
+            "dependencies": [
+              "4.2"
+            ],
+            "details": "1. ChatRoomService 클래스 구현\n2. 채팅방 생성 로직 (createRoom)\n3. 채팅방 목록 조회 (getAllRooms, getUserRooms)\n4. 채팅방 참여 로직 (joinRoom)\n5. 채팅방 퇴장 로직 (leaveRoom)\n6. 채팅방 상세 정보 조회 (getRoomDetails)\n7. 트랜잭션 처리 및 예외 처리",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "채팅방 권한 검증 및 참여자 관리 기능",
+            "description": "채팅방 접근 권한 검증과 참여자 목록 관리 기능을 구현합니다.",
+            "dependencies": [
+              "4.3"
+            ],
+            "details": "1. 채팅방 접근 권한 검증 로직 구현\n2. 참여자 목록 조회 기능 (getParticipants)\n3. 참여자 역할 변경 기능 (changeUserRole)\n4. 참여자 강제 퇴장 기능 (kickUser)\n5. 채팅방 소유자 권한 검증\n6. 권한별 작업 허용 범위 정의\n7. 보안 검증 어노테이션 적용",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "ChatRoomController REST API 구현",
+            "description": "채팅방 관리를 위한 REST API 엔드포인트를 구현합니다.",
+            "dependencies": [
+              "4.4"
+            ],
+            "details": "1. ChatRoomController 클래스 구현 (/api/rooms/*)\n2. 채팅방 생성 API (POST /api/rooms)\n3. 채팅방 목록 조회 API (GET /api/rooms)\n4. 채팅방 상세 조회 API (GET /api/rooms/{id})\n5. 채팅방 참여 API (POST /api/rooms/{id}/join)\n6. 채팅방 퇴장 API (DELETE /api/rooms/{id}/leave)\n7. 참여자 목록 조회 API (GET /api/rooms/{id}/participants)\n8. 요청/응답 DTO 클래스 구현\n9. API 문서화 어노테이션 추가",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "MongoDB 연동 및 메시지 저장소 구현",
+        "description": "MongoDB 7+와 연동하여 ChatMessage 도메인을 구현하고 메시지 영속성을 제공합니다.",
+        "details": "1. Spring Data MongoDB Reactive 의존성 추가\n2. MongoDB 연결 설정 (application.yml)\n3. ChatMessage 도큐먼트 클래스 구현\n4. ChatMessageRepository 인터페이스 구현 (ReactiveMongoRepository 상속)\n5. 메시지 저장/조회 서비스 구현\n6. 페이지네이션 기반 메시지 히스토리 조회\n7. 인덱스 설정 (roomId, timestamp)\n\n```kotlin\n@Document(collection = \"chat_messages\")\ndata class ChatMessage(\n    @Id val id: String? = null,\n    val roomId: Long,\n    val userId: Long,\n    val content: String,\n    val timestamp: LocalDateTime = LocalDateTime.now()\n)\n\ninterface ChatMessageRepository : ReactiveMongoRepository<ChatMessage, String> {\n    fun findByRoomIdOrderByTimestampDesc(roomId: Long, pageable: Pageable): Flux<ChatMessage>\n    fun countByRoomId(roomId: Long): Mono<Long>\n}\n```",
+        "testStrategy": "MongoDB 연결 테스트, 메시지 저장/조회 테스트, 페이지네이션 동작 테스트, 인덱스 성능 테스트",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Spring Data MongoDB Reactive 의존성 추가 및 기본 설정",
+            "description": "build.gradle.kts에 Spring Data MongoDB Reactive 의존성을 추가하고 기본 MongoDB 설정을 구성합니다.",
+            "dependencies": [],
+            "details": "1. build.gradle.kts에 spring-boot-starter-data-mongodb-reactive 의존성 추가\n2. MongoDB 드라이버 버전 호환성 확인\n3. 기본 MongoDB 설정 클래스 생성\n4. ReactiveMongoTemplate 빈 설정",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "MongoDB 연결 설정 및 데이터베이스 구성",
+            "description": "application.yml에 MongoDB 연결 정보를 설정하고 데이터베이스 연결을 구성합니다.",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "1. application.yml에 MongoDB URI 설정\n2. 데이터베이스명, 인증 정보 설정\n3. 연결 풀 설정 (최대 연결 수, 타임아웃)\n4. MongoDB 연결 테스트 구현\n5. 프로파일별 설정 분리 (dev, prod)",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "ChatMessage 도큐먼트 클래스 및 Repository 구현",
+            "description": "MongoDB용 ChatMessage 도큐먼트 클래스와 ReactiveMongoRepository를 구현합니다.",
+            "dependencies": [
+              "5.2"
+            ],
+            "details": "1. @Document 어노테이션을 사용한 ChatMessage 클래스 구현\n2. 필드 매핑 및 검증 어노테이션 추가\n3. ChatMessageRepository 인터페이스 구현\n4. 커스텀 쿼리 메서드 정의 (findByRoomIdOrderByTimestampDesc)\n5. 카운트 쿼리 메서드 구현",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "MongoDB 인덱스 설정 및 성능 최적화",
+            "description": "채팅 메시지 조회 성능을 위한 MongoDB 인덱스를 설정하고 최적화합니다.",
+            "dependencies": [
+              "5.3"
+            ],
+            "details": "1. roomId 필드에 대한 인덱스 생성\n2. timestamp 필드에 대한 인덱스 생성\n3. 복합 인덱스 설정 (roomId + timestamp)\n4. 인덱스 생성 스크립트 작성\n5. 인덱스 성능 테스트 및 최적화",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "메시지 저장 서비스 및 페이지네이션 구현",
+            "description": "메시지 저장/조회 서비스를 구현하고 페이지네이션 기반 히스토리 조회 기능을 완성합니다.",
+            "dependencies": [
+              "5.4"
+            ],
+            "details": "1. ChatMessageService 클래스 구현\n2. 메시지 저장 메서드 구현 (saveMessage)\n3. 페이지네이션 기반 메시지 조회 구현\n4. 메시지 개수 조회 기능 구현\n5. 에러 처리 및 로깅 추가\n6. 서비스 레이어 단위 테스트 작성",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Redis Pub/Sub 및 캐싱 시스템 구현",
+        "description": "Redis 7+를 연동하여 Pub/Sub 메시지 브로드캐스팅과 캐싱 시스템을 구현합니다.",
+        "details": "1. Spring Data Redis Reactive 의존성 추가\n2. Redis 연결 설정 및 ReactiveRedisTemplate 구성\n3. Redis Pub/Sub 기반 메시지 브로드캐스팅 구현\n4. 채팅방별 채널 관리 (chat:room:{roomId})\n5. WebSocket 세션 정보 Redis 캐싱\n6. 사용자 온라인 상태 관리\n7. RedisMessageBroker 서비스 구현\n\n```kotlin\n@Service\nclass RedisMessageBroker(\n    private val reactiveRedisTemplate: ReactiveRedisTemplate<String, String>,\n    private val objectMapper: ObjectMapper\n) {\n    \n    fun publishMessage(roomId: Long, message: WebSocketMessage): Mono<Long> {\n        val channel = \"chat:room:$roomId\"\n        val messageJson = objectMapper.writeValueAsString(message)\n        return reactiveRedisTemplate.convertAndSend(channel, messageJson)\n    }\n    \n    fun subscribeToRoom(roomId: Long): Flux<WebSocketMessage> {\n        val channel = \"chat:room:$roomId\"\n        return reactiveRedisTemplate.listenTo(ChannelTopic.of(channel))\n            .map { objectMapper.readValue(it.message, WebSocketMessage::class.java) }\n    }\n}\n```",
+        "testStrategy": "Redis 연결 테스트, Pub/Sub 메시지 전달 테스트, 캐싱 동작 테스트, 다중 채널 구독 테스트",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Spring Data Redis Reactive 의존성 추가 및 기본 설정",
+            "description": "build.gradle.kts에 Spring Data Redis Reactive 의존성을 추가하고 Redis 연결을 위한 기본 설정을 구성합니다.",
+            "dependencies": [],
+            "details": "1. build.gradle.kts에 spring-boot-starter-data-redis-reactive 의존성 추가\n2. application.yml에 Redis 서버 연결 정보 설정 (host, port, password)\n3. Redis 연결 풀 설정 및 타임아웃 구성\n4. Redis 7+ 호환성 확인 및 설정",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "ReactiveRedisTemplate 구성 및 Redis 연결 설정",
+            "description": "ReactiveRedisTemplate을 구성하고 Redis 연결을 위한 Configuration 클래스를 구현합니다.",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "1. RedisConfig 클래스 구현 (@Configuration)\n2. ReactiveRedisTemplate<String, String> 빈 등록\n3. LettuceConnectionFactory 설정\n4. Redis 직렬화 설정 (StringRedisSerializer)\n5. 연결 상태 확인 및 헬스체크 구현",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Redis Pub/Sub 메시지 브로드캐스팅 구현",
+            "description": "Redis Pub/Sub 패턴을 활용한 메시지 발행 및 구독 기능을 구현합니다.",
+            "dependencies": [
+              "6.2"
+            ],
+            "details": "1. 메시지 발행(publish) 기능 구현\n2. 채널 구독(subscribe) 기능 구현\n3. ChannelTopic 설정 및 관리\n4. 메시지 직렬화/역직렬화 처리 (ObjectMapper 활용)\n5. 비동기 메시지 처리 로직 구현",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "채팅방별 채널 관리 시스템 구현",
+            "description": "채팅방별로 독립적인 Redis 채널을 관리하는 시스템을 구현합니다.",
+            "dependencies": [
+              "6.3"
+            ],
+            "details": "1. 채널 네이밍 규칙 구현 (chat:room:{roomId})\n2. 동적 채널 생성 및 삭제 관리\n3. 채팅방 입장/퇴장 시 채널 구독/해제 처리\n4. 채널별 구독자 수 관리\n5. 채널 상태 모니터링 기능",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "WebSocket 세션 정보 Redis 캐싱 구현",
+            "description": "WebSocket 세션 정보와 사용자 온라인 상태를 Redis에 캐싱하는 시스템을 구현합니다.",
+            "dependencies": [
+              "6.2"
+            ],
+            "details": "1. 세션 정보 캐싱 구조 설계 (session:{sessionId})\n2. 사용자 온라인 상태 관리 (user:online:{userId})\n3. 세션 만료 시간 설정 (TTL)\n4. 세션 정보 조회 및 업데이트 API\n5. 연결 해제 시 캐시 정리 로직",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "RedisMessageBroker 서비스 구현 및 통합",
+            "description": "Redis Pub/Sub 기능을 통합하는 RedisMessageBroker 서비스를 구현하고 전체 시스템과 연동합니다.",
+            "dependencies": [
+              "6.3",
+              "6.4",
+              "6.5"
+            ],
+            "details": "1. RedisMessageBroker 서비스 클래스 구현\n2. publishMessage 메서드 구현 (채팅방별 메시지 발행)\n3. subscribeToRoom 메서드 구현 (채팅방 구독)\n4. 에러 처리 및 재연결 로직 구현\n5. WebSocket 핸들러와의 통합\n6. 메시지 브로커 성능 최적화",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Reactive WebSocket Handler 및 실시간 메시징 엔진 구현",
+        "description": "WebFlux Reactive WebSocket Handler를 구현하여 실시간 양방향 메시징 시스템을 완성합니다.",
+        "details": "1. WebSocketHandler 인터페이스 구현\n2. 커스텀 JSON 메시지 프로토콜 정의 (CHAT, JOIN, LEAVE, TYPING)\n3. WebSocket 세션 관리 및 채팅방별 세션 그룹핑\n4. 메시지 라우팅 및 브로드캐스팅 로직\n5. JWT 토큰 기반 WebSocket 인증\n6. WebSocket 설정 클래스 구현 (/chat 엔드포인트)\n7. 에러 처리 및 연결 상태 관리\n\n```kotlin\n@Component\nclass ChatWebSocketHandler(\n    private val messageService: MessageService,\n    private val redisMessageBroker: RedisMessageBroker,\n    private val jwtTokenProvider: JwtTokenProvider\n) : WebSocketHandler {\n    \n    private val sessions = ConcurrentHashMap<String, WebSocketSession>()\n    private val roomSessions = ConcurrentHashMap<Long, MutableSet<String>>()\n    \n    override fun handle(session: WebSocketSession): Mono<Void> {\n        return session.receive()\n            .map { it.payloadAsText }\n            .map { objectMapper.readValue(it, WebSocketMessage::class.java) }\n            .flatMap { handleMessage(session, it) }\n            .doOnError { handleError(session, it) }\n            .then()\n    }\n    \n    private fun handleMessage(session: WebSocketSession, message: WebSocketMessage): Mono<Void> {\n        return when (message.type) {\n            MessageType.CHAT -> handleChatMessage(session, message)\n            MessageType.JOIN -> handleJoinRoom(session, message)\n            MessageType.LEAVE -> handleLeaveRoom(session, message)\n            MessageType.TYPING -> handleTypingIndicator(session, message)\n        }\n    }\n}\n```",
+        "testStrategy": "WebSocket 연결/해제 테스트, 메시지 송수신 테스트, 채팅방별 브로드캐스팅 테스트, JWT 인증 테스트, 에러 상황 처리 테스트",
+        "priority": "high",
+        "dependencies": [
+          5,
+          6
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "WebSocket 메시지 프로토콜 및 데이터 모델 정의",
+            "description": "WebSocket 통신을 위한 JSON 메시지 프로토콜과 관련 데이터 클래스들을 정의합니다.",
+            "dependencies": [],
+            "details": "WebSocketMessage 데이터 클래스, MessageType 열거형 (CHAT, JOIN, LEAVE, TYPING), ChatMessage, JoinMessage, LeaveMessage, TypingMessage 등 메시지 타입별 데이터 모델 구현. JSON 직렬화/역직렬화를 위한 ObjectMapper 설정 포함.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "WebSocket 세션 관리 시스템 구현",
+            "description": "WebSocket 세션의 생명주기를 관리하고 채팅방별로 세션을 그룹핑하는 시스템을 구현합니다.",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "ConcurrentHashMap 기반 세션 저장소, 채팅방별 세션 그룹핑 로직, 세션 추가/제거/조회 메서드, 세션 상태 추적 및 정리 로직 구현. 메모리 누수 방지를 위한 세션 정리 스케줄러 포함.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "JWT 토큰 기반 WebSocket 인증 시스템 구현",
+            "description": "WebSocket 연결 시 JWT 토큰을 통한 사용자 인증 및 권한 검증 시스템을 구현합니다.",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "WebSocket 핸드셰이크 시 JWT 토큰 추출 및 검증, 인증된 사용자 정보를 세션에 저장, 인증 실패 시 연결 거부 로직, 토큰 만료 처리 및 재인증 메커니즘 구현.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "메시지 라우팅 및 브로드캐스팅 엔진 구현",
+            "description": "수신된 메시지를 적절한 채팅방 참여자들에게 라우팅하고 브로드캐스팅하는 엔진을 구현합니다.",
+            "dependencies": [
+              "7.2",
+              "7.3"
+            ],
+            "details": "메시지 타입별 라우팅 로직, 채팅방 내 모든 세션에 메시지 브로드캐스팅, 개별 사용자 타겟팅, Redis Pub/Sub을 통한 다중 인스턴스 지원, 메시지 전송 실패 처리 및 재시도 로직 구현.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "WebSocketHandler 핵심 로직 구현",
+            "description": "WebSocketHandler 인터페이스를 구현하여 WebSocket 연결 처리 및 메시지 핸들링 로직을 완성합니다.",
+            "dependencies": [
+              "7.1",
+              "7.2",
+              "7.3",
+              "7.4"
+            ],
+            "details": "handle() 메서드 구현, 메시지 수신 및 파싱 로직, 메시지 타입별 핸들러 분기, handleChatMessage, handleJoinRoom, handleLeaveRoom, handleTypingIndicator 메서드 구현, Reactive Stream 기반 비동기 처리.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "WebSocket 설정 및 엔드포인트 구성",
+            "description": "Spring WebFlux WebSocket 설정 클래스를 구현하고 /chat 엔드포인트를 구성합니다.",
+            "dependencies": [
+              "7.5"
+            ],
+            "details": "WebSocketHandlerAdapter 설정, RouterFunction을 통한 /chat 엔드포인트 매핑, CORS 설정, WebSocket 핸드셰이크 인터셉터 구현, 연결 제한 및 보안 설정 적용.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "WebSocket 에러 처리 및 예외 관리 시스템 구현",
+            "description": "WebSocket 통신 중 발생할 수 있는 다양한 에러 상황을 처리하는 시스템을 구현합니다.",
+            "dependencies": [
+              "7.5"
+            ],
+            "details": "handleError() 메서드 구현, 연결 끊김 처리, 메시지 파싱 오류 처리, 인증 실패 처리, 채팅방 접근 권한 오류 처리, 클라이언트에 에러 메시지 전송, 로깅 및 모니터링 연동.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "연결 상태 관리 및 모니터링 시스템 구현",
+            "description": "WebSocket 연결 상태를 실시간으로 모니터링하고 관리하는 시스템을 구현합니다.",
+            "dependencies": [
+              "7.2",
+              "7.7"
+            ],
+            "details": "연결 상태 추적 (CONNECTING, CONNECTED, DISCONNECTED), 하트비트 메커니즘 구현, 비정상 연결 감지 및 정리, 연결 통계 수집, 관리자용 연결 상태 모니터링 API, 자동 재연결 지원을 위한 클라이언트 가이드라인 제공.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "메시지 히스토리 API 및 페이지네이션 구현",
+        "description": "채팅방 입장 시 이전 대화 기록을 제공하는 메시지 히스토리 조회 API를 구현합니다.",
+        "details": "1. MessageController 구현 (/api/messages/*)\n2. 페이지네이션 기반 메시지 조회 API\n3. 채팅방별 메시지 히스토리 조회 (최근 50개 기본)\n4. 메시지 검색 기능 (키워드 기반)\n5. 메시지 개수 카운팅 API\n6. 캐싱 전략 적용 (최근 메시지 Redis 캐싱)\n7. 성능 최적화 (인덱스 활용)\n\n```kotlin\n@RestController\n@RequestMapping(\"/api/messages\")\nclass MessageController(private val messageService: MessageService) {\n    \n    @GetMapping(\"/room/{roomId}\")\n    suspend fun getRoomMessages(\n        @PathVariable roomId: Long,\n        @RequestParam(defaultValue = \"0\") page: Int,\n        @RequestParam(defaultValue = \"50\") size: Int\n    ): ResponseEntity<PagedResponse<ChatMessage>> {\n        return messageService.getRoomMessages(roomId, PageRequest.of(page, size))\n            .map { ResponseEntity.ok(it) }\n            .awaitSingle()\n    }\n    \n    @GetMapping(\"/room/{roomId}/recent\")\n    suspend fun getRecentMessages(\n        @PathVariable roomId: Long,\n        @RequestParam(defaultValue = \"50\") limit: Int\n    ): ResponseEntity<List<ChatMessage>> {\n        return messageService.getRecentMessages(roomId, limit)\n            .collectList()\n            .map { ResponseEntity.ok(it) }\n            .awaitSingle()\n    }\n}\n```",
+        "testStrategy": "페이지네이션 동작 테스트, 메시지 정렬 순서 테스트, 캐싱 효과 테스트, API 응답 시간 성능 테스트",
+        "priority": "medium",
+        "dependencies": [
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "MessageController REST API 엔드포인트 구현",
+            "description": "채팅방별 메시지 조회, 최근 메시지 조회, 메시지 개수 카운팅 등의 REST API 엔드포인트를 구현합니다.",
+            "dependencies": [],
+            "details": "1. MessageController 클래스 생성 및 기본 구조 설정\n2. 채팅방별 메시지 조회 API (/api/messages/room/{roomId})\n3. 최근 메시지 조회 API (/api/messages/room/{roomId}/recent)\n4. 메시지 개수 카운팅 API (/api/messages/room/{roomId}/count)\n5. API 요청/응답 DTO 클래스 정의\n6. 입력 파라미터 검증 및 예외 처리",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "페이지네이션 로직 및 정렬 기능 구현",
+            "description": "메시지 조회 시 페이지네이션과 시간순 정렬 기능을 구현하여 효율적인 데이터 조회를 제공합니다.",
+            "dependencies": [
+              "8.1"
+            ],
+            "details": "1. PageRequest 및 Pageable 인터페이스 활용\n2. PagedResponse DTO 클래스 구현\n3. 메시지 시간순 정렬 로직 (최신순/과거순)\n4. 페이지 크기 제한 및 기본값 설정\n5. 다음/이전 페이지 존재 여부 판단 로직\n6. 총 메시지 수 및 총 페이지 수 계산",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "메시지 검색 기능 및 필터링 구현",
+            "description": "키워드 기반 메시지 검색과 다양한 필터링 옵션을 제공하는 기능을 구현합니다.",
+            "dependencies": [
+              "8.1"
+            ],
+            "details": "1. 키워드 기반 메시지 검색 API (/api/messages/search)\n2. MongoDB 텍스트 인덱스 활용한 전문 검색\n3. 날짜 범위 필터링 기능\n4. 사용자별 메시지 필터링\n5. 메시지 타입별 필터링 (텍스트/이미지/파일)\n6. 검색 결과 하이라이팅 기능\n7. 검색 성능 최적화를 위한 인덱스 설정",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Redis 캐싱 전략 및 성능 최적화 적용",
+            "description": "최근 메시지와 자주 조회되는 데이터에 대한 Redis 캐싱 전략을 구현하여 응답 성능을 향상시킵니다.",
+            "dependencies": [
+              "8.2",
+              "8.3"
+            ],
+            "details": "1. Redis 캐시 설정 및 연결 구성\n2. 최근 메시지 캐싱 전략 구현 (채팅방별 최근 50개)\n3. 캐시 키 네이밍 규칙 및 TTL 설정\n4. 캐시 무효화 전략 (새 메시지 발생 시)\n5. 캐시 히트/미스 모니터링\n6. MongoDB 쿼리 성능 최적화 (복합 인덱스)\n7. 메모리 사용량 최적화 및 캐시 크기 제한",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "기본 채팅 웹 인터페이스 구현",
+        "description": "HTML/CSS/JavaScript 기반의 간단한 채팅 UI를 구현하여 실시간 메시징 기능을 시연합니다.",
+        "details": "1. 정적 리소스 서빙 설정 (Spring WebFlux)\n2. 로그인/회원가입 폼 구현\n3. 채팅방 목록 화면 구현\n4. 실시간 채팅 인터페이스 구현\n5. WebSocket 클라이언트 JavaScript 구현\n6. 메시지 히스토리 로딩 기능\n7. 반응형 웹 디자인 적용\n8. 실시간 피드백 UI (연결 상태, 메시지 전송 상태)\n\n```javascript\nclass ChatClient {\n    constructor(token) {\n        this.token = token;\n        this.socket = null;\n        this.currentRoomId = null;\n    }\n    \n    connect() {\n        this.socket = new WebSocket(`ws://localhost:8080/chat?token=${this.token}`);\n        \n        this.socket.onopen = () => {\n            console.log('WebSocket 연결됨');\n            this.updateConnectionStatus('connected');\n        };\n        \n        this.socket.onmessage = (event) => {\n            const message = JSON.parse(event.data);\n            this.handleMessage(message);\n        };\n        \n        this.socket.onclose = () => {\n            console.log('WebSocket 연결 해제됨');\n            this.updateConnectionStatus('disconnected');\n        };\n    }\n    \n    sendMessage(content) {\n        const message = {\n            type: 'CHAT',\n            roomId: this.currentRoomId,\n            content: content,\n            timestamp: new Date().toISOString()\n        };\n        this.socket.send(JSON.stringify(message));\n    }\n}\n```",
+        "testStrategy": "UI 컴포넌트 렌더링 테스트, WebSocket 연결 테스트, 메시지 송수신 UI 테스트, 반응형 디자인 테스트",
+        "priority": "medium",
+        "dependencies": [
+          7,
+          8
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "정적 리소스 서빙 설정 및 기본 HTML 구조 구현",
+            "description": "Spring WebFlux에서 정적 리소스를 서빙하도록 설정하고 기본 HTML 페이지 구조를 구현합니다.",
+            "dependencies": [],
+            "details": "1. WebFlux 정적 리소스 핸들러 설정\n2. 기본 HTML 템플릿 구조 생성 (index.html, login.html, chat.html)\n3. CSS/JS 파일 디렉토리 구조 설정\n4. 기본 메타 태그 및 반응형 뷰포트 설정\n5. 폰트 및 기본 스타일 리소스 준비",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "로그인 및 회원가입 폼 UI 구현",
+            "description": "사용자 인증을 위한 로그인 및 회원가입 폼 인터페이스를 구현합니다.",
+            "dependencies": [
+              "9.1"
+            ],
+            "details": "1. 로그인 폼 HTML/CSS 구현\n2. 회원가입 폼 HTML/CSS 구현\n3. 폼 유효성 검사 JavaScript 구현\n4. 에러 메시지 표시 UI 구현\n5. 로딩 상태 표시 기능\n6. JWT 토큰 저장 및 관리 로직",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "채팅방 목록 화면 구현",
+            "description": "사용자가 참여할 수 있는 채팅방 목록을 표시하는 UI를 구현합니다.",
+            "dependencies": [
+              "9.2"
+            ],
+            "details": "1. 채팅방 목록 HTML 구조 구현\n2. 채팅방 카드 컴포넌트 CSS 스타일링\n3. 채팅방 생성 모달 구현\n4. 채팅방 검색 기능 UI\n5. 실시간 참여자 수 표시\n6. 채팅방 입장/퇴장 버튼 구현",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "실시간 채팅 인터페이스 구현",
+            "description": "메시지 송수신을 위한 실시간 채팅 화면 UI를 구현합니다.",
+            "dependencies": [
+              "9.3"
+            ],
+            "details": "1. 채팅 메시지 영역 HTML/CSS 구현\n2. 메시지 입력창 및 전송 버튼 구현\n3. 메시지 버블 스타일링 (본인/상대방 구분)\n4. 타임스탬프 표시 기능\n5. 스크롤 자동 이동 기능\n6. 메시지 전송 상태 표시 (전송중, 완료, 실패)",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "WebSocket 클라이언트 JavaScript 구현",
+            "description": "서버와의 실시간 통신을 위한 WebSocket 클라이언트 로직을 구현합니다.",
+            "dependencies": [
+              "9.4"
+            ],
+            "details": "1. ChatClient 클래스 완성 구현\n2. WebSocket 연결 관리 로직\n3. 메시지 송수신 처리 함수\n4. 연결 상태 관리 및 재연결 로직\n5. 메시지 타입별 핸들러 구현\n6. 에러 처리 및 로깅 기능",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "반응형 웹 디자인 및 실시간 피드백 UI 적용",
+            "description": "모바일 대응 반응형 디자인과 실시간 상태 피드백 UI를 구현합니다.",
+            "dependencies": [
+              "9.5"
+            ],
+            "details": "1. CSS 미디어 쿼리를 활용한 반응형 레이아웃\n2. 모바일 터치 인터페이스 최적화\n3. 연결 상태 표시 컴포넌트 구현\n4. 메시지 전송 상태 애니메이션\n5. 로딩 스피너 및 프로그레스 바\n6. 토스트 알림 시스템 구현\n7. 다크모드 지원 기능",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "성능 최적화 및 에러 처리 시스템 완성",
+        "description": "Redis 캐싱 전략, WebSocket 연결 최적화, 종합적인 에러 처리 및 모니터링 시스템을 구현합니다.",
+        "details": "1. Redis 캐싱 전략 구현 (사용자 세션, 최근 메시지, 채팅방 정보)\n2. WebSocket 연결 풀 관리 및 최적화\n3. 글로벌 예외 처리 핸들러 구현\n4. Spring Boot Actuator 설정 및 헬스체크\n5. 로깅 전략 구현 (Logback 설정)\n6. 메트릭 수집 설정 (Micrometer)\n7. 성능 모니터링 대시보드 기본 설정\n8. 메모리 누수 방지 및 리소스 정리\n\n```kotlin\n@Component\nclass GlobalExceptionHandler : WebExceptionHandler {\n    \n    override fun handle(exchange: ServerWebExchange, ex: Throwable): Mono<Void> {\n        return when (ex) {\n            is AuthenticationException -> handleAuthError(exchange, ex)\n            is ValidationException -> handleValidationError(exchange, ex)\n            is WebSocketException -> handleWebSocketError(exchange, ex)\n            else -> handleGenericError(exchange, ex)\n        }\n    }\n}\n\n@Configuration\n@EnableConfigurationProperties(CacheProperties::class)\nclass CacheConfig {\n    \n    @Bean\n    fun cacheManager(): RedisCacheManager {\n        return RedisCacheManager.builder()\n            .cacheDefaults(cacheConfiguration())\n            .transactionAware()\n            .build()\n    }\n    \n    private fun cacheConfiguration(): RedisCacheConfiguration {\n        return RedisCacheConfiguration.defaultCacheConfig()\n            .entryTtl(Duration.ofMinutes(10))\n            .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(StringRedisSerializer()))\n            .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(GenericJackson2JsonRedisSerializer()))\n    }\n}\n```",
+        "testStrategy": "캐싱 효과 성능 테스트, 에러 처리 시나리오 테스트, 메모리 사용량 모니터링, 동시 접속 부하 테스트, 헬스체크 엔드포인트 테스트",
+        "priority": "medium",
+        "dependencies": [
+          9
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Redis 캐싱 전략 구현",
+            "description": "사용자 세션, 최근 메시지, 채팅방 정보에 대한 Redis 캐싱 전략을 구현하고 캐시 설정을 최적화합니다.",
+            "dependencies": [],
+            "details": "RedisCacheManager 설정, 캐시 TTL 정책 구현, 사용자 세션 캐싱, 최근 메시지 캐싱, 채팅방 정보 캐싱, 캐시 무효화 전략 구현",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "WebSocket 연결 풀 관리 및 최적화",
+            "description": "WebSocket 연결 풀을 효율적으로 관리하고 연결 최적화를 통해 성능을 향상시킵니다.",
+            "dependencies": [],
+            "details": "연결 풀 크기 설정, 유휴 연결 정리, 연결 상태 모니터링, 재연결 로직 구현, 메모리 사용량 최적화",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "글로벌 예외 처리 핸들러 구현",
+            "description": "시스템 전반의 예외를 통합적으로 처리하는 글로벌 예외 처리 핸들러를 구현합니다.",
+            "dependencies": [],
+            "details": "GlobalExceptionHandler 클래스 구현, 인증 예외 처리, 검증 예외 처리, WebSocket 예외 처리, 일반 예외 처리, 에러 응답 표준화",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Spring Boot Actuator 설정 및 헬스체크",
+            "description": "Spring Boot Actuator를 설정하여 애플리케이션 상태 모니터링과 헬스체크 기능을 구현합니다.",
+            "dependencies": [],
+            "details": "Actuator 의존성 추가, 헬스체크 엔드포인트 설정, 커스텀 헬스 인디케이터 구현, 보안 설정, 메트릭 엔드포인트 노출",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "로깅 전략 구현",
+            "description": "Logback을 활용한 체계적인 로깅 전략을 구현하여 시스템 모니터링과 디버깅을 지원합니다.",
+            "dependencies": [],
+            "details": "Logback 설정 파일 작성, 로그 레벨 설정, 파일 로테이션 정책, 구조화된 로깅 포맷, 에러 로그 분리, 성능 로그 설정",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "메트릭 수집 설정",
+            "description": "Micrometer를 활용하여 애플리케이션 메트릭을 수집하고 모니터링할 수 있는 시스템을 구축합니다.",
+            "dependencies": [
+              "10.4"
+            ],
+            "details": "Micrometer 의존성 추가, 커스텀 메트릭 정의, JVM 메트릭 수집, WebSocket 연결 메트릭, 캐시 히트율 메트릭, 데이터베이스 연결 메트릭",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "메모리 누수 방지 및 리소스 정리",
+            "description": "메모리 누수를 방지하고 시스템 리소스를 효율적으로 관리하는 메커니즘을 구현합니다.",
+            "dependencies": [
+              "10.2"
+            ],
+            "details": "WeakReference 활용, 리소스 정리 스케줄러 구현, WebSocket 세션 정리, 캐시 메모리 관리, GC 튜닝 설정, 메모리 사용량 모니터링",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "created": "2025-08-19T08:12:10.318Z",
+      "updated": "2025-08-20T01:40:39.260Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
