@@ -61,7 +61,7 @@
               "1.4"
             ],
             "details": "1. WebFluxConfigurer 구현 클래스 생성\n2. CORS 매핑 설정 (allowedOrigins, allowedMethods, allowedHeaders)\n3. Spring Security WebFlux 의존성 추가\n4. SecurityWebFilterChain 기본 설정\n5. 개발 환경용 permissive 보안 설정\n6. 프로덕션 환경 대비 보안 설정 준비",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-08-20T05:11:33.267Z",
+      "updated": "2025-08-20T05:24:11.332Z",
       "description": "Tasks for master context"
     }
   }
