@@ -21,14 +21,4 @@ class WebFluxConfig : WebFluxConfigurer {
             .allowCredentials(true)
     }
 
-    @Bean
-    fun healthCheckRouter(): RouterFunction<ServerResponse> = router {
-        GET("/health") {
-            ServerResponse.ok().bodyValue(mapOf(
-                "status" to "UP",
-                "service" to "simple-chat-server",
-                "timestamp" to System.currentTimeMillis()
-            ))
-        }
-    }
 }
