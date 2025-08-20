@@ -9,7 +9,7 @@
         "testStrategy": "프로젝트 빌드 성공 확인, Spring Boot 애플리케이션 정상 기동 테스트, 기본 헬스체크 엔드포인트 응답 확인",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -72,7 +72,7 @@
               "1.5"
             ],
             "details": "1. ./gradlew clean build 명령어로 전체 빌드 검증\n2. Spring Boot 애플리케이션 정상 기동 테스트\n3. /health 엔드포인트 응답 확인 (curl 또는 WebTestClient)\n4. 각 모듈별 테스트 클래스 기본 구조 생성\n5. 통합 테스트 설정 및 실행\n6. 빌드 성공 및 애플리케이션 기동 로그 확인",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-08-20T05:34:24.739Z",
+      "updated": "2025-08-20T06:17:19.123Z",
       "description": "Tasks for master context"
     }
   }
