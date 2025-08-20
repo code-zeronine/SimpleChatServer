@@ -1,0 +1,45 @@
+spring:
+  # MongoDB Configuration for Development
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/simplechat_dev
+    
+  # Redis Configuration for Development
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+    timeout: 2000ms
+    
+  # R2DBC Configuration for Development (PostgreSQL)
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/simplechat_dev
+    username: simplechat_dev
+    password: dev_password
+
+# Logging Configuration for Development
+logging:
+  level:
+    com.simplechat: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.data.r2dbc: DEBUG
+    io.r2dbc.postgresql: DEBUG
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"
+
+# JWT Configuration for Development
+jwt:
+  secret: ${JWT_SECRET:devSecretKeyForDevelopmentEnvironment}
+  expiration: 86400000 # 24 hours
+
+# WebSocket Configuration for Development
+websocket:
+  endpoint: /ws
+  allowed-origins: "http://localhost:3000,http://localhost:8080"
+
+# Development specific settings
+server:
+  error:
+    include-stacktrace: always
+    include-message: always

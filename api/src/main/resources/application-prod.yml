@@ -1,0 +1,69 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  # MongoDB Configuration for Production
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/simplechat}
+    
+  # Redis Configuration for Production
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DATABASE:0}
+    timeout: 5000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+    
+  # R2DBC Configuration for Production (PostgreSQL)
+  r2dbc:
+    url: ${DATABASE_URL:r2dbc:postgresql://localhost:5432/simplechat}
+    username: ${DATABASE_USERNAME:simplechat}
+    password: ${DATABASE_PASSWORD:password}
+    pool:
+      enabled: true
+      initial-size: 5
+      max-size: 20
+      max-idle-time: 30m
+
+# Logging Configuration for Production
+logging:
+  level:
+    com.simplechat: INFO
+    org.springframework.web: WARN
+    org.springframework.security: WARN
+    org.springframework.data.r2dbc: WARN
+    io.r2dbc.postgresql: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# JWT Configuration for Production
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:3600000} # 1 hour in production
+
+# WebSocket Configuration for Production
+websocket:
+  endpoint: /ws
+  allowed-origins: ${ALLOWED_ORIGINS:}
+
+# Production specific settings
+server:
+  error:
+    include-stacktrace: never
+    include-message: never
+
+# Management endpoints for Production
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
