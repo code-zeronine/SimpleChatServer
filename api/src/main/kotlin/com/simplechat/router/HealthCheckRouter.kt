@@ -15,12 +15,10 @@ class HealthCheckRouter(
 
     @Bean
     fun healthCheckRoutes(): RouterFunction<ServerResponse> = router {
-        "/api".nest {
-            accept(MediaType.APPLICATION_JSON).nest {
-                GET("/health", healthCheckHandler::health)
-                GET("/ping", healthCheckHandler::ping)
-                GET("/info", healthCheckHandler::info)
-            }
+        accept(MediaType.APPLICATION_JSON).nest {
+            GET("/health", healthCheckHandler::health)
+            GET("/ping", healthCheckHandler::ping)
+            GET("/info", healthCheckHandler::info)
         }
     }
 }
