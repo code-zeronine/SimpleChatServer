@@ -4,8 +4,8 @@
       {
         "id": 1,
         "title": "Spring Boot WebFlux 프로젝트 초기 설정 및 멀티모듈 구조 구성",
-        "description": "Gradle 9.0.0 Kotlin DSL 기반으로 Spring Boot 3.5.4 WebFlux 프로젝트를 생성하고 멀티모듈 구조를 설정합니다.",
-        "details": "1. Gradle 멀티모듈 프로젝트 구조 생성 (api, domain, infrastructure 모듈)\n2. Spring Boot 3.5.4, WebFlux, Kotlin 2.2.10 의존성 설정\n3. OpenJDK 21 LTS 타겟 설정\n4. 기본 Application 클래스 및 설정 파일 생성\n5. CORS 설정 및 기본 보안 구성\n6. build.gradle.kts에 공통 의존성 및 버전 관리 설정\n\n```kotlin\n// build.gradle.kts (root)\nsubprojects {\n    apply(plugin = \"org.springframework.boot\")\n    apply(plugin = \"org.jetbrains.kotlin.jvm\")\n    \n    dependencies {\n        implementation(\"org.springframework.boot:spring-boot-starter-webflux\")\n        implementation(\"org.jetbrains.kotlin:kotlin-reflect\")\n        implementation(\"org.jetbrains.kotlinx:kotlinx-coroutines-reactor\")\n    }\n}\n```",
+        "description": "Gradle 8.14.3 Kotlin DSL 기반으로 Spring Boot 3.5.4 WebFlux 프로젝트를 생성하고 멀티모듈 구조를 설정합니다.",
+        "details": "1. Gradle 멀티모듈 프로젝트 구조 생성 (api, domain, infrastructure 모듈)\n2. Spring Boot 3.5.4, WebFlux, Kotlin 1.9.25 의존성 설정\n3. OpenJDK 21 LTS 타겟 설정\n4. 기본 Application 클래스 및 설정 파일 생성\n5. CORS 설정 및 기본 보안 구성\n6. build.gradle.kts에 공통 의존성 및 버전 관리 설정\n\n```kotlin\n// build.gradle.kts (root)\nsubprojects {\n    apply(plugin = \"org.springframework.boot\")\n    apply(plugin = \"org.jetbrains.kotlin.jvm\")\n    \n    dependencies {\n        implementation(\"org.springframework.boot:spring-boot-starter-webflux\")\n        implementation(\"org.jetbrains.kotlin:kotlin-reflect\")\n        implementation(\"org.jetbrains.kotlinx:kotlinx-coroutines-reactor\")\n    }\n}\n```",
         "testStrategy": "프로젝트 빌드 성공 확인, Spring Boot 애플리케이션 정상 기동 테스트, 기본 헬스체크 엔드포인트 응답 확인",
         "priority": "high",
         "dependencies": [],
@@ -14,16 +14,16 @@
           {
             "id": 1,
             "title": "Gradle 멀티모듈 프로젝트 구조 생성 및 기본 설정",
-            "description": "루트 프로젝트와 api, domain, infrastructure 서브모듈을 생성하고 Gradle 9.0.0 Kotlin DSL 기반 빌드 스크립트를 구성합니다.",
+            "description": "루트 프로젝트와 api, domain, infrastructure 서브모듈을 생성하고 Gradle 8.14.3 Kotlin DSL 기반 빌드 스크립트를 구성합니다.",
             "dependencies": [],
-            "details": "1. 루트 디렉토리에 settings.gradle.kts 생성 및 서브모듈 포함 설정\n2. api, domain, infrastructure 모듈 디렉토리 구조 생성\n3. 각 모듈별 build.gradle.kts 파일 생성\n4. 모듈 간 의존성 관계 설정 (api -> domain, infrastructure -> domain)\n5. Gradle wrapper 9.0.0 버전 설정",
+            "details": "1. 루트 디렉토리에 settings.gradle.kts 생성 및 서브모듈 포함 설정\n2. api, domain, infrastructure 모듈 디렉토리 구조 생성\n3. 각 모듈별 build.gradle.kts 파일 생성\n4. 모듈 간 의존성 관계 설정 (api -> domain, infrastructure -> domain)\n5. Gradle wrapper 8.14.3 버전 설정",
             "status": "done",
             "testStrategy": ""
           },
           {
             "id": 2,
             "title": "Spring Boot 및 Kotlin 의존성 설정",
-            "description": "Spring Boot 3.5.4, WebFlux, Kotlin 2.2.10 의존성을 설정하고 OpenJDK 21 타겟을 구성합니다.",
+            "description": "Spring Boot 3.5.4, WebFlux, Kotlin 1.9.25 의존성을 설정하고 OpenJDK 21 타겟을 구성합니다.",
             "dependencies": [
               "1.1"
             ],
@@ -87,7 +87,7 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -95,7 +95,7 @@
             "description": "R2DBC PostgreSQL 드라이버 의존성을 추가하고 application.yml에 데이터베이스 연결 설정을 구성합니다.",
             "dependencies": [],
             "details": "1. build.gradle.kts에 R2DBC PostgreSQL 드라이버 의존성 추가\n2. application.yml에 PostgreSQL 연결 정보 설정 (host, port, database, username, password)\n3. R2DBC 연결 풀 설정 (initial-size, max-size, validation-query)\n4. 데이터베이스 연결 테스트 코드 작성\n5. 연결 실패 시 에러 핸들링 설정",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-08-20T06:17:19.123Z",
+      "updated": "2025-08-20T08:09:35.177Z",
       "description": "Tasks for master context"
     }
   }

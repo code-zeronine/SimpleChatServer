@@ -9,23 +9,29 @@ spring:
   
   webflux:
     base-path: /api
-  
-  # MongoDB Configuration
+
   data:
+    # MongoDB Configuration
     mongodb:
-      uri: mongodb://localhost:27017/simplechat
+      uri: mongodb://simplechat:simplechat123@localhost:27017/simplechat
     
-  # Redis Configuration
-  redis:
-    host: localhost
-    port: 6379
-    timeout: 2000ms
+    # Redis Configuration
+    redis:
+      host: localhost
+      port: 6379
+      password: simplechat123
+      timeout: 2000ms
     
   # R2DBC Configuration (PostgreSQL)
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/simplechat
     username: simplechat
-    password: password
+    password: simplechat123
+    pool:
+      initial-size: 5
+      max-size: 20
+      max-idle-time: 30m
+      validation-query: SELECT 1
 
 # Logging Configuration
 logging:

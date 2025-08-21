@@ -1,13 +1,13 @@
 plugins {
     id("org.springframework.boot") version "3.5.4" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
-    kotlin("jvm") version "2.2.10" apply false
-    kotlin("plugin.spring") version "2.2.10" apply false
+    kotlin("jvm") version "1.9.25" apply false
+    kotlin("plugin.spring") version "1.9.25" apply false
 }
 
 ext {
     set("springBootVersion", "3.5.4")
-    set("kotlinVersion", "2.2.10")
+    set("kotlinVersion", "1.9.25")
     set("kotlinCoroutinesVersion", "1.8.1")
 }
 

@@ -61,7 +61,17 @@ class ExternalServiceException(
 /**
  * Exception thrown when database operation fails
  */
-class DatabaseException(
+open class DatabaseException(
     message: String,
     cause: Throwable? = null
 ) : SimpleChatException(message, cause)
+
+class DatabaseConnectionException(
+    message: String = "Failed to connect to database",
+    cause: Throwable? = null
+) : DatabaseException(message, cause)
+
+class DatabaseOperationException(
+    message: String,
+    cause: Throwable? = null
+) : DatabaseException(message, cause)

@@ -63,8 +63,8 @@
 
 ## System Components
 - **Web Framework**: Spring Boot 3.5.4 with WebFlux (이벤트 루프 기반 논블로킹 처리)
-- **Programming Language**: Kotlin 2.2.10 (Coroutines 기반 비동기 처리)
-- **Build Tool**: Gradle 9.0.0 with Kotlin DSL
+- **Programming Language**: Kotlin 1.9.25 (Coroutines 기반 비동기 처리)
+- **Build Tool**: Gradle 8.14.3 with Kotlin DSL
 
 ## Data Models
 ```kotlin
@@ -261,8 +261,8 @@ enum class MessageType {
 ## Technical Specifications
 - **Runtime**: OpenJDK 21 LTS
 - **Framework**: Spring Boot 3.5.4 with WebFlux
-- **Language**: Kotlin 2.2.10 with Coroutines
-- **Build**: Gradle 9.0.0 with Kotlin DSL
+- **Language**: Kotlin 1.9.25 with Coroutines
+- **Build**: Gradle 8.14.3 with Kotlin DSL
 - **Databases**: PostgreSQL 15+, MongoDB 7+, Redis 7+
 
 ## WebSocket Protocol Specification
