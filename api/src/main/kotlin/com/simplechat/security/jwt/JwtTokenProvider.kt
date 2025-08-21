@@ -2,7 +2,13 @@ package com.simplechat.security.jwt
 
 import com.simplechat.config.JwtProperties
 import com.simplechat.exception.JwtAuthenticationException
-import io.jsonwebtoken.*
+import io.jsonwebtoken.Jwts
+import io.jsonwebtoken.Claims
+import io.jsonwebtoken.ExpiredJwtException
+import io.jsonwebtoken.JwtException
+import io.jsonwebtoken.MalformedJwtException
+import io.jsonwebtoken.UnsupportedJwtException
+import io.jsonwebtoken.security.SignatureException
 import io.jsonwebtoken.security.Keys
 import org.springframework.stereotype.Component
 import java.util.*
