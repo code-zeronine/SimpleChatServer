@@ -163,7 +163,7 @@
             "description": "JWT 토큰 처리를 위한 라이브러리 의존성을 추가하고 기본 설정을 구성합니다.",
             "dependencies": [],
             "details": "1. build.gradle.kts에 jjwt-api, jjwt-impl, jjwt-jackson 의존성 추가\n2. JWT 관련 설정 프로퍼티 정의 (application.yml)\n3. 토큰 만료 시간, 시크릿 키 등 기본 설정값 구성\n4. 의존성 버전 호환성 확인 및 테스트",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-08-21T07:04:18.023Z",
+      "updated": "2025-08-21T07:09:28.336Z",
       "description": "Tasks for master context"
     }
   }

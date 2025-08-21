@@ -49,6 +49,10 @@ logging:
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:3600000} # 1 hour in production
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:86400000} # 24 hours in production
+  issuer: ${JWT_ISSUER:simple-chat-server}
+  header: Authorization
+  prefix: Bearer
 
 # WebSocket Configuration for Production
 websocket:

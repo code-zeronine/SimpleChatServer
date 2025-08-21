@@ -46,8 +46,12 @@ logging:
 
 # JWT Configuration for Development
 jwt:
-  secret: ${JWT_SECRET:devSecretKeyForDevelopmentEnvironment}
-  expiration: 86400000 # 24 hours
+  secret: ${JWT_SECRET:devSecretKeyForDevelopmentEnvironment123456789}
+  expiration: 86400000 # 24 hours in milliseconds
+  refresh-expiration: 604800000 # 7 days in milliseconds
+  issuer: simple-chat-server-dev
+  header: Authorization
+  prefix: Bearer
 
 # WebSocket Configuration for Development
 websocket:
