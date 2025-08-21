@@ -1,0 +1,84 @@
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: simplechat-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: simplechatserver
+      POSTGRES_USER: simplechat
+      POSTGRES_PASSWORD: simplechat123
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./dev_env/postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U simplechat -d simplechatserver"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - simplechat-network
+
+  # MongoDB Database
+  mongodb:
+    image: mongo:7-jammy
+    container_name: simplechat-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: simplechat
+      MONGO_INITDB_ROOT_PASSWORD: simplechat123
+      MONGO_INITDB_DATABASE: simplechatserver
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+      - ./dev_env/mongodb/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD", "mongosh", "-u", "simplechat", "-p", "simplechat123", "--authenticationDatabase", "admin", "--eval", "db.runCommand('ping').ok", "--quiet" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - simplechat-network
+
+  # Redis Cache & Session Store
+  redis:
+    image: redis:7-alpine
+    container_name: simplechat-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass simplechat123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./dev_env/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "simplechat123", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - simplechat-network
+
+volumes:
+  postgres_data:
+    driver: local
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  simplechat-network:
+    driver: bridge
+    name: simplechat-network

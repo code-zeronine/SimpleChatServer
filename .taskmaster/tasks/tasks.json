@@ -106,7 +106,7 @@
               "2.1"
             ],
             "details": "1. User 데이터 클래스 생성 (@Entity, @Table 어노테이션 적용)\n2. 필드 정의 (id, email, passwordHash, nickname, createdAt)\n3. @Id 어노테이션으로 기본키 설정\n4. LocalDateTime 타입 매핑 설정\n5. 엔티티 유효성 검증 어노테이션 추가\n6. toString, equals, hashCode 메서드 적절한 구현",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-08-20T08:09:35.177Z",
+      "updated": "2025-08-21T02:19:32.437Z",
       "description": "Tasks for master context"
     }
   }
