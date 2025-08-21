@@ -14,7 +14,7 @@ spring:
 
   # R2DBC Configuration for Development (PostgreSQL)
   r2dbc:
-    url: r2dbc:postgresql://localhost:5432/simplechat
+    url: r2dbc:postgresql://localhost:5432/simplechatserver
     username: simplechat
     password: simplechat123
     pool:

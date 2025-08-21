@@ -25,7 +25,7 @@ spring:
     
   # R2DBC Configuration for Production (PostgreSQL)
   r2dbc:
-    url: ${DATABASE_URL:r2dbc:postgresql://localhost:5432/simplechat}
+    url: ${DATABASE_URL:r2dbc:postgresql://localhost:5432/simplechatserver}
     username: ${DATABASE_USERNAME:simplechat}
     password: ${DATABASE_PASSWORD:simplechat123}
     pool:
