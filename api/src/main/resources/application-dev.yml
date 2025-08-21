@@ -23,6 +23,16 @@ spring:
       max-idle-time: 30m
       validation-query: SELECT 1
 
+  # SQL 초기화 설정 (개발환경용)
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+      encoding: UTF-8
+      separator: ;
+      continue-on-error: false
+
 # Logging Configuration for Development
 logging:
   level:

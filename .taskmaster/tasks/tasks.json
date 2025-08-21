@@ -117,7 +117,7 @@
               "2.1"
             ],
             "details": "1. schema.sql 파일 생성 (users 테이블 DDL)\n2. 테이블 컬럼 정의 (id SERIAL PRIMARY KEY, email VARCHAR UNIQUE, password_hash VARCHAR, nickname VARCHAR UNIQUE, created_at TIMESTAMP)\n3. 인덱스 생성 (email, nickname 컬럼)\n4. 제약조건 설정 (NOT NULL, UNIQUE)\n5. data.sql 파일 생성 (테스트용 초기 데이터)\n6. 스키마 초기화 설정 (spring.sql.init.mode)",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-08-21T02:19:32.437Z",
+      "updated": "2025-08-21T04:15:08.001Z",
       "description": "Tasks for master context"
     }
   }
