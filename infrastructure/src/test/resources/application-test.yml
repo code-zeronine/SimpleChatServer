@@ -1,5 +1,8 @@
 spring:
-  # R2DBC Configuration for Testing
+  application:
+    name: simple-chat-server-test
+    
+  # PostgreSQL R2DBC Configuration for testing (개발환경 DB 사용)
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/simplechatserver
     username: simplechat
@@ -10,7 +13,7 @@ spring:
       max-idle-time: 30m
       validation-query: SELECT 1
 
-  # SQL 초기화 설정 (테스트환경용)
+  # SQL 초기화 설정 (테스트환경용)  
   sql:
     init:
       mode: always
@@ -18,10 +21,13 @@ spring:
       data-locations: classpath:data.sql
       encoding: UTF-8
       separator: ;
-      continue-on-error: false
+      continue-on-error: true
 
 # Logging Configuration for Testing
 logging:
   level:
     com.simplechat: DEBUG
     org.springframework.r2dbc: DEBUG
+    io.r2dbc.postgresql: DEBUG
+  pattern:
+    console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%5p) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"

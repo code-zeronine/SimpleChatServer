@@ -87,7 +87,7 @@
         "dependencies": [
           1
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -134,13 +134,13 @@
           {
             "id": 5,
             "title": "R2DBC 설정 클래스 및 연동 테스트 구현",
-            "description": "R2DBC 설정 클래스를 구현하고 데이터베이스 연동이 정상 동작하는지 테스트합니다.",
+            "description": "R2DBC 설정 클래스를 구현하고 데이터베이스 연동이 정상 동작하는지 테스트합니다. [Updated: 2025. 8. 21.]",
             "dependencies": [
               "2.3",
               "2.4"
             ],
-            "details": "1. R2dbcConfig 설정 클래스 생성 (@Configuration)\n2. ConnectionFactory 빈 설정\n3. R2dbcTransactionManager 설정\n4. DatabaseClient 설정\n5. UserRepository 단위 테스트 작성 (CRUD 작업)\n6. 데이터베이스 연결 및 트랜잭션 테스트\n7. 테스트 데이터베이스 설정 (TestContainers 또는 H2)",
-            "status": "pending",
+            "details": "1. R2dbcConfig 설정 클래스 생성 (@Configuration)\n2. ConnectionFactory 빈 설정\n3. R2dbcTransactionManager 설정\n4. DatabaseClient 설정\n5. UserRepository 단위 테스트 작성 (CRUD 작업)\n6. 데이터베이스 연결 및 트랜잭션 테스트\n7. 테스트 데이터베이스 설정 (TestContainers 또는 H2)\n<info added on 2025-08-21T06:51:30.165Z>\n8. 개발환경 PostgreSQL 데이터베이스 직접 연결 설정\n9. application-test.yml에서 실제 DB 연결 정보 구성\n10. 테스트용 데이터베이스 스키마 및 초기 데이터 설정\n11. 통합 테스트 환경에서 실제 DB 트랜잭션 검증\n12. 테스트 실행 후 데이터 정리 전략 구현 (@Transactional, @Rollback)\n</info added on 2025-08-21T06:51:30.165Z>",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -155,7 +155,7 @@
         "dependencies": [
           2
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -163,7 +163,7 @@
             "description": "JWT 토큰 처리를 위한 라이브러리 의존성을 추가하고 기본 설정을 구성합니다.",
             "dependencies": [],
             "details": "1. build.gradle.kts에 jjwt-api, jjwt-impl, jjwt-jackson 의존성 추가\n2. JWT 관련 설정 프로퍼티 정의 (application.yml)\n3. 토큰 만료 시간, 시크릿 키 등 기본 설정값 구성\n4. 의존성 버전 호환성 확인 및 테스트",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-08-21T04:28:49.418Z",
+      "updated": "2025-08-21T07:04:18.023Z",
       "description": "Tasks for master context"
     }
   }
