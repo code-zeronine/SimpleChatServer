@@ -83,7 +83,7 @@ class UserTest {
 
         // Then
         assertFalse(violations.isEmpty())
-        assertTrue(violations.any { it.message.contains("비밀번호 해시는 필수") })
+        assertTrue(violations.any { it.message.contains("비밀번호는 필수") })
     }
 
     @Test

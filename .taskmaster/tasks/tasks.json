@@ -128,7 +128,7 @@
               "2.2"
             ],
             "details": "1. UserRepository 인터페이스 생성 (ReactiveCrudRepository 상속)\n2. findByEmail 메서드 정의 (Mono<User> 반환)\n3. existsByEmail 메서드 정의 (Mono<Boolean> 반환)\n4. existsByNickname 메서드 정의 (Mono<Boolean> 반환)\n5. 커스텀 쿼리 메서드 추가 (@Query 어노테이션 활용)\n6. Repository 메서드 네이밍 컨벤션 적용",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-08-21T04:15:08.001Z",
+      "updated": "2025-08-21T04:28:49.418Z",
       "description": "Tasks for master context"
     }
   }
