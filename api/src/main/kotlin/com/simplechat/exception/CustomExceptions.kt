@@ -19,10 +19,18 @@ class ResourceNotFoundException(
 /**
  * Exception thrown when user authentication fails
  */
-class AuthenticationException(
+open class AuthenticationException(
     message: String,
     cause: Throwable? = null
 ) : SimpleChatException(message, cause)
+
+/**
+ * Exception thrown when JWT authentication/validation fails
+ */
+class JwtAuthenticationException(
+    message: String,
+    cause: Throwable? = null
+) : AuthenticationException(message, cause)
 
 /**
  * Exception thrown when user authorization fails

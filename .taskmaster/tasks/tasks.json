@@ -174,7 +174,7 @@
               "3.1"
             ],
             "details": "1. JWT 토큰 생성 메서드 구현 (generateToken)\n2. 토큰 유효성 검증 메서드 구현 (validateToken)\n3. 토큰에서 사용자 정보 추출 메서드 구현 (getUsernameFromToken)\n4. 토큰 만료 시간 확인 메서드 구현\n5. 리프레시 토큰 생성 및 검증 로직 구현\n6. 예외 처리 (만료, 변조, 형식 오류)",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-08-21T07:09:28.336Z",
+      "updated": "2025-08-21T07:17:34.503Z",
       "description": "Tasks for master context"
     }
   }
