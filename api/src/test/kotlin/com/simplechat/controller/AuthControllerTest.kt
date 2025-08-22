@@ -211,20 +211,4 @@ class AuthControllerTest {
             .verifyComplete()
     }
 
-    @Test
-    fun `should get current user successfully`() {
-        // Given
-        val authHeader = "Bearer valid_access_token"
-        `when`(authService.validateUser("valid_access_token")).thenReturn(Mono.just(testUserDto))
-
-        // When & Then
-        StepVerifier.create(authController.getCurrentUser(authHeader))
-            .assertNext { response ->
-                assertEquals(HttpStatus.OK, response.statusCode)
-                assertNotNull(response.body)
-                assertEquals(testUserDto.email, response.body!!.email)
-                assertEquals(testUserDto.nickname, response.body!!.nickname)
-            }
-            .verifyComplete()
-    }
 }

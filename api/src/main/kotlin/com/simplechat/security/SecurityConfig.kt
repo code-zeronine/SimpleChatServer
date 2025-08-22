@@ -44,7 +44,7 @@ class SecurityConfig {
                     .pathMatchers("/api/health", "/api/ping").permitAll()
                     .pathMatchers("/actuator/health").permitAll()
                     .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                    .pathMatchers("/api/auth/**").permitAll()
+                    .pathMatchers("/api/auth/signup", "/api/auth/login", "/api/auth/check-email", "/api/auth/check-nickname").permitAll()
                     .anyExchange().authenticated() // Production: Require authentication
             }
             .build()

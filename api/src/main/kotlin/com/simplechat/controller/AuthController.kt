@@ -72,15 +72,4 @@ class AuthController(
             }
     }
 
-    /**
-     * 사용자 정보 조회 엔드포인트 (토큰 기반)
-     */
-    @GetMapping("/me")
-    fun getCurrentUser(@RequestHeader("Authorization") authHeader: String): Mono<ResponseEntity<UserDto>> {
-        val token = authHeader.removePrefix("Bearer ")
-        return authService.validateUser(token)
-            .map { user ->
-                ResponseEntity.ok(user)
-            }
-    }
 }
