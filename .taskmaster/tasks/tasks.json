@@ -155,7 +155,7 @@
         "dependencies": [
           2
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -234,7 +234,7 @@
         "dependencies": [
           3
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -242,7 +242,7 @@
             "description": "ChatRoom 엔티티 클래스와 ChatRoomRepository 인터페이스를 구현합니다.",
             "dependencies": [],
             "details": "1. ChatRoom 엔티티 클래스 구현 (id, name, description, createdAt, updatedAt)\n2. R2DBC 어노테이션 설정 (@Table, @Id, @Column)\n3. ChatRoomRepository 인터페이스 구현 (ReactiveCrudRepository 상속)\n4. 커스텀 쿼리 메서드 정의 (findByNameContaining, findByCreatedAtAfter)\n5. 엔티티 검증 어노테이션 추가 (@NotBlank, @Size)",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-08-22T03:30:18.790Z",
+      "updated": "2025-08-22T03:41:50.465Z",
       "description": "Tasks for master context"
     }
   }
