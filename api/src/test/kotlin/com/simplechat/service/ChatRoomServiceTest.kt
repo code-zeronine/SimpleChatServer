@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.springframework.transaction.reactive.TransactionalOperator
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
@@ -28,11 +29,13 @@ class ChatRoomServiceTest {
     private val userRepository = mockk<UserRepository>()
     private val userChatRoomRepository = mockk<UserChatRoomRepository>()
     private val userChatRoomService = mockk<UserChatRoomService>()
+    private val transactionalOperator = mockk<TransactionalOperator>()
     private val chatRoomService = ChatRoomService(
         chatRoomRepository,
         userRepository,
         userChatRoomRepository,
-        userChatRoomService
+        userChatRoomService,
+        transactionalOperator
     )
 
     private lateinit var owner: User
@@ -46,6 +49,9 @@ class ChatRoomServiceTest {
     @BeforeEach
     fun setUp() {
         clearAllMocks()
+        
+        // TransactionalOperator mock 설정 - 모든 Mono를 그대로 통과시킴
+        every { transactionalOperator.transactional(any<Mono<*>>()) } answers { firstArg<Mono<*>>() }
 
         owner = User(id = 1L, email = "owner@test.com", passwordHash = "hashed", nickname = "Owner")
         admin = User(id = 2L, email = "admin@test.com", passwordHash = "hashed", nickname = "Admin")

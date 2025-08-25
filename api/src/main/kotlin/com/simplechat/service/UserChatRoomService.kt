@@ -13,6 +13,7 @@ import com.simplechat.infrastructure.repository.ChatRoomRepository
 import com.simplechat.infrastructure.repository.UserRepository
 import com.simplechat.infrastructure.repository.UserChatRoomRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.reactive.TransactionalOperator
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.LocalDateTime
@@ -26,7 +27,8 @@ import java.time.LocalDateTime
 class UserChatRoomService(
     private val userChatRoomRepository: UserChatRoomRepository,
     private val userRepository: UserRepository,
-    private val chatRoomRepository: ChatRoomRepository
+    private val chatRoomRepository: ChatRoomRepository,
+    private val transactionalOperator: TransactionalOperator
 ) {
 
     /**
@@ -52,6 +54,7 @@ class UserChatRoomService(
                         }
                     }
             }
+            .`as`(transactionalOperator::transactional)
     }
 
     /**
@@ -65,6 +68,7 @@ class UserChatRoomService(
                 userChatRoomRepository.update(leftRelationship)
             }
             .then()
+            .`as`(transactionalOperator::transactional)
     }
 
     /**
@@ -77,6 +81,7 @@ class UserChatRoomService(
     ): Mono<Void> {
         return validateKickPermission(requesterId, targetUserId, chatRoomId)
             .then(leaveChatRoom(targetUserId, chatRoomId))
+            .`as`(transactionalOperator::transactional)
     }
 
     /**
@@ -93,6 +98,7 @@ class UserChatRoomService(
                 val updatedRelationship = targetRelationship.changeRole(newRole)
                 userChatRoomRepository.update(updatedRelationship)
             }
+            .`as`(transactionalOperator::transactional)
     }
 
     /**

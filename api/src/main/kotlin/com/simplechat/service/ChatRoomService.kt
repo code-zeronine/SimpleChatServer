@@ -12,6 +12,7 @@ import com.simplechat.infrastructure.repository.ChatRoomRepository
 import com.simplechat.infrastructure.repository.UserRepository
 import com.simplechat.infrastructure.repository.UserChatRoomRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.reactive.TransactionalOperator
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.LocalDateTime
@@ -27,7 +28,8 @@ class ChatRoomService(
     private val chatRoomRepository: ChatRoomRepository,
     private val userRepository: UserRepository,
     private val userChatRoomRepository: UserChatRoomRepository,
-    private val userChatRoomService: UserChatRoomService
+    private val userChatRoomService: UserChatRoomService,
+    private val transactionalOperator: TransactionalOperator
 ) {
 
     /**
@@ -51,6 +53,7 @@ class ChatRoomService(
                 userChatRoomService.joinChatRoom(ownerId, savedRoom.id!!, ChatRoomRole.OWNER)
                     .thenReturn(savedRoom)
             }
+            .`as`(transactionalOperator::transactional)
     }
 
     /**
@@ -74,6 +77,7 @@ class ChatRoomService(
                     updateAndSaveRoom(room, name, description, maxParticipants)
                 }
             }
+            .`as`(transactionalOperator::transactional)
     }
 
     /**
@@ -86,6 +90,7 @@ class ChatRoomService(
                 userChatRoomRepository.deleteByChatRoomId(roomId)
                     .then(chatRoomRepository.deleteById(roomId))
             }
+            .`as`(transactionalOperator::transactional)
     }
 
     /**
@@ -115,6 +120,7 @@ class ChatRoomService(
                     userChatRoomService.joinChatRoom(userId, roomId, memberRole, invitedBy)
                 }
             }
+            .`as`(transactionalOperator::transactional)
     }
 
     /**
@@ -129,6 +135,7 @@ class ChatRoomService(
                     userChatRoomService.leaveChatRoom(userId, roomId)
                 }
             }
+            .`as`(transactionalOperator::transactional)
     }
 
     /**
