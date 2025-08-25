@@ -339,4 +339,19 @@ class UserChatRoomService(
                 }
             }
     }
+    
+    /**
+     * 채팅방의 모든 사용자-채팅방 관계를 삭제합니다. (채팅방 삭제 시 사용)
+     */
+    fun deleteAllByChatRoomId(chatRoomId: Long): Mono<Void> {
+        return userChatRoomRepository.deleteByChatRoomId(chatRoomId)
+            .`as`(transactionalOperator::transactional)
+    }
+    
+    /**
+     * 채팅방의 총 참여자 수를 조회합니다. (모든 상태 포함)
+     */
+    fun countTotalParticipants(chatRoomId: Long): Mono<Long> {
+        return userChatRoomRepository.countByChatRoomId(chatRoomId)
+    }
 }

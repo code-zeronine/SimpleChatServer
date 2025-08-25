@@ -11,7 +11,6 @@ import com.simplechat.exception.InsufficientPermissionException
 import com.simplechat.exception.UserNotFoundException
 import com.simplechat.infrastructure.repository.ChatRoomRepository
 import com.simplechat.infrastructure.repository.UserRepository
-import com.simplechat.infrastructure.repository.UserChatRoomRepository
 import io.mockk.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -27,13 +26,11 @@ class ChatRoomServiceTest {
 
     private val chatRoomRepository = mockk<ChatRoomRepository>()
     private val userRepository = mockk<UserRepository>()
-    private val userChatRoomRepository = mockk<UserChatRoomRepository>()
     private val userChatRoomService = mockk<UserChatRoomService>()
     private val transactionalOperator = mockk<TransactionalOperator>()
     private val chatRoomService = ChatRoomService(
         chatRoomRepository,
         userRepository,
-        userChatRoomRepository,
         userChatRoomService,
         transactionalOperator
     )
@@ -188,13 +185,13 @@ class ChatRoomServiceTest {
         fun `성공 - 소유자가 채팅방을 삭제한다`() {
             every { userChatRoomService.getUserChatRoomRelationship(owner.id!!, chatRoom.id!!) } returns Mono.just(ownerRelationship)
             every { chatRoomRepository.findById(chatRoom.id!!) } returns Mono.just(chatRoom)
-            every { userChatRoomRepository.deleteByChatRoomId(chatRoom.id!!) } returns Mono.empty()
+            every { userChatRoomService.deleteAllByChatRoomId(chatRoom.id!!) } returns Mono.empty()
             every { chatRoomRepository.deleteById(chatRoom.id!!) } returns Mono.empty()
 
             StepVerifier.create(chatRoomService.deleteChatRoom(chatRoom.id!!, owner.id!!))
                 .verifyComplete()
 
-            verify { userChatRoomRepository.deleteByChatRoomId(chatRoom.id!!) }
+            verify { userChatRoomService.deleteAllByChatRoomId(chatRoom.id!!) }
             verify { chatRoomRepository.deleteById(chatRoom.id!!) }
         }
 
@@ -316,7 +313,7 @@ class ChatRoomServiceTest {
             every { userChatRoomService.changeUserRole(owner.id!!, admin.id!!, chatRoom.id!!, ChatRoomRole.OWNER) } returns Mono.just(adminRelationship.changeRole(ChatRoomRole.OWNER))
             every { userChatRoomService.leaveChatRoom(owner.id!!, chatRoom.id!!) } returns Mono.empty()
             // 혼자 있는 경우에 대한 백업 mock (switchIfEmpty에서 호출될 수 있음)
-            every { userChatRoomRepository.deleteByChatRoomId(chatRoom.id!!) } returns Mono.empty()
+            every { userChatRoomService.deleteAllByChatRoomId(chatRoom.id!!) } returns Mono.empty()
             every { chatRoomRepository.deleteById(chatRoom.id!!) } returns Mono.empty()
 
             StepVerifier.create(chatRoomService.leaveChatRoom(owner.id!!, chatRoom.id!!))
@@ -333,7 +330,7 @@ class ChatRoomServiceTest {
             every { userChatRoomService.changeUserRole(owner.id!!, member.id!!, chatRoom.id!!, ChatRoomRole.OWNER) } returns Mono.just(memberRelationship.changeRole(ChatRoomRole.OWNER))
             every { userChatRoomService.leaveChatRoom(owner.id!!, chatRoom.id!!) } returns Mono.empty()
             // 혼자 있는 경우에 대한 백업 mock (switchIfEmpty에서 호출될 수 있음)
-            every { userChatRoomRepository.deleteByChatRoomId(chatRoom.id!!) } returns Mono.empty()
+            every { userChatRoomService.deleteAllByChatRoomId(chatRoom.id!!) } returns Mono.empty()
             every { chatRoomRepository.deleteById(chatRoom.id!!) } returns Mono.empty()
 
             StepVerifier.create(chatRoomService.leaveChatRoom(owner.id!!, chatRoom.id!!))
@@ -348,7 +345,7 @@ class ChatRoomServiceTest {
             every { userChatRoomService.getChatRoomAdmins(chatRoom.id!!) } returns Flux.empty()
             every { userChatRoomService.getChatRoomActiveParticipants(chatRoom.id!!) } returns Flux.just(ownerRelationship)
             every { userChatRoomService.leaveChatRoom(owner.id!!, chatRoom.id!!) } returns Mono.empty()
-            every { userChatRoomRepository.deleteByChatRoomId(chatRoom.id!!) } returns Mono.empty()
+            every { userChatRoomService.deleteAllByChatRoomId(chatRoom.id!!) } returns Mono.empty()
             every { chatRoomRepository.deleteById(chatRoom.id!!) } returns Mono.empty()
 
             StepVerifier.create(chatRoomService.leaveChatRoom(owner.id!!, chatRoom.id!!))

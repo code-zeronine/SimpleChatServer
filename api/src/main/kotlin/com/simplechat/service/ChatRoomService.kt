@@ -10,7 +10,6 @@ import com.simplechat.exception.UserNotFoundException
 import com.simplechat.exception.BusinessLogicException
 import com.simplechat.infrastructure.repository.ChatRoomRepository
 import com.simplechat.infrastructure.repository.UserRepository
-import com.simplechat.infrastructure.repository.UserChatRoomRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.reactive.TransactionalOperator
 import reactor.core.publisher.Flux
@@ -27,7 +26,6 @@ import java.time.LocalDateTime
 class ChatRoomService(
     private val chatRoomRepository: ChatRoomRepository,
     private val userRepository: UserRepository,
-    private val userChatRoomRepository: UserChatRoomRepository,
     private val userChatRoomService: UserChatRoomService,
     private val transactionalOperator: TransactionalOperator
 ) {
@@ -87,7 +85,7 @@ class ChatRoomService(
         return validateRoomDeletionPermission(requesterId, roomId)
             .flatMap { room ->
                 // 모든 참여자 관계 삭제 후 채팅방 삭제
-                userChatRoomRepository.deleteByChatRoomId(roomId)
+                userChatRoomService.deleteAllByChatRoomId(roomId)
                     .then(chatRoomRepository.deleteById(roomId))
             }
             .`as`(transactionalOperator::transactional)
@@ -285,7 +283,7 @@ class ChatRoomService(
             .switchIfEmpty(Mono.error(ChatRoomNotFoundException("채팅방을 찾을 수 없습니다.")))
             .flatMap { room ->
                 val activeCountMono = userChatRoomService.countActiveParticipants(roomId)
-                val totalCountMono = userChatRoomRepository.countByChatRoomId(roomId)
+                val totalCountMono = userChatRoomService.countTotalParticipants(roomId)
                 
                 Mono.zip(activeCountMono, totalCountMono)
                     .map { tuple ->
@@ -485,7 +483,7 @@ class ChatRoomService(
                     .switchIfEmpty(
                         // 혼자 있는 경우 직접 삭제 (순환 참조 방지)
                         userChatRoomService.leaveChatRoom(ownerId, roomId)
-                            .then(userChatRoomRepository.deleteByChatRoomId(roomId))
+                            .then(userChatRoomService.deleteAllByChatRoomId(roomId))
                             .then(chatRoomRepository.deleteById(roomId))
                     )
             )
