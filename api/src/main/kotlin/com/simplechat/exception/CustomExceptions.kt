@@ -11,7 +11,7 @@ abstract class SimpleChatException(
 /**
  * Exception thrown when a requested resource is not found
  */
-class ResourceNotFoundException(
+open class ResourceNotFoundException(
     message: String,
     cause: Throwable? = null
 ) : SimpleChatException(message, cause)
@@ -35,7 +35,7 @@ class JwtAuthenticationException(
 /**
  * Exception thrown when user authorization fails
  */
-class AuthorizationException(
+open class AuthorizationException(
     message: String,
     cause: Throwable? = null
 ) : SimpleChatException(message, cause)
@@ -52,7 +52,7 @@ class ValidationException(
 /**
  * Exception thrown when business logic validation fails
  */
-class BusinessLogicException(
+open class BusinessLogicException(
     message: String,
     cause: Throwable? = null
 ) : SimpleChatException(message, cause)
@@ -83,3 +83,28 @@ class DatabaseOperationException(
     message: String,
     cause: Throwable? = null
 ) : DatabaseException(message, cause)
+
+/**
+ * Exception thrown when user is not found
+ */
+class UserNotFoundException(message: String) : ResourceNotFoundException(message)
+
+/**
+ * Exception thrown when chat room is not found
+ */
+class ChatRoomNotFoundException(message: String) : ResourceNotFoundException(message)
+
+/**
+ * Exception thrown when user-chat room relationship is not found
+ */
+class UserChatRoomNotFoundException(message: String) : ResourceNotFoundException(message)
+
+/**
+ * Exception thrown when user-chat room relationship already exists
+ */
+class UserChatRoomAlreadyExistsException(message: String) : BusinessLogicException(message)
+
+/**
+ * Exception thrown when user has insufficient permissions
+ */
+class InsufficientPermissionException(message: String) : AuthorizationException(message)

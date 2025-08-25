@@ -2,6 +2,7 @@
 -- PostgreSQL용 사용자 테이블 및 채팅방 테이블 관련 스키마 정의
 
 -- 기존 테이블이 있다면 삭제 (개발환경용)
+DROP TABLE IF EXISTS user_chat_rooms CASCADE;
 DROP TABLE IF EXISTS chat_rooms CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 
@@ -81,3 +82,63 @@ ALTER TABLE chat_rooms ADD CONSTRAINT chk_chat_rooms_max_participants
 
 -- 채팅방 이름에 대한 중복 제약조건 (선택사항)
 -- CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_rooms_name_unique ON chat_rooms(name);
+
+-- User-Chat Room 관계 테이블 생성 (다대다 관계)
+CREATE TABLE user_chat_rooms (
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    chat_room_id BIGINT NOT NULL REFERENCES chat_rooms(id) ON DELETE CASCADE,
+    role VARCHAR(20) NOT NULL DEFAULT 'MEMBER',
+    joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    last_read_at TIMESTAMP,
+    is_muted BOOLEAN NOT NULL DEFAULT FALSE,
+    is_pinned BOOLEAN NOT NULL DEFAULT FALSE,
+    left_at TIMESTAMP,
+    invited_by BIGINT REFERENCES users(id),
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    -- 복합 기본키 설정
+    PRIMARY KEY (user_id, chat_room_id)
+);
+
+-- 사용자-채팅방 관계 테이블 인덱스 생성 (성능 최적화)
+CREATE INDEX IF NOT EXISTS idx_user_chat_rooms_user_id ON user_chat_rooms(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_chat_rooms_chat_room_id ON user_chat_rooms(chat_room_id);
+CREATE INDEX IF NOT EXISTS idx_user_chat_rooms_role ON user_chat_rooms(role);
+CREATE INDEX IF NOT EXISTS idx_user_chat_rooms_is_active ON user_chat_rooms(is_active);
+CREATE INDEX IF NOT EXISTS idx_user_chat_rooms_joined_at ON user_chat_rooms(joined_at);
+CREATE INDEX IF NOT EXISTS idx_user_chat_rooms_last_read_at ON user_chat_rooms(last_read_at);
+CREATE INDEX IF NOT EXISTS idx_user_chat_rooms_left_at ON user_chat_rooms(left_at);
+CREATE INDEX IF NOT EXISTS idx_user_chat_rooms_invited_by ON user_chat_rooms(invited_by);
+
+-- 활성 참여자만 조회하기 위한 복합 인덱스
+CREATE INDEX IF NOT EXISTS idx_user_chat_rooms_active_participants 
+    ON user_chat_rooms(chat_room_id, is_active) WHERE is_active = TRUE;
+
+-- 사용자별 활성 채팅방 조회를 위한 복합 인덱스
+CREATE INDEX IF NOT EXISTS idx_user_chat_rooms_user_active 
+    ON user_chat_rooms(user_id, is_active) WHERE is_active = TRUE;
+
+-- 사용자-채팅방 관계 테이블 코멘트
+COMMENT ON TABLE user_chat_rooms IS '사용자와 채팅방 간의 다대다 관계를 저장하는 테이블';
+COMMENT ON COLUMN user_chat_rooms.user_id IS '참여 사용자 ID';
+COMMENT ON COLUMN user_chat_rooms.chat_room_id IS '참여 채팅방 ID';
+COMMENT ON COLUMN user_chat_rooms.role IS '채팅방에서의 역할 (MEMBER, ADMIN, OWNER)';
+COMMENT ON COLUMN user_chat_rooms.joined_at IS '채팅방 참여 일시';
+COMMENT ON COLUMN user_chat_rooms.is_active IS '활성 참여 상태';
+COMMENT ON COLUMN user_chat_rooms.last_read_at IS '마지막 읽음 시간';
+COMMENT ON COLUMN user_chat_rooms.is_muted IS '채팅방 음소거 상태';
+COMMENT ON COLUMN user_chat_rooms.is_pinned IS '채팅방 고정 상태';
+COMMENT ON COLUMN user_chat_rooms.left_at IS '채팅방을 나간 시간';
+COMMENT ON COLUMN user_chat_rooms.invited_by IS '초대한 사용자 ID';
+COMMENT ON COLUMN user_chat_rooms.updated_at IS '마지막 업데이트 시간';
+
+-- 사용자-채팅방 관계 제약조건 추가
+ALTER TABLE user_chat_rooms ADD CONSTRAINT chk_user_chat_rooms_role 
+    CHECK (role IN ('MEMBER', 'ADMIN', 'OWNER'));
+
+ALTER TABLE user_chat_rooms ADD CONSTRAINT chk_user_chat_rooms_left_after_joined 
+    CHECK (left_at IS NULL OR left_at >= joined_at);
+
+ALTER TABLE user_chat_rooms ADD CONSTRAINT chk_user_chat_rooms_read_after_joined 
+    CHECK (last_read_at IS NULL OR last_read_at >= joined_at);

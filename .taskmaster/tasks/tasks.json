@@ -242,7 +242,7 @@
             "description": "ChatRoom 엔티티 클래스와 ChatRoomRepository 인터페이스를 구현합니다.",
             "dependencies": [],
             "details": "1. ChatRoom 엔티티 클래스 구현 (id, name, description, createdAt, updatedAt)\n2. R2DBC 어노테이션 설정 (@Table, @Id, @Column)\n3. ChatRoomRepository 인터페이스 구현 (ReactiveCrudRepository 상속)\n4. 커스텀 쿼리 메서드 정의 (findByNameContaining, findByCreatedAtAfter)\n5. 엔티티 검증 어노테이션 추가 (@NotBlank, @Size)",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -253,7 +253,7 @@
               "4.1"
             ],
             "details": "1. UserChatRoom 엔티티 클래스 구현 (userId, chatRoomId, joinedAt, role)\n2. user_chat_rooms 테이블 스키마 설계\n3. UserChatRoomRepository 인터페이스 구현\n4. 복합키 설정 및 인덱스 최적화\n5. 채팅방 역할 enum 정의 (OWNER, ADMIN, MEMBER)\n6. 관계 조회 쿼리 메서드 구현",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-08-22T03:41:50.465Z",
+      "updated": "2025-08-25T00:09:44.895Z",
       "description": "Tasks for master context"
     }
   }
