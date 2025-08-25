@@ -292,6 +292,17 @@ class UserChatRoomRepository(
     }
 
     /**
+     * 특정 채팅방의 총 참여자 수를 조회합니다 (활성/비활성 모두 포함).
+     */
+    fun countByChatRoomId(chatRoomId: Long): Mono<Long> {
+        return template.getDatabaseClient()
+            .sql("SELECT COUNT(*) FROM user_chat_rooms WHERE chat_room_id = :chatRoomId")
+            .bind("chatRoomId", chatRoomId)
+            .map { row, _ -> row.get(0, Long::class.java)!! }
+            .one()
+    }
+
+    /**
      * 사용자-채팅방 관계를 삭제합니다 (물리적 삭제).
      */
     fun delete(userChatRoom: UserChatRoom): Mono<Void> {
