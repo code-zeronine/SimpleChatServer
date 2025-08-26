@@ -16,6 +16,8 @@ import java.time.LocalDateTime
  */
 @Document(collection = "chat_messages")
 @CompoundIndex(def = "{'roomId': 1, 'timestamp': -1}", name = "idx_roomId_timestamp")
+@CompoundIndex(def = "{'roomId': 1, 'messageType': 1, 'timestamp': -1}", name = "idx_roomId_messageType_timestamp")
+@CompoundIndex(def = "{'userId': 1, 'timestamp': -1}", name = "idx_userId_timestamp")
 data class ChatMessageEntity(
     @Id
     val id: String? = null,
@@ -35,6 +37,7 @@ data class ChatMessageEntity(
     val timestamp: LocalDateTime = LocalDateTime.now(),
     
     @Field("messageType")
+    @Indexed
     val messageType: MessageType = MessageType.TEXT
 ) {
     /**

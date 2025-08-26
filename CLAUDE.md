@@ -25,6 +25,80 @@
 - Write tests using `StepVerifier` for reactive streams
 - Use `@WebFluxTest` for web layer testing
 
+## Project Structure Guidelines
+**Always follow the established project structure and architectural patterns when implementing code.**
+
+### Multi-Module Architecture:
+```
+SimpleChatServer/
+├── api/          # Application layer (Controllers, Services, DTOs)
+├── domain/       # Domain layer (Entities, Value Objects, Domain Logic)
+└── infrastructure/  # Infrastructure layer (Repositories, External APIs, Data Persistence)
+```
+
+### Implementation Rules by Module:
+
+#### **API Module (`/api`)**
+- **Controllers**: REST API endpoints, WebSocket handlers
+- **Application Services**: Business workflow orchestration, transaction boundaries
+- **DTOs**: Request/Response data transfer objects
+- **Configuration**: Web security, CORS, validation
+- **Dependencies**: Can depend on domain and infrastructure modules
+
+Examples:
+- `ChatRoomController` - REST API endpoints
+- `ChatMessageService` - Application service orchestrating business workflows
+- `CreateChatRoomRequest` - Request DTO
+
+#### **Domain Module (`/domain`)**
+- **Entities**: Core business objects (ChatMessage, User, ChatRoom)
+- **Value Objects**: Immutable objects representing concepts
+- **Domain Logic**: Business rules and validation
+- **Interfaces**: Repository interfaces (not implementations)
+- **Dependencies**: Should have NO dependencies on other modules
+
+Examples:
+- `ChatMessage` - Pure domain entity with business logic
+- `MessageType` - Enum/Value object
+- `ChatMessageRepository` - Interface only
+
+#### **Infrastructure Module (`/infrastructure`)**
+- **Repository Implementations**: Data access layer
+- **Entity Classes**: Database-specific entities (R2DBC, MongoDB)
+- **External Service Adapters**: Third-party integrations
+- **Configuration**: Database, messaging, external services
+- **Dependencies**: Can depend on domain module only
+
+Examples:
+- `ChatMessageEntity` - MongoDB document entity
+- `ChatMessageRepositoryImpl` - Repository implementation
+- `MongoConfig` - Database configuration
+
+### Code Implementation Guidelines:
+
+1. **Service Placement**:
+   - Application Services → `api/src/main/kotlin/com/simplechat/service/`
+   - Domain Services → `domain/src/main/kotlin/com/simplechat/domain/service/`
+
+2. **Entity Separation**:
+   - Domain Entities → `domain/src/main/kotlin/com/simplechat/domain/entity/`
+   - Infrastructure Entities → `infrastructure/src/main/kotlin/com/simplechat/infrastructure/entity/`
+
+3. **Repository Pattern**:
+   - Interfaces → `domain/src/main/kotlin/com/simplechat/domain/repository/`
+   - Implementations → `infrastructure/src/main/kotlin/com/simplechat/infrastructure/repository/`
+
+4. **Clean Architecture Principles**:
+   - Domain layer should be free of external dependencies
+   - Infrastructure entities should convert to/from domain entities
+   - Application services should orchestrate domain logic and coordinate with infrastructure
+
+5. **Testing Strategy**:
+   - Unit tests for domain logic using pure objects
+   - Application service tests using MockK for dependencies
+   - Integration tests for repository implementations
+   - Web layer tests using `@WebFluxTest`
+
 ## Task Master AI Instructions
 **Import Task Master's development workflow commands and guidelines, treat as if import is in the main CLAUDE.md file.**
 @./.taskmaster/CLAUDE.md
