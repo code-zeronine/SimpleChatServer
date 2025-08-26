@@ -2,9 +2,13 @@ package com.simplechat.infrastructure.repository
 
 import com.simplechat.domain.entity.User
 import com.simplechat.infrastructure.entity.UserEntity
+import com.simplechat.infrastructure.util.RowMapper.getLocalDateTime
+import com.simplechat.infrastructure.util.RowMapper.getLong
+import com.simplechat.infrastructure.util.RowMapper.getLongOrNull
+import com.simplechat.infrastructure.util.RowMapper.getString
+import com.simplechat.infrastructure.util.RowMapper.mapRowSafely
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria
-import org.springframework.data.relational.core.query.Query
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -12,97 +16,69 @@ import reactor.core.publisher.Mono
 /**
  * User 도메인을 위한 Repository 구현체
  * 
- * R2dbcEntityTemplate을 직접 사용하여 도메인 객체를 반환합니다.
- * UserEntity는 내부 구현 디테일로만 사용됩니다.
+ * BaseReactiveRepository를 상속하여 공통 로직을 재사용하고
+ * User 특화 로직만 구현합니다.
  */
 @Repository
 class UserRepository(
-    private val template: R2dbcEntityTemplate
-) {
+    template: R2dbcEntityTemplate
+) : BaseReactiveRepository<User, UserEntity, Long>(template, UserEntity::class.java) {
 
-    /**
-     * 사용자를 저장합니다. (신규 생성 또는 업데이트)
-     */
-    fun save(user: User): Mono<User> {
-        val userEntity = UserEntity.fromDomain(user)
-        return if (user.id == null) {
-            // 신규 사용자 생성
-            template.insert(userEntity).map { it.toDomain() }
-        } else {
-            // 기존 사용자 업데이트
-            template.update(userEntity).map { it.toDomain() }
-        }
+    override fun fromDomain(domain: User): UserEntity {
+        return UserEntity.fromDomain(domain)
     }
 
-    /**
-     * 여러 사용자를 저장합니다.
-     */
-    fun saveAll(users: Iterable<User>): Flux<User> {
-        return Flux.fromIterable(users)
-            .flatMap { save(it) }
+    override fun toDomain(entity: UserEntity): User {
+        return entity.toDomain()
     }
 
-    /**
-     * ID로 사용자를 조회합니다.
-     */
-    fun findById(id: Long): Mono<User> {
-        return template.selectOne(
-            Query.query(Criteria.where("id").`is`(id)),
-            UserEntity::class.java
-        ).map { it.toDomain() }
+    override fun extractId(domain: User): Long? {
+        return domain.id
     }
+
+    // 공통 메서드들은 BaseReactiveRepository에서 상속됨
 
     /**
      * 이메일 주소로 사용자를 조회합니다.
      */
     fun findByEmail(email: String): Mono<User> {
-        return template.selectOne(
-            Query.query(Criteria.where("email").`is`(email)),
-            UserEntity::class.java
-        ).map { it.toDomain() }
+        return findOneByCriteria(Criteria.where("email").`is`(email))
     }
 
     /**
      * 닉네임으로 사용자를 조회합니다.
      */
     fun findByNickname(nickname: String): Mono<User> {
-        return template.selectOne(
-            Query.query(Criteria.where("nickname").`is`(nickname)),
-            UserEntity::class.java
-        ).map { it.toDomain() }
+        return findOneByCriteria(Criteria.where("nickname").`is`(nickname))
     }
 
     /**
      * 해당 이메일 주소를 가진 사용자가 존재하는지 확인합니다.
      */
     fun existsByEmail(email: String): Mono<Boolean> {
-        return template.exists(
-            Query.query(Criteria.where("email").`is`(email)),
-            UserEntity::class.java
-        )
+        return existsByCriteria(Criteria.where("email").`is`(email))
     }
 
     /**
      * 해당 닉네임을 가진 사용자가 존재하는지 확인합니다.
      */
     fun existsByNickname(nickname: String): Mono<Boolean> {
-        return template.exists(
-            Query.query(Criteria.where("nickname").`is`(nickname)),
-            UserEntity::class.java
-        )
+        return existsByCriteria(Criteria.where("nickname").`is`(nickname))
     }
 
     /**
-     * Row를 UserEntity로 매핑하는 헬퍼 함수
+     * Row를 UserEntity로 매핑하는 헬퍼 함수 (타입 안전성 개선)
      */
     private fun mapRowToUserEntity(row: io.r2dbc.spi.Row): UserEntity {
-        return UserEntity(
-            id = row.get("id", Long::class.java),
-            email = row.get("email", String::class.java)!!,
-            passwordHash = row.get("password_hash", String::class.java)!!,
-            nickname = row.get("nickname", String::class.java)!!,
-            createdAt = row.get("created_at", java.time.LocalDateTime::class.java)!!
-        )
+        return mapRowSafely(row) { r ->
+            UserEntity(
+                id = r.getLongOrNull("id"),
+                email = r.getString("email"),
+                passwordHash = r.getString("password_hash"),
+                nickname = r.getString("nickname"),
+                createdAt = r.getLocalDateTime("created_at")
+            )
+        }
     }
 
     /**
@@ -143,59 +119,8 @@ class UserRepository(
      * 사용자 수를 조회합니다.
      */
     fun countUsers(): Mono<Long> {
-        return template.getDatabaseClient()
-            .sql("SELECT COUNT(*) FROM users")
-            .map { row, _ -> row.get(0, Long::class.java)!! }
-            .one()
+        return count() // BaseReactiveRepository의 메서드 사용
     }
 
-    /**
-     * 모든 사용자를 조회합니다.
-     */
-    fun findAll(): Flux<User> {
-        return template.select(UserEntity::class.java)
-            .all()
-            .map { it.toDomain() }
-    }
-
-    /**
-     * 사용자를 삭제합니다.
-     */
-    fun delete(user: User): Mono<Void> {
-        return user.id?.let { id ->
-            template.delete(
-                Query.query(Criteria.where("id").`is`(id)),
-                UserEntity::class.java
-            ).then()
-        } ?: Mono.empty()
-    }
-
-    /**
-     * ID로 사용자를 삭제합니다.
-     */
-    fun deleteById(id: Long): Mono<Void> {
-        return template.delete(
-            Query.query(Criteria.where("id").`is`(id)),
-            UserEntity::class.java
-        ).then()
-    }
-
-    /**
-     * 모든 사용자를 삭제합니다.
-     */
-    fun deleteAll(): Mono<Void> {
-        return template.delete(UserEntity::class.java)
-            .all()
-            .then()
-    }
-
-    /**
-     * 사용자가 존재하는지 확인합니다.
-     */
-    fun existsById(id: Long): Mono<Boolean> {
-        return template.exists(
-            Query.query(Criteria.where("id").`is`(id)),
-            UserEntity::class.java
-        )
-    }
+    // findAll, delete, deleteById, deleteAll, existsById는 BaseReactiveRepository에서 상속됨
 }

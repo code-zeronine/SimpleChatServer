@@ -2,9 +2,16 @@ package com.simplechat.infrastructure.repository
 
 import com.simplechat.domain.entity.ChatRoom
 import com.simplechat.infrastructure.entity.ChatRoomEntity
+import com.simplechat.infrastructure.util.RowMapper.getBoolean
+import com.simplechat.infrastructure.util.RowMapper.getInt
+import com.simplechat.infrastructure.util.RowMapper.getLocalDateTime
+import com.simplechat.infrastructure.util.RowMapper.getLong
+import com.simplechat.infrastructure.util.RowMapper.getLongOrNull
+import com.simplechat.infrastructure.util.RowMapper.getString
+import com.simplechat.infrastructure.util.RowMapper.getStringOrNull
+import com.simplechat.infrastructure.util.RowMapper.mapRowSafely
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria
-import org.springframework.data.relational.core.query.Query
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -13,84 +20,54 @@ import java.time.LocalDateTime
 /**
  * ChatRoom 도메인을 위한 Repository 구현체
  * 
- * R2dbcEntityTemplate을 직접 사용하여 도메인 객체를 반환합니다.
- * ChatRoomEntity는 내부 구현 디테일로만 사용됩니다.
+ * BaseReactiveRepository를 상속하여 공통 로직을 재사용하고
+ * ChatRoom 특화 로직만 구현합니다.
  */
 @Repository
 class ChatRoomRepository(
-    private val template: R2dbcEntityTemplate
-) {
+    template: R2dbcEntityTemplate
+) : BaseReactiveRepository<ChatRoom, ChatRoomEntity, Long>(template, ChatRoomEntity::class.java) {
 
-    /**
-     * 채팅방을 저장합니다. (신규 생성 또는 업데이트)
-     */
-    fun save(chatRoom: ChatRoom): Mono<ChatRoom> {
-        val chatRoomEntity = ChatRoomEntity.fromDomain(chatRoom)
-        return if (chatRoom.id == null) {
-            // 신규 채팅방 생성
-            template.insert(chatRoomEntity).map { it.toDomain() }
-        } else {
-            // 기존 채팅방 업데이트
-            template.update(chatRoomEntity).map { it.toDomain() }
-        }
+    override fun fromDomain(domain: ChatRoom): ChatRoomEntity {
+        return ChatRoomEntity.fromDomain(domain)
     }
 
-    /**
-     * 여러 채팅방을 저장합니다.
-     */
-    fun saveAll(chatRooms: Iterable<ChatRoom>): Flux<ChatRoom> {
-        return Flux.fromIterable(chatRooms)
-            .flatMap { save(it) }
+    override fun toDomain(entity: ChatRoomEntity): ChatRoom {
+        return entity.toDomain()
     }
 
-    /**
-     * ID로 채팅방을 조회합니다.
-     */
-    fun findById(id: Long): Mono<ChatRoom> {
-        return template.selectOne(
-            Query.query(Criteria.where("id").`is`(id)),
-            ChatRoomEntity::class.java
-        ).map { it.toDomain() }
+    override fun extractId(domain: ChatRoom): Long? {
+        return domain.id
     }
+
+    // 공통 메서드들은 BaseReactiveRepository에서 상속됨
 
     /**
      * 채팅방 이름으로 조회합니다.
      */
     fun findByName(name: String): Mono<ChatRoom> {
-        return template.selectOne(
-            Query.query(Criteria.where("name").`is`(name)),
-            ChatRoomEntity::class.java
-        ).map { it.toDomain() }
+        return findOneByCriteria(Criteria.where("name").`is`(name))
     }
 
     /**
      * 특정 사용자가 생성한 채팅방들을 조회합니다.
      */
     fun findByCreatedBy(userId: Long): Flux<ChatRoom> {
-        return template.select(
-            Query.query(Criteria.where("created_by").`is`(userId)),
-            ChatRoomEntity::class.java
-        ).map { it.toDomain() }
+        return findByCriteria(Criteria.where("created_by").`is`(userId))
     }
 
     /**
      * 공개 채팅방들을 조회합니다.
      */
     fun findPublicRooms(): Flux<ChatRoom> {
-        return template.select(
-            Query.query(Criteria.where("is_private").`is`(false)),
-            ChatRoomEntity::class.java
-        ).map { it.toDomain() }
+        return findByCriteria(Criteria.where("is_private").`is`(false))
     }
 
     /**
      * 비공개 채팅방들을 조회합니다.
      */
     fun findPrivateRooms(): Flux<ChatRoom> {
-        return template.select(
-            Query.query(Criteria.where("is_private").`is`(true)),
-            ChatRoomEntity::class.java
-        ).map { it.toDomain() }
+        return findByCriteria(Criteria.where("is_private").`is`(true))
     }
 
     /**
@@ -143,122 +120,60 @@ class ChatRoomRepository(
      */
     fun findAvailablePublicRooms(excludeCreatedBy: Long? = null): Flux<ChatRoom> {
         return if (excludeCreatedBy != null) {
-            template.select(
-                Query.query(
-                    Criteria.where("is_private").`is`(false)
-                        .and("created_by").not(excludeCreatedBy)
-                ),
-                ChatRoomEntity::class.java
-            ).map { it.toDomain() }
+            findByCriteria(
+                Criteria.where("is_private").`is`(false)
+                    .and("created_by").not(excludeCreatedBy)
+            )
         } else {
             findPublicRooms()
         }
     }
 
     /**
-     * 채팅방이 존재하는지 확인합니다.
-     */
-    fun existsById(id: Long): Mono<Boolean> {
-        return template.exists(
-            Query.query(Criteria.where("id").`is`(id)),
-            ChatRoomEntity::class.java
-        )
-    }
-
-    /**
      * 특정 이름의 채팅방이 존재하는지 확인합니다.
      */
     fun existsByName(name: String): Mono<Boolean> {
-        return template.exists(
-            Query.query(Criteria.where("name").`is`(name)),
-            ChatRoomEntity::class.java
-        )
+        return existsByCriteria(Criteria.where("name").`is`(name))
     }
 
     /**
      * 채팅방 수를 조회합니다.
      */
     fun countRooms(): Mono<Long> {
-        return template.getDatabaseClient()
-            .sql("SELECT COUNT(*) FROM chat_rooms")
-            .map { row, _ -> row.get(0, Long::class.java)!! }
-            .one()
+        return count() // BaseReactiveRepository의 메서드 사용
     }
 
     /**
      * 특정 사용자가 생성한 채팅방 수를 조회합니다.
      */
     fun countByCreatedBy(userId: Long): Mono<Long> {
-        return template.getDatabaseClient()
-            .sql("SELECT COUNT(*) FROM chat_rooms WHERE created_by = :userId")
-            .bind("userId", userId)
-            .map { row, _ -> row.get(0, Long::class.java)!! }
-            .one()
-    }
-
-    /**
-     * 모든 채팅방을 조회합니다.
-     */
-    fun findAll(): Flux<ChatRoom> {
-        return template.select(ChatRoomEntity::class.java)
-            .all()
-            .map { it.toDomain() }
-    }
-
-    /**
-     * 채팅방을 삭제합니다.
-     */
-    fun delete(chatRoom: ChatRoom): Mono<Void> {
-        return chatRoom.id?.let { id ->
-            template.delete(
-                Query.query(Criteria.where("id").`is`(id)),
-                ChatRoomEntity::class.java
-            ).then()
-        } ?: Mono.empty()
-    }
-
-    /**
-     * ID로 채팅방을 삭제합니다.
-     */
-    fun deleteById(id: Long): Mono<Void> {
-        return template.delete(
-            Query.query(Criteria.where("id").`is`(id)),
-            ChatRoomEntity::class.java
-        ).then()
+        return countByCriteria(Criteria.where("created_by").`is`(userId))
     }
 
     /**
      * 특정 사용자가 생성한 모든 채팅방을 삭제합니다.
      */
     fun deleteByCreatedBy(userId: Long): Mono<Void> {
-        return template.delete(
-            Query.query(Criteria.where("created_by").`is`(userId)),
-            ChatRoomEntity::class.java
-        ).then()
+        return deleteByCriteria(Criteria.where("created_by").`is`(userId))
     }
 
-    /**
-     * 모든 채팅방을 삭제합니다.
-     */
-    fun deleteAll(): Mono<Void> {
-        return template.delete(ChatRoomEntity::class.java)
-            .all()
-            .then()
-    }
+    // findAll, delete, deleteById, deleteAll, existsById는 BaseReactiveRepository에서 상속됨
 
     /**
-     * Row를 ChatRoomEntity로 매핑하는 헬퍼 함수
+     * Row를 ChatRoomEntity로 매핑하는 헬퍼 함수 (타입 안전성 개선)
      */
     private fun mapRowToChatRoomEntity(row: io.r2dbc.spi.Row): ChatRoomEntity {
-        return ChatRoomEntity(
-            id = row.get("id", Long::class.java),
-            name = row.get("name", String::class.java)!!,
-            description = row.get("description", String::class.java),
-            createdBy = row.get("created_by", Long::class.java)!!,
-            isPrivate = row.get("is_private", Boolean::class.java)!!,
-            maxParticipants = row.get("max_participants", Integer::class.java)!!.toInt(),
-            createdAt = row.get("created_at", LocalDateTime::class.java)!!,
-            updatedAt = row.get("updated_at", LocalDateTime::class.java)!!
-        )
+        return mapRowSafely(row) { r ->
+            ChatRoomEntity(
+                id = r.getLongOrNull("id"),
+                name = r.getString("name"),
+                description = r.getStringOrNull("description"),
+                createdBy = r.getLong("created_by"),
+                isPrivate = r.getBoolean("is_private"),
+                maxParticipants = r.getInt("max_participants"),
+                createdAt = r.getLocalDateTime("created_at"),
+                updatedAt = r.getLocalDateTime("updated_at")
+            )
+        }
     }
 }
