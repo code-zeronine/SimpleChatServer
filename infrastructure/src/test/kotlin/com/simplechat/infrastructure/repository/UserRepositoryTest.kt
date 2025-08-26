@@ -1,6 +1,8 @@
 package com.simplechat.infrastructure.repository
 
 import com.simplechat.domain.entity.User
+import com.simplechat.infrastructure.repository.ChatRoomRepository
+import com.simplechat.infrastructure.repository.UserChatRoomRepository
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -21,6 +23,12 @@ class UserRepositoryTest {
 
     @Autowired
     private lateinit var userRepository: UserRepository
+
+    @Autowired
+    private lateinit var chatRoomRepository: ChatRoomRepository
+
+    @Autowired
+    private lateinit var userChatRoomRepository: UserChatRoomRepository
 
     private val testUsers = listOf(
         User(
@@ -45,7 +53,11 @@ class UserRepositoryTest {
 
     @BeforeEach
     fun setUp() {
-        // 테스트 전 데이터 정리
+        // 테스트 전 데이터 정리 (의존성 역순으로)
+        StepVerifier.create(userChatRoomRepository.deleteAll())
+            .verifyComplete()
+        StepVerifier.create(chatRoomRepository.deleteAll())
+            .verifyComplete()
         StepVerifier.create(userRepository.deleteAll())
             .verifyComplete()
 
