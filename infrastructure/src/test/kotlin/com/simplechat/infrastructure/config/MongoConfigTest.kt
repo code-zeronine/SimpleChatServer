@@ -50,6 +50,36 @@ class MongoConfigTest {
     }
 
     @Test
+    fun `MongoDB 연결 풀 및 설정 확인`() {
+        // MongoDB 연결 상태 확인
+        StepVerifier.create(reactiveMongoTemplate.mongoDatabaseFactory.mongoDatabase)
+            .expectNextMatches { db -> 
+                db.name == "simplechatserver"
+            }
+            .verifyComplete()
+
+        // 기본 컬렉션 생성 및 접근 테스트
+        StepVerifier.create(reactiveMongoTemplate.collectionExists("chat_messages"))
+            .expectNext(true)
+            .verifyComplete()
+
+        // 동시 연결 테스트 (연결 풀 확인)
+        val concurrentOperations = (1..5).map { i ->
+            reactiveMongoTemplate.save(
+                mapOf("testId" to i, "message" to "concurrent test $i"), 
+                "chat_messages"
+            )
+        }
+        
+        StepVerifier.create(
+            reactor.core.publisher.Flux.merge(concurrentOperations)
+                .count()
+        )
+            .expectNext(5L)
+            .verifyComplete()
+    }
+
+    @Test
     fun `데이터베이스 이름 및 설정 확인`() {
         // 데이터베이스 이름 확인 (개발환경의 simplechatserver 데이터베이스 사용)
         StepVerifier.create(reactiveMongoTemplate.mongoDatabaseFactory.mongoDatabase)
