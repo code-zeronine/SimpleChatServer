@@ -2,6 +2,7 @@ package com.simplechat.infrastructure.config
 
 import com.simplechat.domain.entity.ChatMessage
 import com.simplechat.domain.entity.MessageType
+import com.simplechat.infrastructure.entity.ChatMessageEntity
 import com.simplechat.infrastructure.repository.ChatMessageRepository
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -98,7 +99,7 @@ class MongoConfigTest {
 
     @Test
     fun `ChatMessage CRUD 동작 테스트`() {
-        // 테스트 데이터 생성
+        // 테스트 데이터 생성 (도메인 객체)
         val testMessage = ChatMessage(
             roomId = 1L,
             userId = 100L,
@@ -107,8 +108,11 @@ class MongoConfigTest {
             messageType = MessageType.TEXT
         )
 
+        // 도메인 객체를 엔티티로 변환
+        val testMessageEntity = ChatMessageEntity.fromDomain(testMessage)
+
         // CREATE 테스트
-        StepVerifier.create(chatMessageRepository.save(testMessage))
+        StepVerifier.create(chatMessageRepository.save(testMessageEntity))
             .expectNextMatches { savedMessage ->
                 savedMessage.id != null &&
                 savedMessage.roomId == 1L &&
@@ -132,7 +136,7 @@ class MongoConfigTest {
 
     @Test
     fun `MongoDB 인덱스 및 쿼리 성능 테스트`() {
-        // 여러 메시지 저장
+        // 여러 메시지 저장 (도메인 객체)
         val messages = (1..5).map { i ->
             ChatMessage(
                 roomId = 1L,
@@ -143,8 +147,11 @@ class MongoConfigTest {
             )
         }
 
+        // 도메인 객체를 엔티티로 변환
+        val messageEntities = messages.map { ChatMessageEntity.fromDomain(it) }
+
         // 배치 저장
-        StepVerifier.create(chatMessageRepository.saveAll(messages))
+        StepVerifier.create(chatMessageRepository.saveAll(messageEntities))
             .expectNextCount(5)
             .verifyComplete()
 
@@ -167,9 +174,11 @@ class MongoConfigTest {
             content = "타입 매퍼 테스트",
             messageType = MessageType.TEXT
         )
+        
+        val testMessageEntity = ChatMessageEntity.fromDomain(testMessage)
 
         StepVerifier.create(
-            reactiveMongoTemplate.save(testMessage, "chat_messages")
+            reactiveMongoTemplate.save(testMessageEntity, "chat_messages")
                 .then(reactiveMongoTemplate.findAll(org.bson.Document::class.java, "chat_messages").next())
         )
             .expectNextMatches { document: org.bson.Document ->
