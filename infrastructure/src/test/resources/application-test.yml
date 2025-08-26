@@ -13,6 +13,11 @@ spring:
       max-idle-time: 30m
       validation-query: SELECT 1
 
+  # MongoDB Configuration for testing (using development environment)
+  data:
+    mongodb:
+      uri: mongodb://simplechat:simplechat123@localhost:27017/simplechatserver?authSource=admin
+
   # SQL 초기화 설정 (테스트환경용)  
   sql:
     init:
@@ -29,5 +34,13 @@ logging:
     com.simplechat: DEBUG
     org.springframework.r2dbc: DEBUG
     io.r2dbc.postgresql: DEBUG
+    org.springframework.data.mongodb: DEBUG
   pattern:
     console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%5p) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"
+
+# 내장 MongoDB 설정
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: 6.0.1

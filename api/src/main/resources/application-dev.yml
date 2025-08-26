@@ -2,7 +2,7 @@ spring:
   data:
     # MongoDB Configuration for Development
     mongodb:
-      uri: mongodb://simplechat:simplechat123@localhost:27017/simplechat
+      uri: mongodb://simplechat:simplechat123@localhost:27017/simplechatserver?authSource=admin
 
     # Redis Configuration for Development
     redis:

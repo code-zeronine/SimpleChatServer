@@ -8,7 +8,7 @@ spring:
   data:
     # MongoDB Configuration for Production
     mongodb:
-      uri: ${MONGODB_URI:mongodb://simplechat:simplechat123@localhost:27017/simplechat}
+      uri: ${MONGODB_URI:mongodb://simplechat:simplechat123@localhost:27017/simplechatserver?authSource=admin}
     
     # Redis Configuration for Production
     redis:

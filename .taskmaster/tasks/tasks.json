@@ -301,7 +301,7 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -309,7 +309,7 @@
             "description": "build.gradle.kts에 Spring Data MongoDB Reactive 의존성을 추가하고 기본 MongoDB 설정을 구성합니다.",
             "dependencies": [],
             "details": "1. build.gradle.kts에 spring-boot-starter-data-mongodb-reactive 의존성 추가\n2. MongoDB 드라이버 버전 호환성 확인\n3. 기본 MongoDB 설정 클래스 생성\n4. ReactiveMongoTemplate 빈 설정",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-08-26T00:54:53.981Z",
+      "updated": "2025-08-26T01:03:16.730Z",
       "description": "Tasks for master context"
     }
   }

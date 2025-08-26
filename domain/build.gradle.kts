@@ -12,6 +12,7 @@ dependencyManagement {
 dependencies {
     implementation("org.springframework:spring-context")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+    implementation("org.springframework.data:spring-data-mongodb")
     
     // Test dependencies
     testImplementation("org.springframework.boot:spring-boot-starter-test")
