@@ -41,7 +41,7 @@ class JwtTokenProviderTest {
         assertNotNull(token)
         assertTrue(token.isNotEmpty())
         assertTrue(jwtTokenProvider.validateToken(token))
-        assertEquals(username, jwtTokenProvider.getUsernameFromToken(token))
+        assertEquals(username, jwtTokenProvider.getEmailFromToken(token))
         assertEquals(roles, jwtTokenProvider.getRolesFromToken(token))
         assertTrue(jwtTokenProvider.isAccessToken(token))
         assertFalse(jwtTokenProvider.isRefreshToken(token))
@@ -59,7 +59,7 @@ class JwtTokenProviderTest {
         assertNotNull(refreshToken)
         assertTrue(refreshToken.isNotEmpty())
         assertTrue(jwtTokenProvider.validateToken(refreshToken))
-        assertEquals(username, jwtTokenProvider.getUsernameFromToken(refreshToken))
+        assertEquals(username, jwtTokenProvider.getEmailFromToken(refreshToken))
         assertTrue(jwtTokenProvider.isRefreshToken(refreshToken))
         assertFalse(jwtTokenProvider.isAccessToken(refreshToken))
     }
@@ -71,7 +71,7 @@ class JwtTokenProviderTest {
         val token = jwtTokenProvider.generateAccessToken(username)
 
         // When
-        val extractedUsername = jwtTokenProvider.getUsernameFromToken(token)
+        val extractedUsername = jwtTokenProvider.getEmailFromToken(token)
 
         // Then
         assertEquals(username, extractedUsername)
@@ -238,7 +238,7 @@ class JwtTokenProviderTest {
         // Then
         assertNotNull(newAccessToken)
         assertTrue(jwtTokenProvider.validateToken(newAccessToken!!))
-        assertEquals(username, jwtTokenProvider.getUsernameFromToken(newAccessToken))
+        assertEquals(username, jwtTokenProvider.getEmailFromToken(newAccessToken))
         assertTrue(jwtTokenProvider.isAccessToken(newAccessToken))
     }
 
@@ -274,7 +274,7 @@ class JwtTokenProviderTest {
 
         // When & Then
         assertThrows<JwtAuthenticationException> {
-            jwtTokenProvider.getUsernameFromToken(invalidToken)
+            jwtTokenProvider.getEmailFromToken(invalidToken)
         }
     }
 

@@ -371,7 +371,7 @@ class UserChatRoomRepository(
             isMuted = row.get("is_muted", Boolean::class.java)!!,
             isPinned = row.get("is_pinned", Boolean::class.java)!!,
             leftAt = row.get("left_at", LocalDateTime::class.java),
-            invitedBy = row.get("invited_by", Long::class.java),
+            invitedBy = row.get("invited_by", Long::class.javaObjectType), // Nullable Long
             updatedAt = row.get("updated_at", LocalDateTime::class.java)!!
         )
     }

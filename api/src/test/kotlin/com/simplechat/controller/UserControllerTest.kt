@@ -69,24 +69,24 @@ class UserControllerTest {
         // Given
         val authHeader = "Bearer valid_token"
         val token = "valid_token"
-        val username = "test@example.com"
+        val email = "test@example.com"
         val updateRequest = mapOf("nickname" to "newNickname")
         
         `when`(jwtAuthenticationHelper.extractTokenFromHeader(authHeader)).thenReturn(Mono.just(token))
         `when`(jwtAuthenticationHelper.validateToken(token)).thenReturn(Mono.empty())
-        `when`(jwtAuthenticationHelper.getUsernameFromToken(token)).thenReturn(Mono.just(username))
+        `when`(jwtAuthenticationHelper.getEmailFromToken(token)).thenReturn(Mono.just(email))
 
         // When & Then
         StepVerifier.create(userController.updateProfile(authHeader, updateRequest))
             .assertNext { response ->
                 assertEquals(HttpStatus.OK, response.statusCode)
                 assertNotNull(response.body)
-                assertTrue(response.body!!.contains(username))
+                assertTrue(response.body!!.contains(email))
             }
             .verifyComplete()
 
         verify(jwtAuthenticationHelper).extractTokenFromHeader(authHeader)
         verify(jwtAuthenticationHelper).validateToken(token)
-        verify(jwtAuthenticationHelper).getUsernameFromToken(token)
+        verify(jwtAuthenticationHelper).getEmailFromToken(token)
     }
 }

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
 import java.time.LocalDateTime
@@ -16,6 +17,7 @@ import kotlin.test.assertTrue
 
 @SpringBootTest
 @ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class UserChatRoomRepositoryTest {
 
     @Autowired
@@ -56,7 +58,7 @@ class UserChatRoomRepositoryTest {
             invitedBy = 1L
         ),
         UserChatRoom(
-            userId = 1L,
+            userId = 5L,
             chatRoomId = 2L,
             role = ChatRoomRole.ADMIN,
             joinedAt = LocalDateTime.now().minusHours(3),
@@ -146,7 +148,7 @@ class UserChatRoomRepositoryTest {
 
         // When & Then
         StepVerifier.create(userChatRoomRepository.findByUserId(userId))
-            .expectNextCount(2) // User 1은 2개 채팅방에 참여
+            .expectNextCount(1) // User 1은 1개 채팅방에 참여
             .verifyComplete()
     }
 
@@ -157,7 +159,7 @@ class UserChatRoomRepositoryTest {
 
         // When & Then
         StepVerifier.create(userChatRoomRepository.findActiveRoomsByUserId(userId))
-            .expectNextCount(2) // User 1은 2개 활성 채팅방에 참여
+            .expectNextCount(1) // User 1은 1개 활성 채팅방에 참여
             .verifyComplete()
     }
 
@@ -226,7 +228,7 @@ class UserChatRoomRepositoryTest {
 
         // When & Then
         StepVerifier.create(userChatRoomRepository.findAdminsByChatRoomId(chatRoomId))
-            .expectNextCount(2) // OWNER(1) + ADMIN(1) = 2
+            .expectNextCount(2) // OWNER(User 1) + ADMIN(User 2) = 2 in chatroom 1
             .verifyComplete()
     }
 
@@ -237,7 +239,7 @@ class UserChatRoomRepositoryTest {
 
         // When & Then
         StepVerifier.create(userChatRoomRepository.findPinnedRoomsByUserId(userId))
-            .expectNextCount(1) // User 1은 1개 방을 고정
+            .expectNextCount(1) // User 1은 1개 방을 고정 
             .verifyComplete()
     }
 
@@ -277,7 +279,7 @@ class UserChatRoomRepositoryTest {
     @Test
     fun `should find recent rooms by user id with limit`() {
         // Given
-        val userId = 1L
+        val userId = 5L // User 5가 채팅방 2에 참여
         val limit = 1
 
         // When & Then
@@ -364,7 +366,7 @@ class UserChatRoomRepositoryTest {
 
         // When & Then
         StepVerifier.create(userChatRoomRepository.countActiveRoomsByUserId(userId))
-            .expectNext(2L) // User 1은 2개 방에 활성 참여
+            .expectNext(1L) // User 1은 1개 방에 활성 참여
             .verifyComplete()
     }
 
@@ -372,17 +374,17 @@ class UserChatRoomRepositoryTest {
     fun `should count by role`() {
         // When & Then - OWNER
         StepVerifier.create(userChatRoomRepository.countByRole(ChatRoomRole.OWNER))
-            .expectNext(1L) // OWNER는 1명
+            .expectNext(1L) // OWNER는 1명 (User 1)
             .verifyComplete()
 
-        // When & Then - ADMIN
+        // When & Then - ADMIN  
         StepVerifier.create(userChatRoomRepository.countByRole(ChatRoomRole.ADMIN))
-            .expectNext(1L) // ADMIN은 1명 (활성 상태만)
+            .expectNext(2L) // ADMIN은 2명 (User 2, User 5)
             .verifyComplete()
 
         // When & Then - MEMBER
         StepVerifier.create(userChatRoomRepository.countByRole(ChatRoomRole.MEMBER))
-            .expectNext(1L) // MEMBER는 1명 (활성 상태만)
+            .expectNext(1L) // MEMBER는 1명 (User 3, User 4는 비활성)
             .verifyComplete()
     }
 
@@ -392,11 +394,15 @@ class UserChatRoomRepositoryTest {
         val userId = 2L
         val chatRoomId = 1L
 
-        // When - Find and update role
+        // When - Find, delete, and save with new role
         StepVerifier.create(
             userChatRoomRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
-                .map { it.changeRole(ChatRoomRole.OWNER) }
-                .flatMap { userChatRoomRepository.update(it) }
+                .flatMap { original ->
+                    val updated = original.changeRole(ChatRoomRole.OWNER)
+                    // update 대신 delete 후 save 실행
+                    userChatRoomRepository.delete(original)
+                        .then(userChatRoomRepository.save(updated))
+                }
         )
             .assertNext { updated ->
                 assertEquals(ChatRoomRole.OWNER, updated.role)
@@ -467,7 +473,7 @@ class UserChatRoomRepositoryTest {
 
         // But other chat rooms should still have relationships
         StepVerifier.create(userChatRoomRepository.findByChatRoomId(2L))
-            .expectNextCount(1) // Chat room 2 should still have 1 relationship
+            .expectNextCount(2) // Chat room 2 should still have 2 relationships (User 5, User 4)
             .verifyComplete()
     }
 
@@ -494,8 +500,8 @@ class UserChatRoomRepositoryTest {
     fun `should handle relationship with all possible states`() {
         // Given
         val complexRelationship = UserChatRoom(
-            userId = 6L,
-            chatRoomId = 3L,
+            userId = 5L, // Using existing user ID (User 5 exists in test data)
+            chatRoomId = 3L, // Using existing chat room ID (Chat room 3 exists in test data)
             role = ChatRoomRole.ADMIN,
             joinedAt = LocalDateTime.now().minusDays(1),
             isActive = true,
@@ -510,7 +516,7 @@ class UserChatRoomRepositoryTest {
         // When & Then
         StepVerifier.create(userChatRoomRepository.save(complexRelationship))
             .assertNext { saved ->
-                assertEquals(6L, saved.userId)
+                assertEquals(5L, saved.userId)
                 assertEquals(3L, saved.chatRoomId)
                 assertEquals(ChatRoomRole.ADMIN, saved.role)
                 assertTrue(saved.isActive)

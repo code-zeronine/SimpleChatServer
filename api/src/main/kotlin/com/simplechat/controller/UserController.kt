@@ -3,6 +3,12 @@ package com.simplechat.controller
 import com.simplechat.dto.UserDto
 import com.simplechat.security.JwtAuthenticationHelper
 import com.simplechat.service.AuthService
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -13,6 +19,8 @@ import reactor.core.publisher.Mono
  */
 @RestController
 @RequestMapping("/api/users")
+@Tag(name = "사용자 관리", description = "인증된 사용자 정보 조회 및 프로필 관리 API")
+@SecurityRequirement(name = "bearerAuth")
 class UserController(
     private val authService: AuthService,
     private val jwtAuthenticationHelper: JwtAuthenticationHelper
@@ -22,7 +30,20 @@ class UserController(
      * 현재 로그인한 사용자 정보 조회
      */
     @GetMapping("/me")
-    fun getCurrentUser(@RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String): Mono<ResponseEntity<UserDto>> {
+    @Operation(
+        summary = "내 정보 조회",
+        description = "현재 로그인한 사용자의 기본 정보를 조회합니다."
+    )
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "사용자 정보 조회 성공"),
+            SwaggerApiResponse(responseCode = "401", description = "인증 실패 또는 만료된 토큰")
+        ]
+    )
+    fun getCurrentUser(
+        @Parameter(description = "JWT 인증 토큰", required = true)
+        @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String
+    ): Mono<ResponseEntity<UserDto>> {
         return jwtAuthenticationHelper.extractTokenFromHeader(authHeader)
             .flatMap { token ->
                 jwtAuthenticationHelper.validateToken(token)
@@ -37,18 +58,31 @@ class UserController(
      * 사용자 프로필 업데이트 (예시 엔드포인트)
      */
     @PutMapping("/profile")
+    @Operation(
+        summary = "프로필 업데이트",
+        description = "현재 사용자의 프로필 정보를 업데이트합니다. (현재는 예시 구현)"
+    )
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "프로필 업데이트 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            SwaggerApiResponse(responseCode = "401", description = "인증 실패 또는 만료된 토큰")
+        ]
+    )
     fun updateProfile(
+        @Parameter(description = "JWT 인증 토큰", required = true)
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
+        @Parameter(description = "업데이트할 프로필 정보", required = true)
         @RequestBody updateRequest: Map<String, String>
     ): Mono<ResponseEntity<String>> {
         return jwtAuthenticationHelper.extractTokenFromHeader(authHeader)
             .flatMap { token ->
                 jwtAuthenticationHelper.validateToken(token)
-                    .then(jwtAuthenticationHelper.getUsernameFromToken(token))
+                    .then(jwtAuthenticationHelper.getEmailFromToken(token))
             }
-            .map { username ->
+            .map { email ->
                 // 실제 프로필 업데이트 로직은 추후 구현
-                ResponseEntity.ok("Profile updated for user: $username")
+                ResponseEntity.ok("Profile updated for user: $email")
             }
     }
 }

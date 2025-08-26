@@ -496,6 +496,65 @@ class ChatRoomService(
         return userChatRoomService.getUserChatRoomRelationship(userId, roomId)
     }
 
+    // === 권한 검증 및 참여자 관리 기능 ===
+
+    /**
+     * 채팅방 참여자 목록을 조회합니다.
+     * 요청자는 채팅방 참여자이거나 관리자여야 합니다.
+     */
+    fun getParticipants(roomId: Long, requesterId: Long): Flux<UserChatRoom> {
+        return validateUserPermission(requesterId, roomId, ChatRoomRole.MEMBER)
+            .flatMapMany { userChatRoomService.getChatRoomActiveParticipants(roomId) }
+    }
+
+    /**
+     * 참여자 역할 변경 기능 (관리자/소유자만 가능)
+     */
+    fun changeParticipantRole(
+        requesterId: Long, 
+        targetUserId: Long, 
+        roomId: Long, 
+        newRole: ChatRoomRole
+    ): Mono<UserChatRoom> {
+        return validateUserPermission(requesterId, roomId, ChatRoomRole.ADMIN)
+            .flatMap { userChatRoomService.changeUserRole(requesterId, targetUserId, roomId, newRole) }
+            .`as`(transactionalOperator::transactional)
+    }
+
+    /**
+     * 참여자 강제 퇴장 기능 (관리자/소유자만 가능)
+     */
+    fun kickParticipant(requesterId: Long, targetUserId: Long, roomId: Long): Mono<Void> {
+        return validateUserPermission(requesterId, roomId, ChatRoomRole.ADMIN)
+            .flatMap { userChatRoomService.kickUserFromChatRoom(requesterId, targetUserId, roomId) }
+            .`as`(transactionalOperator::transactional)
+    }
+
+    /**
+     * 채팅방의 관리자 목록을 조회합니다.
+     */
+    fun getChatRoomAdmins(roomId: Long, requesterId: Long): Flux<UserChatRoom> {
+        return validateUserPermission(requesterId, roomId, ChatRoomRole.MEMBER)
+            .flatMapMany { userChatRoomService.getChatRoomAdmins(roomId) }
+    }
+
+    /**
+     * 채팅방 소유자 정보를 조회합니다.
+     */
+    fun getChatRoomOwner(roomId: Long, requesterId: Long): Mono<UserChatRoom> {
+        return validateUserPermission(requesterId, roomId, ChatRoomRole.MEMBER)
+            .flatMap { userChatRoomService.getChatRoomOwner(roomId) }
+    }
+
+    /**
+     * 사용자가 채팅방에서 특정 작업을 수행할 권한이 있는지 확인합니다.
+     */
+    fun hasPermissionForAction(userId: Long, roomId: Long, requiredRole: ChatRoomRole): Mono<Boolean> {
+        return userChatRoomService.getUserChatRoomRelationship(userId, roomId)
+            .map { relationship -> relationship.role.level >= requiredRole.level }
+            .onErrorReturn(false)
+    }
+
     // === Data Classes ===
 
     /**

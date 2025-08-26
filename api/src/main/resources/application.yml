@@ -65,3 +65,14 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+
+# SpringDoc OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+  webflux:
+    use-root-path: true

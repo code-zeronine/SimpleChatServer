@@ -1,0 +1,459 @@
+package com.simplechat.controller
+
+import com.simplechat.domain.entity.ChatRoomRole
+import com.simplechat.dto.*
+import com.simplechat.infrastructure.repository.UserRepository
+import com.simplechat.security.JwtAuthenticationHelper
+import com.simplechat.service.ChatRoomService
+import com.simplechat.service.UserChatRoomService
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.*
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
+
+/**
+ * 채팅방 관리를 위한 REST API 컨트롤러
+ *
+ * 채팅방 생성, 조회, 참여, 퇴장 및 참여자 관리 기능을 제공합니다.
+ */
+@RestController
+@RequestMapping("/api/rooms")
+@Tag(name = "채팅방 관리", description = "채팅방 생성, 조회, 참여, 퇴장 및 참여자 관리 API")
+@SecurityRequirement(name = "bearerAuth")
+class ChatRoomController(
+    private val chatRoomService: ChatRoomService,
+    private val userChatRoomService: UserChatRoomService,
+    private val jwtAuthenticationHelper: JwtAuthenticationHelper,
+    private val userRepository: UserRepository // ParticipantDto 변환을 위해 추가
+) {
+
+    /**
+     * 새로운 채팅방을 생성합니다.
+     */
+    @PostMapping
+    @Operation(
+        summary = "채팅방 생성",
+        description = "새로운 채팅방을 생성합니다. 생성한 사용자가 자동으로 소유자(OWNER)가 됩니다."
+    )
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "201", description = "채팅방 생성 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            SwaggerApiResponse(responseCode = "401", description = "인증 실패")
+        ]
+    )
+    fun createChatRoom(
+        @Parameter(description = "JWT 인증 토큰", required = true)
+        @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
+        @Parameter(description = "채팅방 생성 요청 데이터", required = true)
+        @Valid @RequestBody request: CreateChatRoomRequest
+    ): Mono<ResponseEntity<ApiResponse<ChatRoomDto>>> {
+        return extractUserIdFromToken(authHeader)
+            .flatMap { userId ->
+                chatRoomService.createChatRoom(
+                    name = request.name,
+                    description = request.description,
+                    isPrivate = request.isPrivate,
+                    maxParticipants = request.maxParticipants,
+                    ownerId = userId
+                )
+            }
+            .flatMap { chatRoom ->
+                // 생성 후 참여자 수를 다시 조회하여 정확한 DTO 생성
+                userChatRoomService.countActiveParticipants(chatRoom.id!!)
+                    .map { participantCount ->
+                        ChatRoomDto.from(chatRoom, participantCount.toInt())
+                    }
+            }
+            .map { chatRoomDto ->
+                ResponseEntity
+                    .status(HttpStatus.CREATED)
+                    .body(ApiResponse.success(chatRoomDto, "채팅방이 성공적으로 생성되었습니다."))
+            }
+    }
+
+    /**
+     * 사용자가 참여한 채팅방 목록을 조회합니다.
+     */
+    @GetMapping
+    @Operation(
+        summary = "참여한 채팅방 목록 조회",
+        description = "현재 사용자가 참여한 활성 채팅방 목록을 페이지네이션으로 조회합니다."
+    )
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "조회 성공"),
+            SwaggerApiResponse(responseCode = "401", description = "인증 실패")
+        ]
+    )
+    fun getUserChatRooms(
+        @Parameter(description = "JWT 인증 토큰", required = true)
+        @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
+        @Parameter(description = "페이지 번호 (0부터 시작)", example = "0")
+        @RequestParam(defaultValue = "0") page: Int,
+        @Parameter(description = "페이지 크기", example = "20")
+        @RequestParam(defaultValue = "20") size: Int
+    ): Mono<ResponseEntity<ApiResponse<ChatRoomListResponse>>> {
+        return extractUserIdFromToken(authHeader)
+            .flatMap { userId ->
+                val roomsFlux = userChatRoomService.getUserActiveRooms(userId)
+                    .flatMap { userChatRoom ->
+                        val roomMono = chatRoomService.findChatRoomById(userChatRoom.chatRoomId)
+                        val countMono = userChatRoomService.countActiveParticipants(userChatRoom.chatRoomId)
+                        Mono.zip(roomMono, countMono)
+                    }
+                    .map { tuple -> ChatRoomDto.from(tuple.t1, tuple.t2.toInt()) }
+
+                val roomsMono = roomsFlux.skip((page * size).toLong()).take(size.toLong()).collectList()
+                val totalCountMono = userChatRoomService.countUserActiveRooms(userId)
+
+                Mono.zip(roomsMono, totalCountMono)
+            }
+            .map { tuple ->
+                val rooms = tuple.t1
+                val totalCount = tuple.t2
+                val hasNext = (page + 1) * size < totalCount
+
+                val response = ChatRoomListResponse(
+                    rooms = rooms,
+                    totalCount = totalCount.toInt(),
+                    page = page,
+                    size = size,
+                    hasNext = hasNext
+                )
+                ResponseEntity.ok(ApiResponse.success(response))
+            }
+    }
+
+    /**
+     * 특정 채팅방의 상세 정보를 조회합니다.
+     */
+    @GetMapping("/{roomId}")
+    @Operation(
+        summary = "채팅방 상세 조회",
+        description = "특정 채팅방의 상세 정보와 참여자 목록을 조회합니다."
+    )
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "조회 성공"),
+            SwaggerApiResponse(responseCode = "403", description = "접근 권한 없음"),
+            SwaggerApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
+        ]
+    )
+    fun getChatRoomDetails(
+        @Parameter(description = "JWT 인증 토큰", required = true)
+        @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
+        @Parameter(description = "채팅방 ID", required = true, example = "1")
+        @PathVariable roomId: Long
+    ): Mono<ResponseEntity<ApiResponse<ChatRoomDetailsDto>>> {
+        return extractUserIdFromToken(authHeader)
+            .flatMap { userId ->
+                chatRoomService.getChatRoomDetails(roomId, userId)
+                    .flatMap { details ->
+                        val roomDto = ChatRoomDto.from(details.room, details.participantCount)
+
+                        val participantsFlux = Flux.fromIterable(details.participants)
+                            .flatMap { ucr ->
+                                userRepository.findById(ucr.userId)
+                                    .map { user -> ParticipantDto.from(ucr, user.nickname) }
+                            }
+
+                        val ownerMono = userRepository.findById(details.room.createdBy)
+                            .map { user ->
+                                val ownerRelationship = details.participants.find { it.userId == user.id }
+                                // 소유자 관계 정보가 없을 경우를 대비한 기본값 처리
+                                val defaultRelationship = details.userRelationship ?: ownerRelationship!!
+                                ParticipantDto.from(ownerRelationship ?: defaultRelationship, user.nickname)
+                            }
+
+                        Mono.zip(
+                            participantsFlux.collectList(),
+                            participantsFlux.filter { it.role == ChatRoomRole.ADMIN }.collectList(),
+                            ownerMono
+                        ).map { tuple ->
+                            ChatRoomDetailsDto(
+                                room = roomDto,
+                                participants = tuple.t1,
+                                admins = tuple.t2,
+                                owner = tuple.t3
+                            )
+                        }
+                    }
+            }
+            .map { detailsDto -> ResponseEntity.ok(ApiResponse.success(detailsDto)) }
+    }
+
+
+    /**
+     * 채팅방에 참여합니다.
+     */
+    @PostMapping("/{roomId}/join")
+    @Operation(
+        summary = "채팅방 참여",
+        description = "지정된 채팅방에 참여합니다. 비공개 채팅방의 경우 초대가 필요할 수 있습니다."
+    )
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "참여 성공"),
+            SwaggerApiResponse(responseCode = "403", description = "참여 권한 없음"),
+            SwaggerApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음"),
+            SwaggerApiResponse(responseCode = "409", description = "이미 참여한 채팅방")
+        ]
+    )
+    fun joinChatRoom(
+        @Parameter(description = "JWT 인증 토큰", required = true)
+        @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
+        @Parameter(description = "참여할 채팅방 ID", required = true, example = "1")
+        @PathVariable roomId: Long
+    ): Mono<ResponseEntity<ApiResponse<String>>> {
+        return extractUserIdFromToken(authHeader)
+            .flatMap { userId ->
+                chatRoomService.joinChatRoom(userId, roomId)
+            }
+            .map {
+                ResponseEntity.ok(ApiResponse.success("채팅방에 성공적으로 참여했습니다."))
+            }
+    }
+
+    /**
+     * 채팅방에서 퇴장합니다.
+     */
+    @DeleteMapping("/{roomId}/leave")
+    @Operation(
+        summary = "채팅방 퇴장",
+        description = "현재 참여한 채팅방에서 퇴장합니다. 소유자는 퇴장할 수 없습니다."
+    )
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "퇴장 성공"),
+            SwaggerApiResponse(responseCode = "403", description = "퇴장 권한 없음 (소유자는 퇴장 불가)"),
+            SwaggerApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
+        ]
+    )
+    fun leaveChatRoom(
+        @Parameter(description = "JWT 인증 토큰", required = true)
+        @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
+        @Parameter(description = "퇴장할 채팅방 ID", required = true, example = "1")
+        @PathVariable roomId: Long
+    ): Mono<ResponseEntity<ApiResponse<String>>> {
+        return extractUserIdFromToken(authHeader)
+            .flatMap { userId ->
+                chatRoomService.leaveChatRoom(userId, roomId)
+            }
+            .map {
+                ResponseEntity.ok(ApiResponse.success("채팅방에서 성공적으로 퇴장했습니다."))
+            }
+    }
+
+    /**
+     * 채팅방 참여자 목록을 조회합니다.
+     */
+    @GetMapping("/{roomId}/participants")
+    @Operation(
+        summary = "참여자 목록 조회",
+        description = "특정 채팅방의 활성 참여자 목록을 조회합니다."
+    )
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "조회 성공"),
+            SwaggerApiResponse(responseCode = "403", description = "접근 권한 없음"),
+            SwaggerApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
+        ]
+    )
+    fun getChatRoomParticipants(
+        @Parameter(description = "JWT 인증 토큰", required = true)
+        @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
+        @Parameter(description = "조회할 채팅방 ID", required = true, example = "1")
+        @PathVariable roomId: Long
+    ): Mono<ResponseEntity<ApiResponse<List<ParticipantDto>>>> {
+        return extractUserIdFromToken(authHeader)
+            .flatMapMany { userId ->
+                chatRoomService.getRoomParticipants(roomId, userId)
+                    .flatMap { userChatRoom ->
+                        userRepository.findById(userChatRoom.userId)
+                            .map { user -> ParticipantDto.from(userChatRoom, user.nickname) }
+                    }
+            }
+            .collectList()
+            .map { participants ->
+                ResponseEntity.ok(ApiResponse.success(participants))
+            }
+    }
+
+    /**
+     * 참여자 역할을 변경합니다. (관리자/소유자만 가능)
+     */
+    @PutMapping("/{roomId}/participants/role")
+    @Operation(
+        summary = "참여자 역할 변경",
+        description = "채팅방 참여자의 역할을 변경합니다. 관리자 또는 소유자 권한이 필요합니다."
+    )
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "역할 변경 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            SwaggerApiResponse(responseCode = "401", description = "인증 실패"),
+            SwaggerApiResponse(responseCode = "403", description = "권한 없음 (관리자/소유자 권한 필요)"),
+            SwaggerApiResponse(responseCode = "404", description = "채팅방 또는 사용자를 찾을 수 없음")
+        ]
+    )
+    fun changeParticipantRole(
+        @Parameter(description = "JWT 인증 토큰", required = true)
+        @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
+        @Parameter(description = "채팅방 ID", required = true, example = "1")
+        @PathVariable roomId: Long,
+        @Parameter(description = "역할 변경 요청 데이터", required = true)
+        @Valid @RequestBody request: ChangeParticipantRoleRequest
+    ): Mono<ResponseEntity<ApiResponse<String>>> {
+        return extractUserIdFromToken(authHeader)
+            .flatMap { requesterId ->
+                chatRoomService.changeParticipantRole(
+                    requesterId = requesterId,
+                    targetUserId = request.targetUserId,
+                    roomId = roomId,
+                    newRole = request.newRole
+                )
+            }
+            .map {
+                ResponseEntity.ok(ApiResponse.success("참여자 역할이 성공적으로 변경되었습니다."))
+            }
+    }
+
+    /**
+     * 참여자를 추방합니다. (관리자/소유자만 가능)
+     */
+    @DeleteMapping("/{roomId}/participants/kick")
+    @Operation(
+        summary = "참여자 추방",
+        description = "채팅방에서 특정 참여자를 추방합니다. 관리자 또는 소유자 권한이 필요합니다."
+    )
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "추방 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            SwaggerApiResponse(responseCode = "401", description = "인증 실패"),
+            SwaggerApiResponse(responseCode = "403", description = "권한 없음 (관리자/소유자 권한 필요)"),
+            SwaggerApiResponse(responseCode = "404", description = "채팅방 또는 사용자를 찾을 수 없음"),
+            SwaggerApiResponse(responseCode = "409", description = "추방할 수 없는 사용자 (소유자 등)")
+        ]
+    )
+    fun kickParticipant(
+        @Parameter(description = "JWT 인증 토큰", required = true)
+        @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
+        @Parameter(description = "채팅방 ID", required = true, example = "1")
+        @PathVariable roomId: Long,
+        @Parameter(description = "추방 요청 데이터", required = true)
+        @Valid @RequestBody request: KickParticipantRequest
+    ): Mono<ResponseEntity<ApiResponse<String>>> {
+        return extractUserIdFromToken(authHeader)
+            .flatMap { requesterId ->
+                chatRoomService.kickParticipant(
+                    requesterId = requesterId,
+                    targetUserId = request.targetUserId,
+                    roomId = roomId
+                )
+            }
+            .map {
+                ResponseEntity.ok(ApiResponse.success("참여자가 성공적으로 추방되었습니다."))
+            }
+    }
+
+    /**
+     * 채팅방 정보를 업데이트합니다. (소유자만 가능)
+     */
+    @PutMapping("/{roomId}")
+    @Operation(
+        summary = "채팅방 정보 수정",
+        description = "채팅방의 이름, 설명, 최대 참여자 수 등을 수정합니다. 소유자 권한이 필요합니다."
+    )
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "수정 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            SwaggerApiResponse(responseCode = "401", description = "인증 실패"),
+            SwaggerApiResponse(responseCode = "403", description = "권한 없음 (소유자 권한 필요)"),
+            SwaggerApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
+        ]
+    )
+    fun updateChatRoom(
+        @Parameter(description = "JWT 인증 토큰", required = true)
+        @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
+        @Parameter(description = "수정할 채팅방 ID", required = true, example = "1")
+        @PathVariable roomId: Long,
+        @Parameter(description = "채팅방 수정 요청 데이터", required = true)
+        @Valid @RequestBody request: UpdateChatRoomRequest
+    ): Mono<ResponseEntity<ApiResponse<ChatRoomDto>>> {
+        return extractUserIdFromToken(authHeader)
+            .flatMap { requesterId ->
+                chatRoomService.updateChatRoom(
+                    id = roomId,
+                    name = request.name,
+                    description = request.description,
+                    maxParticipants = request.maxParticipants,
+                    requesterId = requesterId
+                )
+            }
+            .flatMap { updatedRoom ->
+                userChatRoomService.countActiveParticipants(updatedRoom.id!!)
+                    .map { count -> ChatRoomDto.from(updatedRoom, count.toInt()) }
+            }
+            .map { updatedRoomDto ->
+                ResponseEntity.ok(ApiResponse.success(updatedRoomDto, "채팅방 정보가 성공적으로 업데이트되었습니다."))
+            }
+    }
+
+    /**
+     * 채팅방을 삭제합니다. (소유자만 가능)
+     */
+    @DeleteMapping("/{roomId}")
+    @Operation(
+        summary = "채팅방 삭제",
+        description = "채팅방을 완전히 삭제합니다. 소유자 권한이 필요하며, 모든 관련 데이터가 삭제됩니다."
+    )
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "204", description = "삭제 성공 (No Content)"),
+            SwaggerApiResponse(responseCode = "401", description = "인증 실패"),
+            SwaggerApiResponse(responseCode = "403", description = "권한 없음 (소유자 권한 필요)"),
+            SwaggerApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
+        ]
+    )
+    fun deleteChatRoom(
+        @Parameter(description = "JWT 인증 토큰", required = true)
+        @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
+        @Parameter(description = "삭제할 채팅방 ID", required = true, example = "1")
+        @PathVariable roomId: Long
+    ): Mono<ResponseEntity<ApiResponse<String>>> {
+        return extractUserIdFromToken(authHeader)
+            .flatMap { userId ->
+                chatRoomService.deleteChatRoom(roomId, userId)
+            }
+            .map {
+                ResponseEntity.noContent().build()
+            }
+    }
+
+    // === Private Helper Methods ===
+
+    /**
+     * JWT 토큰에서 사용자 ID를 추출합니다.
+     */
+    private fun extractUserIdFromToken(authHeader: String): Mono<Long> {
+        return jwtAuthenticationHelper.extractTokenFromHeader(authHeader)
+            .flatMap { token ->
+                jwtAuthenticationHelper.validateToken(token)
+                    .then(jwtAuthenticationHelper.getUserIdFromToken(token))
+            }
+    }
+}

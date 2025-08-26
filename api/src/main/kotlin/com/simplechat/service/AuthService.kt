@@ -61,8 +61,8 @@ class AuthService(
                 throw JwtAuthenticationException("리프레시 토큰이 아닙니다.")
             }
             
-            val username = jwtTokenProvider.getUsernameFromToken(request.refreshToken)
-            val newAccessToken = jwtTokenProvider.generateAccessToken(username, listOf("USER"))
+            val email = jwtTokenProvider.getEmailFromToken(request.refreshToken)
+            val newAccessToken = jwtTokenProvider.generateAccessToken(email, listOf("USER"))
             
             RefreshTokenResponse(
                 accessToken = newAccessToken,
@@ -80,8 +80,8 @@ class AuthService(
                 throw JwtAuthenticationException("유효하지 않은 토큰입니다.")
             }
             
-            val username = jwtTokenProvider.getUsernameFromToken(token)
-            username
+            val email = jwtTokenProvider.getEmailFromToken(token)
+            email
         }.flatMap { email ->
             userRepository.findByEmail(email)
                 .switchIfEmpty(Mono.error(ResourceNotFoundException("사용자를 찾을 수 없습니다.")))

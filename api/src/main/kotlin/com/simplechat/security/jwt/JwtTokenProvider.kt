@@ -29,30 +29,38 @@ class JwtTokenProvider(
     /**
      * 액세스 토큰 생성
      */
-    fun generateAccessToken(username: String, roles: List<String> = emptyList()): String {
+    fun generateAccessToken(email: String, userId: Long, roles: List<String> = emptyList()): String {
         val now = Date()
         val expiryDate = Date(now.time + jwtProperties.expiration)
 
         return Jwts.builder()
-            .subject(username)
+            .subject(email)
             .issuer(jwtProperties.issuer)
             .issuedAt(now)
             .expiration(expiryDate)
+            .claim("userId", userId)
             .claim("roles", roles)
             .claim("type", "access")
             .signWith(key)
             .compact()
     }
+    
+    /**
+     * 액세스 토큰 생성 (userId 없는 버전 - 호환성)
+     */
+    fun generateAccessToken(email: String, roles: List<String> = emptyList()): String {
+        return generateAccessToken(email, 0L, roles)
+    }
 
     /**
      * 리프레시 토큰 생성
      */
-    fun generateRefreshToken(username: String): String {
+    fun generateRefreshToken(email: String): String {
         val now = Date()
         val expiryDate = Date(now.time + jwtProperties.refreshExpiration)
 
         return Jwts.builder()
-            .subject(username)
+            .subject(email)
             .issuer(jwtProperties.issuer)
             .issuedAt(now)
             .expiration(expiryDate)
@@ -64,12 +72,31 @@ class JwtTokenProvider(
     /**
      * 토큰에서 사용자명 추출
      */
-    fun getUsernameFromToken(token: String): String {
+    fun getEmailFromToken(token: String): String {
         return try {
             val claims = parseToken(token)
             claims.subject
         } catch (e: Exception) {
             throw JwtAuthenticationException("Invalid token: Unable to extract username", e)
+        }
+    }
+
+    /**
+     * 토큰에서 사용자 ID 추출
+     */
+    fun getUserIdFromToken(token: String): Long {
+        return try {
+            val claims = parseToken(token)
+            val userId = claims["userId"]
+            when (userId) {
+                is Number -> userId.toLong()
+                is String -> userId.toLong()
+                else -> throw JwtAuthenticationException("Invalid userId format in token")
+            }
+        } catch (e: NumberFormatException) {
+            throw JwtAuthenticationException("Invalid userId format in token", e)
+        } catch (e: Exception) {
+            throw JwtAuthenticationException("Invalid token: Unable to extract userId", e)
         }
     }
 
@@ -209,7 +236,7 @@ class JwtTokenProvider(
      */
     fun refreshAccessToken(refreshToken: String): String? {
         return if (validateToken(refreshToken) && isRefreshToken(refreshToken)) {
-            val username = getUsernameFromToken(refreshToken)
+            val username = getEmailFromToken(refreshToken)
             generateAccessToken(username)
         } else {
             null

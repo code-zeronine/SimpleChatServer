@@ -97,34 +97,34 @@ class JwtAuthenticationHelperTest {
     }
 
     @Test
-    fun `should extract username from token successfully`() {
+    fun `should extract email from token successfully`() {
         // Given
         val token = "valid_token"
-        val expectedUsername = "test@example.com"
-        `when`(jwtTokenProvider.getUsernameFromToken(token)).thenReturn(expectedUsername)
+        val expectedEmail = "test@example.com"
+        `when`(jwtTokenProvider.getEmailFromToken(token)).thenReturn(expectedEmail)
 
         // When & Then
-        StepVerifier.create(jwtAuthenticationHelper.getUsernameFromToken(token))
-            .assertNext { username ->
-                assertEquals(expectedUsername, username)
+        StepVerifier.create(jwtAuthenticationHelper.getEmailFromToken(token))
+            .assertNext { email ->
+                assertEquals(expectedEmail, email)
             }
             .verifyComplete()
 
-        verify(jwtTokenProvider).getUsernameFromToken(token)
+        verify(jwtTokenProvider).getEmailFromToken(token)
     }
 
     @Test
     fun `should handle error when extracting username from token`() {
         // Given
         val token = "invalid_token"
-        `when`(jwtTokenProvider.getUsernameFromToken(token))
+        `when`(jwtTokenProvider.getEmailFromToken(token))
             .thenThrow(RuntimeException("Token parsing error"))
 
         // When & Then
-        StepVerifier.create(jwtAuthenticationHelper.getUsernameFromToken(token))
+        StepVerifier.create(jwtAuthenticationHelper.getEmailFromToken(token))
             .expectError(JwtAuthenticationException::class.java)
             .verify()
 
-        verify(jwtTokenProvider).getUsernameFromToken(token)
+        verify(jwtTokenProvider).getEmailFromToken(token)
     }
 }

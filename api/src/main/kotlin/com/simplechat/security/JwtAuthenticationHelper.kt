@@ -49,13 +49,24 @@ class JwtAuthenticationHelper(
     }
 
     /**
-     * 토큰에서 사용자명 추출
+     * 토큰에서 이메일 추출
      */
-    fun getUsernameFromToken(token: String): Mono<String> {
+    fun getEmailFromToken(token: String): Mono<String> {
         return Mono.fromCallable {
-            jwtTokenProvider.getUsernameFromToken(token)
+            jwtTokenProvider.getEmailFromToken(token)
         }.onErrorMap { e ->
-            JwtAuthenticationException("Failed to extract username from token: ${e.message}")
+            JwtAuthenticationException("Failed to extract email from token: ${e.message}")
+        }
+    }
+
+    /**
+     * 토큰에서 사용자 ID 추출
+     */
+    fun getUserIdFromToken(token: String): Mono<Long> {
+        return Mono.fromCallable {
+            jwtTokenProvider.getUserIdFromToken(token)
+        }.onErrorMap { e ->
+            JwtAuthenticationException("Failed to extract userId from token: ${e.message}")
         }
     }
 
