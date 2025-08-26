@@ -93,7 +93,9 @@ class MongoIndexServiceTest {
         StepVerifier.create(mongoIndexService.generateOptimizationRecommendations())
             .expectNextMatches { recommendations ->
                 recommendations.isNotEmpty() &&
-                recommendations.all { it.contains("performance") || it.contains("optimization") }
+                recommendations.all {
+                    it.contains("Optimal performance") || it.contains("Performance is acceptable")
+                }
             }
             .verifyComplete()
     }
