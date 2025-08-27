@@ -4,6 +4,7 @@ import com.simplechat.domain.entity.ChatMessage
 import com.simplechat.domain.entity.MessageType
 import com.simplechat.infrastructure.entity.ChatMessageEntity
 import com.simplechat.infrastructure.repository.ChatMessageRepository
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
@@ -21,11 +22,15 @@ import java.time.LocalDateTime
 class ChatMessageService(
     private val repository: ChatMessageRepository
 ) {
+    private val logger = LoggerFactory.getLogger(ChatMessageService::class.java)
 
     /**
      * 채팅 메시지를 저장합니다.
      */
     fun save(chatMessage: ChatMessage): Mono<ChatMessage> {
+        logger.debug("Saving chat message: roomId={}, userId={}, type={}", 
+                    chatMessage.roomId, chatMessage.userId, chatMessage.messageType)
+        
         // 도메인 검증 (시스템 메시지는 userId = 0이 허용됨)
         if (chatMessage.isSystemMessage()) {
             require(chatMessage.roomId > 0) { "Room ID must be positive: ${chatMessage.roomId}" }
@@ -37,7 +42,14 @@ class ChatMessageService(
         
         val entity = ChatMessageEntity.fromDomain(chatMessage)
         return repository.save(entity)
-            .map { it.toDomain() }
+            .map { savedEntity -> 
+                logger.debug("Successfully saved chat message with id: {}", savedEntity.id)
+                savedEntity.toDomain() 
+            }
+            .doOnError { error ->
+                logger.error("Failed to save chat message: roomId={}, userId={}, error={}", 
+                           chatMessage.roomId, chatMessage.userId, error.message, error)
+            }
     }
 
     /**
@@ -74,8 +86,18 @@ class ChatMessageService(
     fun findByRoomId(roomId: Long, pageable: Pageable): Flux<ChatMessage> {
         require(roomId > 0) { "Room ID must be positive: $roomId" }
         
+        logger.debug("Finding messages for roomId={}, page={}, size={}", 
+                    roomId, pageable.pageNumber, pageable.pageSize)
+        
         return repository.findByRoomIdOrderByTimestampDesc(roomId, pageable)
             .map { it.toDomain() }
+            .doOnComplete { 
+                logger.debug("Successfully retrieved messages for roomId={}", roomId)
+            }
+            .doOnError { error ->
+                logger.error("Failed to retrieve messages for roomId={}, error={}", 
+                           roomId, error.message, error)
+            }
     }
 
     /**
