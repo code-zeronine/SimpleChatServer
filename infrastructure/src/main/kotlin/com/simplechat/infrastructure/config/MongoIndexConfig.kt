@@ -161,12 +161,12 @@ class MongoIndexConfig(
         return reactiveMongoTemplate.indexOps(collectionName)
             .indexInfo
             .map { indexInfo ->
-                mapOf(
+                mapOf<String, Any>(
                     "name" to (indexInfo.name),
                     "keys" to indexInfo.indexFields.joinToString(", ") { "${it.key}:${it.direction}" },
                     "unique" to indexInfo.isUnique,
                     "sparse" to indexInfo.isSparse
-                ) as Map<String, Any>
+                )
             }
             .collectList()
             .doOnNext { indexes ->

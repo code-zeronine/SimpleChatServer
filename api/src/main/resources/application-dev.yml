@@ -11,6 +11,14 @@ spring:
       password: simplechat123
       database: 0
       timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 10
+          min-idle: 2
+        shutdown-timeout: 100ms
+        # 개발 환경용 Lettuce 설정
+        client-name: "simple-chat-dev"
 
   # R2DBC Configuration for Development (PostgreSQL)
   r2dbc:
