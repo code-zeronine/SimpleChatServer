@@ -53,6 +53,9 @@ logging:
 websocket:
   endpoint: /ws
   allowed-origins: "*"
+  session:
+    cleanup:
+      enabled: true
   
 # JWT Configuration
 jwt:
