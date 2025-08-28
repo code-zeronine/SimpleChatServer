@@ -449,7 +449,7 @@
           5,
           6
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -457,7 +457,7 @@
             "description": "WebSocket 통신을 위한 JSON 메시지 프로토콜과 관련 데이터 클래스들을 정의합니다.",
             "dependencies": [],
             "details": "WebSocketMessage 데이터 클래스, MessageType 열거형 (CHAT, JOIN, LEAVE, TYPING), ChatMessage, JoinMessage, LeaveMessage, TypingMessage 등 메시지 타입별 데이터 모델 구현. JSON 직렬화/역직렬화를 위한 ObjectMapper 설정 포함.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-08-28T06:45:54.830Z",
+      "updated": "2025-08-28T07:24:58.749Z",
       "description": "Tasks for master context"
     }
   }
