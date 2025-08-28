@@ -420,7 +420,7 @@
               "6.2"
             ],
             "details": "1. 세션 정보 캐싱 구조 설계 (session:{sessionId})\n2. 사용자 온라인 상태 관리 (user:online:{userId})\n3. 세션 만료 시간 설정 (TTL)\n4. 세션 정보 조회 및 업데이트 API\n5. 연결 해제 시 캐시 정리 로직",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -433,7 +433,7 @@
               "6.5"
             ],
             "details": "1. RedisMessageBroker 서비스 클래스 구현\n2. publishMessage 메서드 구현 (채팅방별 메시지 발행)\n3. subscribeToRoom 메서드 구현 (채팅방 구독)\n4. 에러 처리 및 재연결 로직 구현\n5. WebSocket 핸들러와의 통합\n6. 메시지 브로커 성능 최적화",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           }
         ]
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-08-28T05:52:48.871Z",
+      "updated": "2025-08-28T06:22:51.133Z",
       "description": "Tasks for master context"
     }
   }

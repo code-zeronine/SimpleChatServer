@@ -56,6 +56,15 @@ websocket:
   session:
     cleanup:
       enabled: true
+
+# Message Broker Configuration
+message-broker:
+  monitoring:
+    enabled: true
+  performance:
+    max-sessions: 10000
+    max-subscriptions: 50000
+    memory-threshold: 80
   
 # JWT Configuration
 jwt:
