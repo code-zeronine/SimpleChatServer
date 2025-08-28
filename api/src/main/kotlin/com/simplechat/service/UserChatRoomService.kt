@@ -41,7 +41,7 @@ class UserChatRoomService(
         invitedBy: Long? = null
     ): Mono<UserChatRoom> {
         return validateUserAndChatRoom(userId, chatRoomId)
-            .flatMap { (user, chatRoom) ->
+            .flatMap { (_, chatRoom) ->
                 // 이미 참여 중인지 확인
                 userChatRoomRepository.existsByUserIdAndChatRoomId(userId, chatRoomId)
                     .flatMap { exists ->

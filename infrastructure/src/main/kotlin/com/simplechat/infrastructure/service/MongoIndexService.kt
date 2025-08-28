@@ -31,14 +31,14 @@ class MongoIndexService(
             .indexInfo
             .map { indexInfo ->
                 mapOf<String, Any>(
-                    "name" to (indexInfo.name ?: "unknown"),
+                    "name" to indexInfo.name,
                     "keys" to indexInfo.indexFields.toString(),
                     "unique" to indexInfo.isUnique,
                     "sparse" to indexInfo.isSparse
                 )
             }
             .doOnNext { index ->
-                logger.debug("Index found: ${index["name"]} with keys: ${index["keys"]}")
+                logger.debug("Index found: {} with keys: {}", index["name"], index["keys"])
             }
     }
     

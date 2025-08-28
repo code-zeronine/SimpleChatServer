@@ -42,7 +42,7 @@ class ChatRoomService(
         ownerId: Long
     ): Mono<ChatRoom> {
         return validateUser(ownerId)
-            .flatMap { user ->
+            .flatMap { _ ->
                 checkRoomNameAvailability(name)
                     .flatMap { createAndSaveChatRoom(ownerId, name, description, isPrivate, maxParticipants) }
             }
@@ -83,7 +83,7 @@ class ChatRoomService(
      */
     fun deleteChatRoom(roomId: Long, requesterId: Long): Mono<Void> {
         return validateRoomDeletionPermission(requesterId, roomId)
-            .flatMap { room ->
+            .flatMap { _ ->
                 // 모든 참여자 관계 삭제 후 채팅방 삭제
                 userChatRoomService.deleteAllByChatRoomId(roomId)
                     .then(chatRoomRepository.deleteById(roomId))
