@@ -376,7 +376,7 @@
             "description": "build.gradle.kts에 Spring Data Redis Reactive 의존성을 추가하고 Redis 연결을 위한 기본 설정을 구성합니다.",
             "dependencies": [],
             "details": "1. build.gradle.kts에 spring-boot-starter-data-redis-reactive 의존성 추가\n2. application.yml에 Redis 서버 연결 정보 설정 (host, port, password)\n3. Redis 연결 풀 설정 및 타임아웃 구성\n4. Redis 7+ 호환성 확인 및 설정",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -387,7 +387,7 @@
               "6.1"
             ],
             "details": "1. RedisConfig 클래스 구현 (@Configuration)\n2. ReactiveRedisTemplate<String, String> 빈 등록\n3. LettuceConnectionFactory 설정\n4. Redis 직렬화 설정 (StringRedisSerializer)\n5. 연결 상태 확인 및 헬스체크 구현",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-08-27T00:04:06.093Z",
+      "updated": "2025-08-28T01:25:49.747Z",
       "description": "Tasks for master context"
     }
   }
