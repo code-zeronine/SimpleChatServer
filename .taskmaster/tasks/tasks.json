@@ -468,7 +468,7 @@
               "7.1"
             ],
             "details": "ConcurrentHashMap 기반 세션 저장소, 채팅방별 세션 그룹핑 로직, 세션 추가/제거/조회 메서드, 세션 상태 추적 및 정리 로직 구현. 메모리 누수 방지를 위한 세션 정리 스케줄러 포함.",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-08-28T07:24:58.749Z",
+      "updated": "2025-08-28T07:28:42.313Z",
       "description": "Tasks for master context"
     }
   }
