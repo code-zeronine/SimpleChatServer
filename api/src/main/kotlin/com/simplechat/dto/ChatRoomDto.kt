@@ -5,7 +5,6 @@ import com.simplechat.domain.entity.ChatRoomRole
 import com.simplechat.domain.entity.UserChatRoom
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
-import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 /**

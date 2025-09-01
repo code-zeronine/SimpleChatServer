@@ -1,5 +1,7 @@
 package com.simplechat.infrastructure.service
 
+import jakarta.annotation.PostConstruct
+import jakarta.annotation.PreDestroy
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory
 import org.springframework.data.redis.listener.ChannelTopic
@@ -10,8 +12,6 @@ import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
-import jakarta.annotation.PostConstruct
-import jakarta.annotation.PreDestroy
 
 /**
  * 통합된 Redis 채널 관리 서비스

@@ -8,7 +8,9 @@ import com.simplechat.domain.exception.InsufficientPermissionException
 import com.simplechat.domain.exception.UserChatRoomNotFoundException
 import com.simplechat.domain.repository.ChatRoomRepository
 import com.simplechat.domain.repository.UserRepository
-import io.mockk.*
+import io.mockk.clearAllMocks
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested

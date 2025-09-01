@@ -3,8 +3,8 @@ package com.simplechat.infrastructure.repository
 import com.simplechat.domain.entity.MessageType
 import com.simplechat.infrastructure.entity.ChatMessageEntity
 import org.springframework.data.domain.Pageable
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.data.mongodb.repository.Query
+import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.LocalDateTime

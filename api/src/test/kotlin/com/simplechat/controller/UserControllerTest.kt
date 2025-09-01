@@ -6,12 +6,15 @@ import com.simplechat.service.AuthService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mock
-import org.mockito.Mockito.*
+import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
 import org.mockito.MockitoAnnotations
 import org.springframework.http.HttpStatus
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
-import kotlin.test.*
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /**
  * UserController 단위 테스트

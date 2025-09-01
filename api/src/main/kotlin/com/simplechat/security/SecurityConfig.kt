@@ -3,11 +3,9 @@ package com.simplechat.security
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
-import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.http.server.reactive.ServerHttpResponse
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
 import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
@@ -18,7 +16,6 @@ import org.springframework.security.web.server.authorization.ServerAccessDeniedH
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.reactive.CorsConfigurationSource
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource
-import org.springframework.web.server.ServerWebExchange
 import reactor.core.publisher.Mono
 import java.nio.charset.StandardCharsets
 

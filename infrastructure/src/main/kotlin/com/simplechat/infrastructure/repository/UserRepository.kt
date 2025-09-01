@@ -4,7 +4,6 @@ import com.simplechat.domain.entity.User
 import com.simplechat.domain.repository.UserRepository
 import com.simplechat.infrastructure.entity.UserEntity
 import com.simplechat.infrastructure.util.RowMapper.getLocalDateTime
-import com.simplechat.infrastructure.util.RowMapper.getLong
 import com.simplechat.infrastructure.util.RowMapper.getLongOrNull
 import com.simplechat.infrastructure.util.RowMapper.getString
 import com.simplechat.infrastructure.util.RowMapper.mapRowSafely

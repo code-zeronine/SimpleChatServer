@@ -1,10 +1,11 @@
 package com.simplechat.security
 
 import org.junit.jupiter.api.Test
-import org.springframework.security.config.web.server.ServerHttpSecurity
-import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource
-import kotlin.test.*
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /**
  * Production 환경에서의 Spring Security WebFlux 설정 단위 테스트

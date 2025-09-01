@@ -1,19 +1,25 @@
 package com.simplechat.controller
 
-import com.simplechat.dto.*
 import com.simplechat.domain.exception.AuthenticationException
 import com.simplechat.domain.exception.ValidationException
+import com.simplechat.dto.AuthResponse
+import com.simplechat.dto.LoginRequest
+import com.simplechat.dto.RefreshTokenRequest
+import com.simplechat.dto.RefreshTokenResponse
+import com.simplechat.dto.SignUpRequest
+import com.simplechat.dto.UserDto
 import com.simplechat.service.AuthService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mock
-import org.mockito.Mockito.*
+import org.mockito.Mockito.`when`
 import org.mockito.MockitoAnnotations
 import org.springframework.http.HttpStatus
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
-import kotlin.test.*
 import java.time.LocalDateTime
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 /**
  * AuthController 단위 테스트

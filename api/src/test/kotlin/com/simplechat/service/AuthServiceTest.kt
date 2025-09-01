@@ -1,25 +1,25 @@
 package com.simplechat.service
 
-import com.simplechat.infrastructure.config.JwtProperties
 import com.simplechat.domain.entity.User
-import com.simplechat.dto.LoginRequest
-import com.simplechat.dto.RefreshTokenRequest
-import com.simplechat.dto.SignUpRequest
 import com.simplechat.domain.exception.AuthenticationException
 import com.simplechat.domain.exception.JwtAuthenticationException
 import com.simplechat.domain.exception.ValidationException
 import com.simplechat.domain.repository.UserRepository
+import com.simplechat.dto.LoginRequest
+import com.simplechat.dto.RefreshTokenRequest
+import com.simplechat.dto.SignUpRequest
+import com.simplechat.infrastructure.config.JwtProperties
 import com.simplechat.infrastructure.security.jwt.JwtTokenProvider
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mock
-import org.mockito.Mockito.*
+import org.mockito.Mockito.`when`
 import org.mockito.MockitoAnnotations
 import org.springframework.security.crypto.password.PasswordEncoder
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
-import kotlin.test.*
 import java.time.LocalDateTime
+import kotlin.test.assertTrue
 
 /**
  * AuthService 단위 테스트

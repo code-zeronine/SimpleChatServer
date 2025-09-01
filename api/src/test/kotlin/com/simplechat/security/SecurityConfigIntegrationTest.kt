@@ -1,12 +1,12 @@
 package com.simplechat.security
 
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.http.MediaType
 
 /**
  * Spring Security WebFlux 설정 통합 테스트 (개발 환경)

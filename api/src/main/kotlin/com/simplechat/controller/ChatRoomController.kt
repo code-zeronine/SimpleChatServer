@@ -1,16 +1,21 @@
 package com.simplechat.controller
 
 import com.simplechat.domain.entity.ChatRoomRole
-import com.simplechat.dto.*
 import com.simplechat.domain.repository.UserRepository
+import com.simplechat.dto.ApiResponse
+import com.simplechat.dto.ChangeParticipantRoleRequest
+import com.simplechat.dto.ChatRoomDetailsDto
+import com.simplechat.dto.ChatRoomDto
+import com.simplechat.dto.ChatRoomListResponse
+import com.simplechat.dto.CreateChatRoomRequest
+import com.simplechat.dto.KickParticipantRequest
+import com.simplechat.dto.ParticipantDto
+import com.simplechat.dto.UpdateChatRoomRequest
 import com.simplechat.security.JwtAuthenticationHelper
 import com.simplechat.service.ChatRoomService
 import com.simplechat.service.UserChatRoomService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
-import io.swagger.v3.oas.annotations.media.Content
-import io.swagger.v3.oas.annotations.media.Schema
-import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -18,9 +23,19 @@ import jakarta.validation.Valid
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 
 /**
  * 채팅방 관리를 위한 REST API 컨트롤러

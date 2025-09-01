@@ -1,6 +1,13 @@
 package com.simplechat.exception
 
-import com.simplechat.domain.exception.*
+import com.simplechat.domain.exception.AuthenticationException
+import com.simplechat.domain.exception.AuthorizationException
+import com.simplechat.domain.exception.BusinessLogicException
+import com.simplechat.domain.exception.DatabaseException
+import com.simplechat.domain.exception.ExternalServiceException
+import com.simplechat.domain.exception.ResourceNotFoundException
+import com.simplechat.domain.exception.SimpleChatException
+import com.simplechat.domain.exception.ValidationException
 import org.slf4j.LoggerFactory
 import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler
 import org.springframework.core.annotation.Order

@@ -1,14 +1,13 @@
 package com.simplechat.domain.entity
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import jakarta.validation.Validation
 import jakarta.validation.Validator
+import org.junit.jupiter.api.Test
+import java.time.LocalDateTime
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
-import java.time.LocalDateTime
 
 class ChatRoomTest {
 

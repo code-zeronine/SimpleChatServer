@@ -1,17 +1,26 @@
 package com.simplechat.controller
 
-import com.simplechat.dto.*
+import com.simplechat.dto.AuthResponse
+import com.simplechat.dto.LoginRequest
+import com.simplechat.dto.RefreshTokenRequest
+import com.simplechat.dto.RefreshTokenResponse
+import com.simplechat.dto.SignUpRequest
 import com.simplechat.service.AuthService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
-import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
+import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 
 /**
  * 인증 관련 REST API 컨트롤러
