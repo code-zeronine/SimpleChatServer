@@ -231,7 +231,7 @@ class ChatRoomController(
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
         @Parameter(description = "참여할 채팅방 ID", required = true, example = "1")
         @PathVariable roomId: Long
-    ): Mono<ResponseEntity<ApiResponse<String>>> {
+    ): Mono<ResponseEntity<ApiResponse<Unit>>> {
         return extractUserIdFromToken(authHeader)
             .flatMap { userId ->
                 chatRoomService.joinChatRoom(userId, roomId)
@@ -261,7 +261,7 @@ class ChatRoomController(
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
         @Parameter(description = "퇴장할 채팅방 ID", required = true, example = "1")
         @PathVariable roomId: Long
-    ): Mono<ResponseEntity<ApiResponse<String>>> {
+    ): Mono<ResponseEntity<ApiResponse<Unit>>> {
         return extractUserIdFromToken(authHeader)
             .flatMap { userId ->
                 chatRoomService.leaveChatRoom(userId, roomId)
@@ -330,7 +330,7 @@ class ChatRoomController(
         @PathVariable roomId: Long,
         @Parameter(description = "역할 변경 요청 데이터", required = true)
         @Valid @RequestBody request: ChangeParticipantRoleRequest
-    ): Mono<ResponseEntity<ApiResponse<String>>> {
+    ): Mono<ResponseEntity<ApiResponse<Unit>>> {
         return extractUserIdFromToken(authHeader)
             .flatMap { requesterId ->
                 chatRoomService.changeParticipantRole(
@@ -370,7 +370,7 @@ class ChatRoomController(
         @PathVariable roomId: Long,
         @Parameter(description = "추방 요청 데이터", required = true)
         @Valid @RequestBody request: KickParticipantRequest
-    ): Mono<ResponseEntity<ApiResponse<String>>> {
+    ): Mono<ResponseEntity<ApiResponse<Unit>>> {
         return extractUserIdFromToken(authHeader)
             .flatMap { requesterId ->
                 chatRoomService.kickParticipant(

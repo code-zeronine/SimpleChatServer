@@ -516,7 +516,7 @@
               "7.5"
             ],
             "details": "WebSocketHandlerAdapter 설정, RouterFunction을 통한 /chat 엔드포인트 매핑, CORS 설정, WebSocket 핸드셰이크 인터셉터 구현, 연결 제한 및 보안 설정 적용.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-09-01T05:30:14.042Z",
+      "updated": "2025-09-01T05:39:31.326Z",
       "description": "Tasks for master context"
     }
   }

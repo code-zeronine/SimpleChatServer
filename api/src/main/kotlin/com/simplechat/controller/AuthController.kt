@@ -1,5 +1,6 @@
 package com.simplechat.controller
 
+import com.simplechat.dto.ApiResponse
 import com.simplechat.dto.AuthResponse
 import com.simplechat.dto.LoginRequest
 import com.simplechat.dto.RefreshTokenRequest
@@ -50,10 +51,11 @@ class AuthController(
     fun signUp(
         @Parameter(description = "회원가입 요청 데이터", required = true)
         @Valid @RequestBody request: SignUpRequest
-    ): Mono<ResponseEntity<AuthResponse>> {
+    ): Mono<ResponseEntity<ApiResponse<AuthResponse>>> {
         return authService.signUp(request)
             .map { response ->
-                ResponseEntity.status(HttpStatus.CREATED).body(response)
+                ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success(response, "회원가입이 성공적으로 완료되었습니다."))
             }
     }
 
@@ -75,10 +77,10 @@ class AuthController(
     fun login(
         @Parameter(description = "로그인 요청 데이터", required = true)
         @Valid @RequestBody request: LoginRequest
-    ): Mono<ResponseEntity<AuthResponse>> {
+    ): Mono<ResponseEntity<ApiResponse<AuthResponse>>> {
         return authService.login(request)
             .map { response ->
-                ResponseEntity.ok(response)
+                ResponseEntity.ok(ApiResponse.success(response, "로그인이 성공적으로 완료되었습니다."))
             }
     }
 
@@ -100,10 +102,10 @@ class AuthController(
     fun refreshToken(
         @Parameter(description = "토큰 갱신 요청 데이터", required = true)
         @Valid @RequestBody request: RefreshTokenRequest
-    ): Mono<ResponseEntity<RefreshTokenResponse>> {
+    ): Mono<ResponseEntity<ApiResponse<RefreshTokenResponse>>> {
         return authService.refreshToken(request)
             .map { response ->
-                ResponseEntity.ok(response)
+                ResponseEntity.ok(ApiResponse.success(response, "토큰이 성공적으로 갱신되었습니다."))
             }
     }
 
@@ -124,10 +126,10 @@ class AuthController(
     fun checkEmailExists(
         @Parameter(description = "확인할 이메일 주소", required = true, example = "user@example.com")
         @RequestParam email: String
-    ): Mono<ResponseEntity<Map<String, Boolean>>> {
+    ): Mono<ResponseEntity<ApiResponse<Map<String, Boolean>>>> {
         return authService.checkEmailExists(email)
             .map { exists ->
-                ResponseEntity.ok(mapOf("exists" to exists))
+                ResponseEntity.ok(ApiResponse.success(mapOf("exists" to exists)))
             }
     }
 
@@ -148,10 +150,10 @@ class AuthController(
     fun checkNicknameExists(
         @Parameter(description = "확인할 닉네임", required = true, example = "사용자123")
         @RequestParam nickname: String
-    ): Mono<ResponseEntity<Map<String, Boolean>>> {
+    ): Mono<ResponseEntity<ApiResponse<Map<String, Boolean>>>> {
         return authService.checkNicknameExists(nickname)
             .map { exists ->
-                ResponseEntity.ok(mapOf("exists" to exists))
+                ResponseEntity.ok(ApiResponse.success(mapOf("exists" to exists)))
             }
     }
 

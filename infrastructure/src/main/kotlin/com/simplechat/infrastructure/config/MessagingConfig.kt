@@ -21,6 +21,8 @@ import org.springframework.web.reactive.HandlerMapping
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping
 import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.server.support.WebSocketHandlerAdapter
+import org.springframework.web.cors.CorsConfiguration
+import org.springframework.web.reactive.socket.server.upgrade.ReactorNettyRequestUpgradeStrategy
 
 /**
  * 통합 메시징 설정
@@ -92,6 +94,16 @@ class MessagingConfig {
         val handlerMapping = SimpleUrlHandlerMapping()
         handlerMapping.urlMap = map
         handlerMapping.order = 1
+        
+        // WebSocket 전용 CORS 설정
+        val corsConfig = CorsConfiguration().apply {
+            allowedOriginPatterns = listOf("*")
+            allowedMethods = listOf("GET", "POST", "OPTIONS")
+            allowedHeaders = listOf("*")
+            allowCredentials = true
+            maxAge = 3600L // 1시간
+        }
+        handlerMapping.setCorsConfigurations(mapOf("/ws/**" to corsConfig))
         
         return handlerMapping
     }

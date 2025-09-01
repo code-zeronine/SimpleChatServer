@@ -1,5 +1,6 @@
 package com.simplechat.controller
 
+import com.simplechat.dto.ApiResponse
 import com.simplechat.dto.UserDto
 import com.simplechat.security.JwtAuthenticationHelper
 import com.simplechat.service.AuthService
@@ -48,14 +49,14 @@ class UserController(
     fun getCurrentUser(
         @Parameter(description = "JWT 인증 토큰", required = true)
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String
-    ): Mono<ResponseEntity<UserDto>> {
+    ): Mono<ResponseEntity<ApiResponse<UserDto>>> {
         return jwtAuthenticationHelper.extractTokenFromHeader(authHeader)
             .flatMap { token ->
                 jwtAuthenticationHelper.validateToken(token)
                     .then(authService.validateUser(token))
             }
             .map { user ->
-                ResponseEntity.ok(user)
+                ResponseEntity.ok(ApiResponse.success(user, "사용자 정보를 성공적으로 조회하였습니다."))
             }
     }
 
@@ -79,7 +80,7 @@ class UserController(
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
         @Parameter(description = "업데이트할 프로필 정보", required = true)
         @RequestBody updateRequest: Map<String, String>
-    ): Mono<ResponseEntity<String>> {
+    ): Mono<ResponseEntity<ApiResponse<String>>> {
         return jwtAuthenticationHelper.extractTokenFromHeader(authHeader)
             .flatMap { token ->
                 jwtAuthenticationHelper.validateToken(token)
@@ -87,7 +88,7 @@ class UserController(
             }
             .map { email ->
                 // 실제 프로필 업데이트 로직은 추후 구현
-                ResponseEntity.ok("Profile updated for user: $email")
+                ResponseEntity.ok(ApiResponse.success("프로필이 성공적으로 업데이트되었습니다.", "사용자: $email"))
             }
     }
 }
