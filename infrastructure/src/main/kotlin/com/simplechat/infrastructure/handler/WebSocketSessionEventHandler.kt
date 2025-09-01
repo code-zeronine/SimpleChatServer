@@ -1,6 +1,6 @@
 package com.simplechat.infrastructure.handler
 
-import com.simplechat.infrastructure.service.EnhancedWebSocketSessionManager
+import com.simplechat.infrastructure.service.WebSocketSessionManager
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono
  */
 @Component
 class WebSocketSessionEventHandler(
-    private val sessionManager: EnhancedWebSocketSessionManager
+    private val sessionManager: WebSocketSessionManager
 ) {
 
     private val logger = LoggerFactory.getLogger(WebSocketSessionEventHandler::class.java)

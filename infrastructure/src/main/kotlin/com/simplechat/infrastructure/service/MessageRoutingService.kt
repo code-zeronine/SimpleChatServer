@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.UUID
 
 /**
- * 통합된 메시지 라우팅 서비스
+ * 메시지 라우팅 서비스
  * 
  * 기존의 여러 라우팅 및 전달 서비스들을 하나로 통합:
  * - ReactiveMessageRoutingEngine
@@ -27,13 +27,13 @@ import java.util.UUID
  * - RedisMessageRoutingSubscriber (일부 기능)
  */
 @Service
-class UnifiedMessageRoutingService(
-    private val sessionManager: EnhancedWebSocketSessionManager,
-    private val redisMessageService: UnifiedRedisMessageService,
+class MessageRoutingService(
+    private val sessionManager: WebSocketSessionManager,
+    private val redisMessageService: RedisMessageBrokerService,
     private val objectMapper: ObjectMapper
 ) : MessageRoutingEngine {
 
-    private val logger = LoggerFactory.getLogger(UnifiedMessageRoutingService::class.java)
+    private val logger = LoggerFactory.getLogger(MessageRoutingService::class.java)
     
     // 라우팅 통계
     private val routingStats = ConcurrentHashMap<String, AtomicLong>()

@@ -1,4 +1,4 @@
-package com.simplechat.infrastructure.exception
+package com.simplechat.domain.exception
 
 /**
  * 표준화된 오류 코드를 정의합니다.

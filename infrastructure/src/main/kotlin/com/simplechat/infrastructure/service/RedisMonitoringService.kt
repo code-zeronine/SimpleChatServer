@@ -25,7 +25,7 @@ import jakarta.annotation.PreDestroy
 class RedisMonitoringService(
     private val redisTemplate: ReactiveRedisTemplate<String, Any>,
     private val connectionFactory: ReactiveRedisConnectionFactory,
-    private val unifiedRedisMessageService: UnifiedRedisMessageService,
+    private val redisMessageBrokerService: RedisMessageBrokerService,
     private val channelManagerService: RedisChannelManagerService
 ) {
 
@@ -100,7 +100,7 @@ class RedisMonitoringService(
                 val latency = System.currentTimeMillis() - startTime
                 latencyMeasurements["health_check"] = latency
                 
-                val messageServiceStats = unifiedRedisMessageService.getStatistics()
+                val messageServiceStats = redisMessageBrokerService.getStatistics()
                 val channelManagerStats = channelManagerService.getStatistics()
                 
                 mapOf(
@@ -199,7 +199,7 @@ class RedisMonitoringService(
         return Mono.zip(
             performHealthCheck(),
             collectPerformanceMetrics(),
-            unifiedRedisMessageService.healthCheck(),
+            redisMessageBrokerService.healthCheck(),
             channelManagerService.healthCheck()
         ).map { tuple ->
             val health = tuple.t1

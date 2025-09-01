@@ -505,7 +505,7 @@
               "7.4"
             ],
             "details": "handle() 메서드 구현, 메시지 수신 및 파싱 로직, 메시지 타입별 핸들러 분기, handleChatMessage, handleJoinRoom, handleLeaveRoom, handleTypingIndicator 메서드 구현, Reactive Stream 기반 비동기 처리.",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-09-01T00:41:14.685Z",
+      "updated": "2025-09-01T05:11:43.354Z",
       "description": "Tasks for master context"
     }
   }

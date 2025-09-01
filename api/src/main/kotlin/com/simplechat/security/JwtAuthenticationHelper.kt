@@ -1,6 +1,6 @@
 package com.simplechat.security
 
-import com.simplechat.infrastructure.exception.JwtAuthenticationException
+import com.simplechat.domain.exception.JwtAuthenticationException
 import com.simplechat.infrastructure.security.jwt.JwtTokenProvider
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Component

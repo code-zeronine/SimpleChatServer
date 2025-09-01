@@ -22,9 +22,9 @@ import java.util.concurrent.atomic.AtomicLong
  * 사용자별, 채팅방별 세션 관리, 캐싱, 고급 라우팅 기능 제공
  */
 @Service
-class EnhancedWebSocketSessionManager {
+class WebSocketSessionManager {
 
-    private val logger = LoggerFactory.getLogger(EnhancedWebSocketSessionManager::class.java)
+    private val logger = LoggerFactory.getLogger(WebSocketSessionManager::class.java)
 
     // 세션 저장소 (캐싱 기능 통합)
     private val sessions = ConcurrentHashMap<String, WebSocketSession>()

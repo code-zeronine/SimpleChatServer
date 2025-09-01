@@ -5,9 +5,9 @@ import com.simplechat.domain.entity.User
 import com.simplechat.dto.LoginRequest
 import com.simplechat.dto.RefreshTokenRequest
 import com.simplechat.dto.SignUpRequest
-import com.simplechat.infrastructure.exception.AuthenticationException
-import com.simplechat.infrastructure.exception.JwtAuthenticationException
-import com.simplechat.infrastructure.exception.ValidationException
+import com.simplechat.domain.exception.AuthenticationException
+import com.simplechat.domain.exception.JwtAuthenticationException
+import com.simplechat.domain.exception.ValidationException
 import com.simplechat.domain.repository.UserRepository
 import com.simplechat.infrastructure.security.jwt.JwtTokenProvider
 import org.junit.jupiter.api.BeforeEach

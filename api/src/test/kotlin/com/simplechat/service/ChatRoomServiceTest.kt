@@ -5,10 +5,10 @@ import com.simplechat.domain.entity.ChatRoom
 import com.simplechat.domain.entity.ChatRoomRole
 import com.simplechat.domain.entity.User
 import com.simplechat.domain.entity.UserChatRoom
-import com.simplechat.infrastructure.exception.BusinessLogicException
-import com.simplechat.infrastructure.exception.ChatRoomNotFoundException
-import com.simplechat.infrastructure.exception.InsufficientPermissionException
-import com.simplechat.infrastructure.exception.UserNotFoundException
+import com.simplechat.domain.exception.BusinessLogicException
+import com.simplechat.domain.exception.ChatRoomNotFoundException
+import com.simplechat.domain.exception.InsufficientPermissionException
+import com.simplechat.domain.exception.UserNotFoundException
 import com.simplechat.domain.repository.ChatRoomRepository
 import com.simplechat.domain.repository.UserRepository
 import io.mockk.*

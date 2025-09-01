@@ -2,7 +2,7 @@ package com.simplechat.infrastructure.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.simplechat.domain.message.WebSocketMessage
-// Removed MessageBroker import - service no longer implements it directly
+import com.simplechat.domain.service.MessageBrokerDomainService // Import the interface
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.data.redis.listener.ChannelTopic
@@ -18,7 +18,7 @@ import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
 
 /**
- * 통합된 Redis 메시지 서비스
+ * Redis 메시지 브로커 서비스
  * 
  * 기존의 여러 Redis 서비스들을 하나로 통합:
  * - RedisMessageBroker
@@ -30,13 +30,13 @@ import jakarta.annotation.PreDestroy
  * - RedisMessageSerializationService
  */
 @Service
-class UnifiedRedisMessageService(
+class RedisMessageBrokerService(
     private val redisTemplate: ReactiveRedisTemplate<String, Any>,
     private val messageListenerContainer: ReactiveRedisMessageListenerContainer,
     private val objectMapper: ObjectMapper
-) {
+) : MessageBrokerDomainService { // Implement the interface
 
-    private val logger = LoggerFactory.getLogger(UnifiedRedisMessageService::class.java)
+    private val logger = LoggerFactory.getLogger(RedisMessageBrokerService::class.java)
     
     // 구독 관리
     private val activeSubscriptions = ConcurrentHashMap<String, ChannelTopic>()
@@ -62,7 +62,7 @@ class UnifiedRedisMessageService(
     /**
      * 메시지 브로드캐스트
      */
-    fun broadcast(chatRoomId: String, message: WebSocketMessage) {
+    override fun broadcast(chatRoomId: String, message: WebSocketMessage) { // Changed return type to Unit
         val channel = "chat:room:$chatRoomId"
         publishMessage(channel, message)
             .doOnSuccess { publishedMessages.incrementAndGet() }
@@ -71,7 +71,22 @@ class UnifiedRedisMessageService(
                 logger.error("Failed to broadcast message to room {}: {}", chatRoomId, error.message)
             }
             .subscribeOn(Schedulers.parallel())
-            .subscribe()
+            .subscribe() // Subscribe to trigger the Mono
+    }
+
+    /**
+     * 특정 사용자에게 메시지를 전송합니다.
+     */
+    override fun sendToUser(userId: Long, message: WebSocketMessage) { // Changed return type to Unit
+        val channel = "chat:user:$userId"
+        publishMessage(channel, message)
+            .doOnSuccess { publishedMessages.incrementAndGet() }
+            .doOnError { error ->
+                failedOperations.incrementAndGet()
+                logger.error("Failed to send message to user {}: {}", userId, error.message)
+            }
+            .subscribeOn(Schedulers.parallel())
+            .subscribe() // Subscribe to trigger the Mono
     }
 
     /**

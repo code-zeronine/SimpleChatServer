@@ -28,4 +28,9 @@ dependencies {
     testImplementation("io.mockk:mockk:1.13.8")
     testImplementation("com.ninja-squad:springmockk:4.0.2")
     testImplementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.testcontainers:mongodb:1.19.3")
+    testImplementation("org.testcontainers:postgresql:1.19.3")
+    testImplementation("org.testcontainers:junit-jupiter:1.19.3")
+    testImplementation("com.redis:testcontainers-redis:2.2.2")
 }

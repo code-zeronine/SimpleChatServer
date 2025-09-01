@@ -1,6 +1,6 @@
 package com.simplechat.exception
 
-import com.simplechat.infrastructure.exception.*
+import com.simplechat.domain.exception.*
 import org.slf4j.LoggerFactory
 import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler
 import org.springframework.core.annotation.Order

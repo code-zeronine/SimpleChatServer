@@ -8,8 +8,8 @@ import com.simplechat.dto.RefreshTokenRequest
 import com.simplechat.dto.RefreshTokenResponse
 import com.simplechat.dto.SignUpRequest
 import com.simplechat.dto.UserDto
-import com.simplechat.infrastructure.exception.*
-import com.simplechat.infrastructure.exception.ErrorCode
+import com.simplechat.domain.exception.*
+import com.simplechat.domain.exception.ErrorCode
 import com.simplechat.domain.repository.UserRepository
 import com.simplechat.infrastructure.security.jwt.JwtTokenProvider
 import org.springframework.security.crypto.password.PasswordEncoder

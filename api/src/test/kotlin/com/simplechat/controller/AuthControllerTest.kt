@@ -1,8 +1,8 @@
 package com.simplechat.controller
 
 import com.simplechat.dto.*
-import com.simplechat.infrastructure.exception.AuthenticationException
-import com.simplechat.infrastructure.exception.ValidationException
+import com.simplechat.domain.exception.AuthenticationException
+import com.simplechat.domain.exception.ValidationException
 import com.simplechat.service.AuthService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

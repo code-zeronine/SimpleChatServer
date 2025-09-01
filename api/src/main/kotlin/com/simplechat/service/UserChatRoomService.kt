@@ -4,11 +4,11 @@ import com.simplechat.domain.entity.ChatRoom
 import com.simplechat.domain.entity.ChatRoomRole
 import com.simplechat.domain.entity.User
 import com.simplechat.domain.entity.UserChatRoom
-import com.simplechat.infrastructure.exception.ChatRoomNotFoundException
-import com.simplechat.infrastructure.exception.InsufficientPermissionException
-import com.simplechat.infrastructure.exception.UserNotFoundException
-import com.simplechat.infrastructure.exception.UserChatRoomAlreadyExistsException
-import com.simplechat.infrastructure.exception.UserChatRoomNotFoundException
+import com.simplechat.domain.exception.ChatRoomNotFoundException
+import com.simplechat.domain.exception.InsufficientPermissionException
+import com.simplechat.domain.exception.UserNotFoundException
+import com.simplechat.domain.exception.UserChatRoomAlreadyExistsException
+import com.simplechat.domain.exception.UserChatRoomNotFoundException
 import com.simplechat.domain.repository.ChatRoomRepository
 import com.simplechat.domain.repository.UserChatRoomRepository
 import com.simplechat.domain.repository.UserRepository

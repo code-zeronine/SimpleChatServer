@@ -2,7 +2,7 @@ package com.simplechat.infrastructure.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.simplechat.domain.entity.ChatMessage
-import com.simplechat.infrastructure.config.ChannelTopicFactory
+import com.simplechat.infrastructure.config.MessagingConfig
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.data.redis.listener.ChannelTopic
@@ -19,7 +19,7 @@ import reactor.core.scheduler.Schedulers
 class RedisPubSubService(
     private val reactiveRedisTemplate: ReactiveRedisTemplate<String, Any>,
     private val objectMapper: ObjectMapper,
-    private val channelTopicFactory: ChannelTopicFactory
+    private val channelTopicFactory: MessagingConfig.ChannelTopicFactory
 ) {
     
     private val logger = LoggerFactory.getLogger(RedisPubSubService::class.java)

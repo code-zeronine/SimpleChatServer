@@ -1,8 +1,8 @@
 package com.simplechat.infrastructure.security.jwt
 
 import com.simplechat.infrastructure.config.JwtProperties
-import com.simplechat.infrastructure.exception.ErrorCode
-import com.simplechat.infrastructure.exception.JwtAuthenticationException
+import com.simplechat.domain.exception.ErrorCode
+import com.simplechat.domain.exception.JwtAuthenticationException
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.ExpiredJwtException
