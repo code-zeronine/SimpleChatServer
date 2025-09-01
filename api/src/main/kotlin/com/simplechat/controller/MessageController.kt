@@ -2,6 +2,7 @@ package com.simplechat.controller
 
 import com.simplechat.dto.ApiResponse
 import com.simplechat.dto.MessageDto
+import com.simplechat.dto.PagedApiResponse
 import com.simplechat.service.MessageService
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -22,7 +23,7 @@ class MessageController(
         @PathVariable roomId: String,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "50") size: Int
-    ): Flux<MessageDto> {
+    ): Mono<PagedApiResponse<MessageDto>> {
         require(roomId.isNotBlank()) { "roomId must not be blank" }
         require(page >= 0) { "page must be greater than or equal to 0" }
         require(size > 0) { "size must be greater than 0" }
