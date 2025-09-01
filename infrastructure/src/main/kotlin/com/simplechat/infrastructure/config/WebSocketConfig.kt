@@ -1,6 +1,7 @@
 package com.simplechat.infrastructure.config
 
 import com.simplechat.infrastructure.handler.ChatWebSocketHandler
+import com.simplechat.security.WebSocketAuthService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.reactive.HandlerMapping
@@ -18,14 +19,15 @@ class WebSocketConfig {
     
     /**
      * WebSocket 핸들러 어댑터를 구성합니다.
+     * JWT 인증을 처리하는 커스텀 WebSocketAuthService를 사용합니다.
      */
     @Bean
-    fun webSocketHandlerAdapter(): WebSocketHandlerAdapter {
-        return WebSocketHandlerAdapter()
+    fun webSocketHandlerAdapter(webSocketAuthService: WebSocketAuthService): WebSocketHandlerAdapter {
+        return WebSocketHandlerAdapter(webSocketAuthService)
     }
     
     /**
-     * WebSocket URL 매핑을 구성합니다.
+     * WebSocket URL 매핑를 구성합니다.
      */
     @Bean
     fun webSocketHandlerMapping(

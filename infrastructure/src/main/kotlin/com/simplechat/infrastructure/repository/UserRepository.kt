@@ -1,6 +1,7 @@
 package com.simplechat.infrastructure.repository
 
 import com.simplechat.domain.entity.User
+import com.simplechat.domain.repository.UserRepository
 import com.simplechat.infrastructure.entity.UserEntity
 import com.simplechat.infrastructure.util.RowMapper.getLocalDateTime
 import com.simplechat.infrastructure.util.RowMapper.getLong
@@ -20,9 +21,9 @@ import reactor.core.publisher.Mono
  * User 특화 로직만 구현합니다.
  */
 @Repository
-class UserRepository(
+class UserRepositoryImpl(
     template: R2dbcEntityTemplate
-) : BaseReactiveRepository<User, UserEntity, Long>(template, UserEntity::class.java) {
+) : BaseReactiveRepository<User, UserEntity, Long>(template, UserEntity::class.java), UserRepository {
 
     override fun fromDomain(domain: User): UserEntity {
         return UserEntity.fromDomain(domain)
@@ -41,28 +42,28 @@ class UserRepository(
     /**
      * 이메일 주소로 사용자를 조회합니다.
      */
-    fun findByEmail(email: String): Mono<User> {
+    override fun findByEmail(email: String): Mono<User> {
         return findOneByCriteria(Criteria.where("email").`is`(email))
     }
 
     /**
      * 닉네임으로 사용자를 조회합니다.
      */
-    fun findByNickname(nickname: String): Mono<User> {
+    override fun findByNickname(nickname: String): Mono<User> {
         return findOneByCriteria(Criteria.where("nickname").`is`(nickname))
     }
 
     /**
      * 해당 이메일 주소를 가진 사용자가 존재하는지 확인합니다.
      */
-    fun existsByEmail(email: String): Mono<Boolean> {
+    override fun existsByEmail(email: String): Mono<Boolean> {
         return existsByCriteria(Criteria.where("email").`is`(email))
     }
 
     /**
      * 해당 닉네임을 가진 사용자가 존재하는지 확인합니다.
      */
-    fun existsByNickname(nickname: String): Mono<Boolean> {
+    override fun existsByNickname(nickname: String): Mono<Boolean> {
         return existsByCriteria(Criteria.where("nickname").`is`(nickname))
     }
 
@@ -84,7 +85,7 @@ class UserRepository(
     /**
      * 이메일 또는 닉네임으로 사용자를 조회합니다.
      */
-    fun findByEmailOrNickname(email: String, nickname: String): Mono<User> {
+    override fun findByEmailOrNickname(email: String, nickname: String): Mono<User> {
         return template.getDatabaseClient()
             .sql("SELECT * FROM users WHERE email = :email OR nickname = :nickname")
             .bind("email", email)
@@ -96,7 +97,7 @@ class UserRepository(
     /**
      * 최근 생성된 사용자들을 조회합니다.
      */
-    fun findRecentUsers(limit: Int): Flux<User> {
+    override fun findRecentUsers(limit: Int): Flux<User> {
         return template.getDatabaseClient()
             .sql("SELECT * FROM users ORDER BY created_at DESC LIMIT :limit")
             .bind("limit", limit)
@@ -107,7 +108,7 @@ class UserRepository(
     /**
      * 특정 일자 이후에 생성된 사용자들을 조회합니다.
      */
-    fun findUsersCreatedAfter(afterDate: String): Flux<User> {
+    override fun findUsersCreatedAfter(afterDate: String): Flux<User> {
         return template.getDatabaseClient()
             .sql("SELECT * FROM users WHERE created_at >= TO_TIMESTAMP(:afterDate, 'YYYY-MM-DD') ORDER BY created_at")
             .bind("afterDate", afterDate)
@@ -118,7 +119,7 @@ class UserRepository(
     /**
      * 사용자 수를 조회합니다.
      */
-    fun countUsers(): Mono<Long> {
+    override fun countUsers(): Mono<Long> {
         return count() // BaseReactiveRepository의 메서드 사용
     }
 

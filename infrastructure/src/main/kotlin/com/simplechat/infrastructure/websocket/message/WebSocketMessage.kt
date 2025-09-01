@@ -29,14 +29,14 @@ enum class WebSocketMessageType {
     property = "type"
 )
 @JsonSubTypes(
-    JsonSubTypes.Type(value = ChatWebSocketMessage::class, name = "CHAT"),
-    JsonSubTypes.Type(value = JoinWebSocketMessage::class, name = "JOIN"),
-    JsonSubTypes.Type(value = LeaveWebSocketMessage::class, name = "LEAVE"),
-    JsonSubTypes.Type(value = TypingWebSocketMessage::class, name = "TYPING"),
-    JsonSubTypes.Type(value = HeartbeatWebSocketMessage::class, name = "HEARTBEAT"),
-    JsonSubTypes.Type(value = SystemWebSocketMessage::class, name = "SYSTEM"),
-    JsonSubTypes.Type(value = ErrorWebSocketMessage::class, name = "ERROR"),
-    JsonSubTypes.Type(value = AckWebSocketMessage::class, name = "ACK")
+    JsonSubTypes.Type(value = ChatMessage::class, name = "CHAT"),
+    JsonSubTypes.Type(value = JoinMessage::class, name = "JOIN"),
+    JsonSubTypes.Type(value = LeaveMessage::class, name = "LEAVE"),
+    JsonSubTypes.Type(value = TypingMessage::class, name = "TYPING"),
+    JsonSubTypes.Type(value = HeartbeatMessage::class, name = "HEARTBEAT"),
+    JsonSubTypes.Type(value = SystemMessage::class, name = "SYSTEM"),
+    JsonSubTypes.Type(value = ErrorMessage::class, name = "ERROR"),
+    JsonSubTypes.Type(value = AckMessage::class, name = "ACK")
 )
 sealed class WebSocketMessage {
     abstract val type: WebSocketMessageType
@@ -69,3 +69,76 @@ enum class MessageTargetType {
     ROOM,       // 특정 채팅방에
     GLOBAL      // 전체 사용자에게
 }
+
+// WebSocket Message 구현체들
+data class ChatMessage(
+    override val type: WebSocketMessageType = WebSocketMessageType.CHAT,
+    override val messageId: String?,
+    override val timestamp: Instant,
+    override val sessionId: String?,
+    val content: String,
+    val userId: Long,
+    val roomId: Long
+) : WebSocketMessage()
+
+data class JoinMessage(
+    override val type: WebSocketMessageType = WebSocketMessageType.JOIN,
+    override val messageId: String?,
+    override val timestamp: Instant,
+    override val sessionId: String?,
+    val userId: Long,
+    val roomId: Long
+) : WebSocketMessage()
+
+data class LeaveMessage(
+    override val type: WebSocketMessageType = WebSocketMessageType.LEAVE,
+    override val messageId: String?,
+    override val timestamp: Instant,
+    override val sessionId: String?,
+    val userId: Long,
+    val roomId: Long
+) : WebSocketMessage()
+
+data class TypingMessage(
+    override val type: WebSocketMessageType = WebSocketMessageType.TYPING,
+    override val messageId: String?,
+    override val timestamp: Instant,
+    override val sessionId: String?,
+    val userId: Long,
+    val roomId: Long,
+    val isTyping: Boolean
+) : WebSocketMessage()
+
+data class HeartbeatMessage(
+    override val type: WebSocketMessageType = WebSocketMessageType.HEARTBEAT,
+    override val messageId: String?,
+    override val timestamp: Instant,
+    override val sessionId: String?
+) : WebSocketMessage()
+
+data class SystemMessage(
+    override val type: WebSocketMessageType = WebSocketMessageType.SYSTEM,
+    override val messageId: String?,
+    override val timestamp: Instant,
+    override val sessionId: String?,
+    val content: String,
+    val level: String = "INFO"
+) : WebSocketMessage()
+
+data class ErrorMessage(
+    override val type: WebSocketMessageType = WebSocketMessageType.ERROR,
+    override val messageId: String?,
+    override val timestamp: Instant,
+    override val sessionId: String?,
+    val errorCode: String,
+    val errorMessage: String
+) : WebSocketMessage()
+
+data class AckMessage(
+    override val type: WebSocketMessageType = WebSocketMessageType.ACK,
+    override val messageId: String?,
+    override val timestamp: Instant,
+    override val sessionId: String?,
+    val originalMessageId: String,
+    val status: String = "OK"
+) : WebSocketMessage()

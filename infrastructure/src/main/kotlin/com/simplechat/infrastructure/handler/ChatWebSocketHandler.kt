@@ -25,7 +25,7 @@ class ChatWebSocketHandler(
         logger.info("WebSocket connection established for user {} from {}", 
             userId, session.handshakeInfo.remoteAddress)
         
-        return messageHandler.handleSession(session, userId)
+        return messageHandler.handleSession(session, "room-${userId}", "user-${userId}", userId)
             .doOnError { error ->
                 logger.error("WebSocket session error for user {}: {}", userId, error.message, error)
             }

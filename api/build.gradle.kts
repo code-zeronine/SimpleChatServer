@@ -4,7 +4,6 @@ plugins {
 
 dependencies {
     implementation(project(":domain"))
-    implementation(project(":infrastructure"))
     
     // Spring Boot Starters
     implementation("org.springframework.boot:spring-boot-starter-webflux")

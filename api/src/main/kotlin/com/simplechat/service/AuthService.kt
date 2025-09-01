@@ -2,9 +2,14 @@ package com.simplechat.service
 
 import com.simplechat.config.JwtProperties
 import com.simplechat.domain.entity.User
-import com.simplechat.dto.*
+import com.simplechat.dto.AuthResponse
+import com.simplechat.dto.LoginRequest
+import com.simplechat.dto.RefreshTokenRequest
+import com.simplechat.dto.RefreshTokenResponse
+import com.simplechat.dto.SignUpRequest
+import com.simplechat.dto.UserDto
 import com.simplechat.exception.*
-import com.simplechat.infrastructure.repository.UserRepository
+import com.simplechat.domain.repository.UserRepository
 import com.simplechat.security.jwt.JwtTokenProvider
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
@@ -24,6 +29,7 @@ class AuthService(
 
     /**
      * 회원가입 처리
+     *
      */
     fun signUp(request: SignUpRequest): Mono<AuthResponse> {
         return validateSignUpRequest(request)

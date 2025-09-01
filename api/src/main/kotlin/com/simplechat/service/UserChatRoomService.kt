@@ -9,9 +9,9 @@ import com.simplechat.exception.InsufficientPermissionException
 import com.simplechat.exception.UserNotFoundException
 import com.simplechat.exception.UserChatRoomAlreadyExistsException
 import com.simplechat.exception.UserChatRoomNotFoundException
-import com.simplechat.infrastructure.repository.ChatRoomRepository
-import com.simplechat.infrastructure.repository.UserRepository
-import com.simplechat.infrastructure.repository.UserChatRoomRepository
+import com.simplechat.domain.repository.ChatRoomRepository
+import com.simplechat.domain.repository.UserChatRoomRepository
+import com.simplechat.domain.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.reactive.TransactionalOperator
 import reactor.core.publisher.Flux

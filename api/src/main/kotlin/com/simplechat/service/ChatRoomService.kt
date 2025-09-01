@@ -8,8 +8,8 @@ import com.simplechat.exception.ChatRoomNotFoundException
 import com.simplechat.exception.InsufficientPermissionException
 import com.simplechat.exception.UserNotFoundException
 import com.simplechat.exception.BusinessLogicException
-import com.simplechat.infrastructure.repository.ChatRoomRepository
-import com.simplechat.infrastructure.repository.UserRepository
+import com.simplechat.domain.repository.ChatRoomRepository
+import com.simplechat.domain.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.reactive.TransactionalOperator
 import reactor.core.publisher.Flux

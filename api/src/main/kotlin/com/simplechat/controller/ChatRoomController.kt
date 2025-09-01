@@ -2,7 +2,7 @@ package com.simplechat.controller
 
 import com.simplechat.domain.entity.ChatRoomRole
 import com.simplechat.dto.*
-import com.simplechat.infrastructure.repository.UserRepository
+import com.simplechat.domain.repository.UserRepository
 import com.simplechat.security.JwtAuthenticationHelper
 import com.simplechat.service.ChatRoomService
 import com.simplechat.service.UserChatRoomService
