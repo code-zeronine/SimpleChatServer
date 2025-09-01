@@ -1,7 +1,7 @@
-package com.simplechat.security.jwt
+package com.simplechat.infrastructure.security.jwt
 
-import com.simplechat.config.JwtProperties
-import com.simplechat.exception.JwtAuthenticationException
+import com.simplechat.infrastructure.config.JwtProperties
+import com.simplechat.infrastructure.exception.JwtAuthenticationException
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -237,7 +237,7 @@ class JwtTokenProviderTest {
 
         // Then
         assertNotNull(newAccessToken)
-        assertTrue(jwtTokenProvider.validateToken(newAccessToken!!))
+        assertTrue(jwtTokenProvider.validateToken(newAccessToken))
         assertEquals(username, jwtTokenProvider.getEmailFromToken(newAccessToken))
         assertTrue(jwtTokenProvider.isAccessToken(newAccessToken))
     }

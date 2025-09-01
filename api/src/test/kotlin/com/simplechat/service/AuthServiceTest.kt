@@ -1,15 +1,15 @@
 package com.simplechat.service
 
-import com.simplechat.config.JwtProperties
+import com.simplechat.infrastructure.config.JwtProperties
 import com.simplechat.domain.entity.User
 import com.simplechat.dto.LoginRequest
 import com.simplechat.dto.RefreshTokenRequest
 import com.simplechat.dto.SignUpRequest
-import com.simplechat.exception.AuthenticationException
-import com.simplechat.exception.JwtAuthenticationException
-import com.simplechat.exception.ValidationException
-import com.simplechat.infrastructure.repository.UserRepository
-import com.simplechat.security.jwt.JwtTokenProvider
+import com.simplechat.infrastructure.exception.AuthenticationException
+import com.simplechat.infrastructure.exception.JwtAuthenticationException
+import com.simplechat.infrastructure.exception.ValidationException
+import com.simplechat.domain.repository.UserRepository
+import com.simplechat.infrastructure.security.jwt.JwtTokenProvider
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mock

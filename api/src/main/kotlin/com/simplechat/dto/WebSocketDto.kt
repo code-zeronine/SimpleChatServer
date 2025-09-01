@@ -1,58 +1,114 @@
 package com.simplechat.dto
 
-import com.fasterxml.jackson.annotation.JsonSubTypes
-import com.fasterxml.jackson.annotation.JsonTypeInfo
+// WebSocket message types have been moved to domain.message package
+// This file is kept for API layer specific DTOs only
 
-@JsonTypeInfo(
-    use = JsonTypeInfo.Id.NAME,
-    include = JsonTypeInfo.As.PROPERTY,
-    property = "type"
-)
-@JsonSubTypes(
-    JsonSubTypes.Type(value = ChatMessage::class, name = "CHAT"),
-    JsonSubTypes.Type(value = JoinMessage::class, name = "JOIN"),
-    JsonSubTypes.Type(value = LeaveMessage::class, name = "LEAVE"),
-    JsonSubTypes.Type(value = TypingMessage::class, name = "TYPING")
-)
-sealed class WebSocketMessage {
-    abstract val type: WebSocketActionType
-}
+import java.time.Instant
+import com.simplechat.domain.message.*
 
-enum class WebSocketActionType {
-    CHAT, JOIN, LEAVE, TYPING
-}
-
-data class ChatMessage(
-    val chatRoomId: String,
-    val senderId: String,
-    val senderNickname: String,
-    val content: String
-) : WebSocketMessage() {
-    override val type: WebSocketActionType = WebSocketActionType.CHAT
-}
-
-
-data class JoinMessage(
-    val chatRoomId: String,
-    val userId: String,
-    val userNickname: String
-) : WebSocketMessage() {
-    override val type: WebSocketActionType = WebSocketActionType.JOIN
-}
-
-data class LeaveMessage(
-    val chatRoomId: String,
-    val userId: String,
-    val userNickname: String
-) : WebSocketMessage() {
-    override val type: WebSocketActionType = WebSocketActionType.LEAVE
-}
-
-data class TypingMessage(
-    val chatRoomId: String,
-    val userId: String,
-    val userNickname: String,
-    val isTyping: Boolean
-) : WebSocketMessage() {
-    override val type: WebSocketActionType = WebSocketActionType.TYPING
+/**
+ * WebSocket 메시지를 위한 API 계층 어댑터
+ */
+object WebSocketMessageAdapter {
+    
+    /**
+     * API 계층의 요청을 도메인 메시지로 변환
+     */
+    fun fromApiRequest(
+        type: String,
+        data: Map<String, Any>,
+        sessionId: String?,
+        messageId: String? = null,
+        timestamp: Instant = Instant.now()
+    ): WebSocketMessage {
+        return when (type) {
+            "CHAT" -> ChatWebSocketMessage(
+                messageId = messageId,
+                timestamp = timestamp,
+                sessionId = sessionId,
+                content = data["content"] as String,
+                userId = (data["userId"] as Number).toLong(),
+                roomId = (data["roomId"] as Number).toLong()
+            )
+            "JOIN" -> JoinWebSocketMessage(
+                messageId = messageId,
+                timestamp = timestamp,
+                sessionId = sessionId,
+                userId = (data["userId"] as Number).toLong(),
+                roomId = (data["roomId"] as Number).toLong(),
+                userNickname = data["userNickname"] as String
+            )
+            "LEAVE" -> LeaveWebSocketMessage(
+                messageId = messageId,
+                timestamp = timestamp,
+                sessionId = sessionId,
+                userId = (data["userId"] as Number).toLong(),
+                roomId = (data["roomId"] as Number).toLong(),
+                userNickname = data["userNickname"] as String
+            )
+            "TYPING" -> TypingWebSocketMessage(
+                messageId = messageId,
+                timestamp = timestamp,
+                sessionId = sessionId,
+                userId = (data["userId"] as Number).toLong(),
+                roomId = (data["roomId"] as Number).toLong(),
+                userNickname = data["userNickname"] as String,
+                isTyping = data["isTyping"] as Boolean
+            )
+            else -> throw IllegalArgumentException("Unknown WebSocket message type: $type")
+        }
+    }
+    
+    /**
+     * 도메인 메시지를 API 응답으로 변환
+     */
+    fun toApiResponse(message: WebSocketMessage): Map<String, Any> {
+        val baseMap = mutableMapOf<String, Any>(
+            "type" to message.type.name,
+            "messageId" to (message.messageId ?: ""),
+            "timestamp" to message.timestamp,
+            "sessionId" to (message.sessionId ?: "")
+        )
+        
+        when (message) {
+            is ChatWebSocketMessage -> baseMap.putAll(mapOf(
+                "content" to message.content,
+                "userId" to message.userId,
+                "roomId" to message.roomId
+            ))
+            is JoinWebSocketMessage -> baseMap.putAll(mapOf(
+                "userId" to message.userId,
+                "roomId" to message.roomId,
+                "userNickname" to message.userNickname
+            ))
+            is LeaveWebSocketMessage -> baseMap.putAll(mapOf(
+                "userId" to message.userId,
+                "roomId" to message.roomId,
+                "userNickname" to message.userNickname
+            ))
+            is TypingWebSocketMessage -> baseMap.putAll(mapOf(
+                "userId" to message.userId,
+                "roomId" to message.roomId,
+                "userNickname" to message.userNickname,
+                "isTyping" to message.isTyping
+            ))
+            is SystemWebSocketMessage -> baseMap.putAll(mapOf(
+                "content" to message.content,
+                "level" to message.level
+            ))
+            is ErrorWebSocketMessage -> baseMap.putAll(mapOf(
+                "errorCode" to message.errorCode,
+                "errorMessage" to message.errorMessage
+            ))
+            is HeartbeatWebSocketMessage -> {
+                // 기본 정보만 포함
+            }
+            is AckWebSocketMessage -> baseMap.putAll(mapOf(
+                "originalMessageId" to message.originalMessageId,
+                "status" to message.status
+            ))
+        }
+        
+        return baseMap
+    }
 }

@@ -1,4 +1,4 @@
-package com.simplechat.security.jwt
+package com.simplechat.infrastructure.security.jwt
 
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails

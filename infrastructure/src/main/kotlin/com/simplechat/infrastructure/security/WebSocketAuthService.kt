@@ -1,7 +1,7 @@
-package com.simplechat.security
+package com.simplechat.infrastructure.security
 
-import com.simplechat.security.jwt.JwtTokenProvider
-import com.simplechat.security.jwt.JwtUserDetails
+import com.simplechat.infrastructure.security.jwt.JwtTokenProvider
+import com.simplechat.infrastructure.security.jwt.JwtUserDetails
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken

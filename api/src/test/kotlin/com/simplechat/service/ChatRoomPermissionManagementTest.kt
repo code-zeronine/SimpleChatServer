@@ -4,10 +4,10 @@ import com.simplechat.domain.entity.ChatRoom
 import com.simplechat.domain.entity.ChatRoomRole
 import com.simplechat.domain.entity.User
 import com.simplechat.domain.entity.UserChatRoom
-import com.simplechat.exception.InsufficientPermissionException
-import com.simplechat.exception.UserChatRoomNotFoundException
-import com.simplechat.infrastructure.repository.ChatRoomRepository
-import com.simplechat.infrastructure.repository.UserRepository
+import com.simplechat.infrastructure.exception.InsufficientPermissionException
+import com.simplechat.infrastructure.exception.UserChatRoomNotFoundException
+import com.simplechat.domain.repository.ChatRoomRepository
+import com.simplechat.domain.repository.UserRepository
 import io.mockk.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName

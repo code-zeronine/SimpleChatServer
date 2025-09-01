@@ -1,7 +1,8 @@
-package com.simplechat.security.jwt
+package com.simplechat.infrastructure.security.jwt
 
-import com.simplechat.config.JwtProperties
-import com.simplechat.exception.JwtAuthenticationException
+import com.simplechat.infrastructure.config.JwtProperties
+import com.simplechat.infrastructure.exception.ErrorCode
+import com.simplechat.infrastructure.exception.JwtAuthenticationException
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.ExpiredJwtException
@@ -21,7 +22,7 @@ import javax.crypto.SecretKey
 class JwtTokenProvider(
     private val jwtProperties: JwtProperties
 ) {
-    
+
     private val key: SecretKey by lazy {
         Keys.hmacShaKeyFor(jwtProperties.secret.toByteArray())
     }
@@ -44,7 +45,7 @@ class JwtTokenProvider(
             .signWith(key)
             .compact()
     }
-    
+
     /**
      * 액세스 토큰 생성 (userId 없는 버전 - 호환성)
      */
@@ -77,7 +78,7 @@ class JwtTokenProvider(
             val claims = parseToken(token)
             claims.subject
         } catch (e: Exception) {
-            throw JwtAuthenticationException("Invalid token: Unable to extract username", e)
+            throw JwtAuthenticationException("Invalid token: Unable to extract username", ErrorCode.JWT_AUTHENTICATION_FAILED, e)
         }
     }
 
@@ -91,12 +92,12 @@ class JwtTokenProvider(
             when (userId) {
                 is Number -> userId.toLong()
                 is String -> userId.toLong()
-                else -> throw JwtAuthenticationException("Invalid userId format in token")
+                else -> throw JwtAuthenticationException("Invalid userId format in token", ErrorCode.JWT_AUTHENTICATION_FAILED)
             }
         } catch (e: NumberFormatException) {
-            throw JwtAuthenticationException("Invalid userId format in token", e)
+            throw JwtAuthenticationException("Invalid userId format in token", ErrorCode.JWT_AUTHENTICATION_FAILED, e)
         } catch (e: Exception) {
-            throw JwtAuthenticationException("Invalid token: Unable to extract userId", e)
+            throw JwtAuthenticationException("Invalid token: Unable to extract userId", ErrorCode.JWT_AUTHENTICATION_FAILED, e)
         }
     }
 
@@ -208,15 +209,15 @@ class JwtTokenProvider(
                 .parseSignedClaims(token)
                 .payload
         } catch (e: ExpiredJwtException) {
-            throw JwtAuthenticationException("Token has expired", e)
+            throw JwtAuthenticationException("Token has expired", ErrorCode.JWT_AUTHENTICATION_FAILED, e)
         } catch (e: UnsupportedJwtException) {
-            throw JwtAuthenticationException("Unsupported JWT token", e)
+            throw JwtAuthenticationException("Unsupported JWT token", ErrorCode.JWT_AUTHENTICATION_FAILED, e)
         } catch (e: MalformedJwtException) {
-            throw JwtAuthenticationException("Malformed JWT token", e)
+            throw JwtAuthenticationException("Malformed JWT token", ErrorCode.JWT_AUTHENTICATION_FAILED, e)
         } catch (e: SignatureException) {
-            throw JwtAuthenticationException("Invalid JWT signature", e)
+            throw JwtAuthenticationException("Invalid JWT signature", ErrorCode.JWT_AUTHENTICATION_FAILED, e)
         } catch (e: IllegalArgumentException) {
-            throw JwtAuthenticationException("JWT token compact of handler are invalid", e)
+            throw JwtAuthenticationException("JWT token compact of handler are invalid", ErrorCode.JWT_AUTHENTICATION_FAILED, e)
         }
     }
 

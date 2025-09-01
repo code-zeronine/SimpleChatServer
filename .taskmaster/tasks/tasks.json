@@ -491,7 +491,7 @@
               "7.3"
             ],
             "details": "메시지 타입별 라우팅 로직, 채팅방 내 모든 세션에 메시지 브로드캐스팅, 개별 사용자 타겟팅, Redis Pub/Sub을 통한 다중 인스턴스 지원, 메시지 전송 실패 처리 및 재시도 로직 구현.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-09-01T00:17:50.626Z",
+      "updated": "2025-09-01T00:41:14.685Z",
       "description": "Tasks for master context"
     }
   }

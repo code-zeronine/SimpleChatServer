@@ -1,11 +1,10 @@
 package com.simplechat.infrastructure.handler
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.simplechat.dto.ChatMessage as ChatMessageDto
-import com.simplechat.dto.WebSocketActionType
-import com.simplechat.dto.WebSocketMessage
-import com.simplechat.service.ChatMessageService
-import com.simplechat.service.MessageBroker
+import com.simplechat.domain.message.*
+import com.simplechat.domain.message.WebSocketMessage
+import com.simplechat.domain.service.ChatMessageDomainService
+import com.simplechat.domain.service.MessageBrokerDomainService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketSession
@@ -14,8 +13,8 @@ import com.simplechat.domain.entity.ChatMessage as ChatMessageEntity
 
 @Component
 class WebSocketMessageHandler(
-    private val messageBroker: MessageBroker,
-    private val chatMessageService: ChatMessageService, // Assuming an implementation will be provided
+    private val messageBrokerService: MessageBrokerDomainService,
+    private val chatMessageService: ChatMessageDomainService,
     private val objectMapper: ObjectMapper
 ) {
 
@@ -29,21 +28,21 @@ class WebSocketMessageHandler(
                     val messageDto = objectMapper.readValue(messageText, WebSocketMessage::class.java)
 
                     when (messageDto.type) {
-                        WebSocketActionType.CHAT -> {
-                            val chatMessageDto = messageDto as ChatMessageDto
+                        WebSocketMessageType.CHAT -> {
+                            val chatMessage = messageDto as ChatWebSocketMessage
                             // DTO -> Domain Entity Mapping
                             val chatMessageEntity = ChatMessageEntity(
-                                roomId = chatRoomId.toLong(), // Assuming chatRoomId can be converted to Long
-                                userId = userId,
-                                content = chatMessageDto.content
+                                roomId = chatMessage.roomId,
+                                userId = chatMessage.userId,
+                                content = chatMessage.content
                             )
                             // Save to DB then broadcast
                             return@flatMap chatMessageService.saveMessage(chatMessageEntity)
-                                .then(Mono.fromRunnable { messageBroker.broadcast(chatRoomId, chatMessageDto) })
+                                .then(Mono.fromRunnable { messageBrokerService.broadcast(chatRoomId, chatMessage) })
                         }
-                        WebSocketActionType.TYPING -> {
+                        WebSocketMessageType.TYPING -> {
                             // Just broadcast, no DB save
-                            messageBroker.broadcast(chatRoomId, messageDto)
+                            messageBrokerService.broadcast(chatRoomId, messageDto)
                             return@flatMap Mono.empty<Void>()
                         }
                         else -> {

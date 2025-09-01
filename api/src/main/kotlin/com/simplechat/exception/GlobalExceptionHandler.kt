@@ -1,5 +1,6 @@
 package com.simplechat.exception
 
+import com.simplechat.infrastructure.exception.*
 import org.slf4j.LoggerFactory
 import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler
 import org.springframework.core.annotation.Order
@@ -41,13 +42,16 @@ class GlobalExceptionHandler : ErrorWebExceptionHandler {
         response.statusCode = status
         response.headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE)
 
-        val errorResponse = mapOf(
+        val errorResponse = mutableMapOf(
             "timestamp" to Instant.now().toString(),
             "status" to status.value(),
             "error" to status.reasonPhrase,
             "message" to message,
             "path" to exchange.request.path.value()
         )
+        if (ex is SimpleChatException) {
+            errorResponse["code"] = ex.errorCode.code
+        }
 
         val errorJson = buildString {
             append("{")

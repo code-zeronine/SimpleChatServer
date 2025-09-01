@@ -1,6 +1,6 @@
 package com.simplechat.security
 
-import com.simplechat.security.jwt.JwtTokenProvider
+import com.simplechat.infrastructure.security.jwt.JwtTokenProvider
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono

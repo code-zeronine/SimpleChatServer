@@ -1,7 +1,7 @@
 package com.simplechat.infrastructure.config
 
 import com.simplechat.infrastructure.handler.ChatWebSocketHandler
-import com.simplechat.security.WebSocketAuthService
+import com.simplechat.infrastructure.security.WebSocketAuthService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.reactive.HandlerMapping

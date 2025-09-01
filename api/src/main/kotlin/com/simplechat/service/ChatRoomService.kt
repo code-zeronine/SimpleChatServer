@@ -4,10 +4,10 @@ import com.simplechat.domain.entity.ChatRoom
 import com.simplechat.domain.entity.ChatRoomRole
 import com.simplechat.domain.entity.User
 import com.simplechat.domain.entity.UserChatRoom
-import com.simplechat.exception.ChatRoomNotFoundException
-import com.simplechat.exception.InsufficientPermissionException
-import com.simplechat.exception.UserNotFoundException
-import com.simplechat.exception.BusinessLogicException
+import com.simplechat.infrastructure.exception.BusinessLogicException
+import com.simplechat.infrastructure.exception.ChatRoomNotFoundException
+import com.simplechat.infrastructure.exception.InsufficientPermissionException
+import com.simplechat.infrastructure.exception.UserNotFoundException
 import com.simplechat.domain.repository.ChatRoomRepository
 import com.simplechat.domain.repository.UserRepository
 import org.springframework.stereotype.Service
@@ -428,7 +428,6 @@ class ChatRoomService(
             userChatRoomService.isActiveParticipant(userId, roomId),
             userChatRoomService.countActiveParticipants(roomId)
         ).flatMap { tuple ->
-            val user = tuple.t1
             val room = tuple.t2
             val isAlreadyParticipant = tuple.t3
             val participantCount = tuple.t4

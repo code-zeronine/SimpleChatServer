@@ -1,6 +1,6 @@
 package com.simplechat.service
 
-import com.simplechat.config.JwtProperties
+import com.simplechat.infrastructure.config.JwtProperties
 import com.simplechat.domain.entity.User
 import com.simplechat.dto.AuthResponse
 import com.simplechat.dto.LoginRequest
@@ -8,9 +8,10 @@ import com.simplechat.dto.RefreshTokenRequest
 import com.simplechat.dto.RefreshTokenResponse
 import com.simplechat.dto.SignUpRequest
 import com.simplechat.dto.UserDto
-import com.simplechat.exception.*
+import com.simplechat.infrastructure.exception.*
+import com.simplechat.infrastructure.exception.ErrorCode
 import com.simplechat.domain.repository.UserRepository
-import com.simplechat.security.jwt.JwtTokenProvider
+import com.simplechat.infrastructure.security.jwt.JwtTokenProvider
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
@@ -46,9 +47,9 @@ class AuthService(
      */
     fun login(request: LoginRequest): Mono<AuthResponse> {
         return userRepository.findByEmail(request.email)
-            .switchIfEmpty(Mono.error(AuthenticationException("이메일 또는 비밀번호가 올바르지 않습니다.")))
+            .switchIfEmpty(Mono.error(AuthenticationException("이메일 또는 비밀번호가 올바르지 않습니다.", ErrorCode.AUTHENTICATION_FAILED)))
             .filter { user -> passwordEncoder.matches(request.password, user.passwordHash) }
-            .switchIfEmpty(Mono.error(AuthenticationException("이메일 또는 비밀번호가 올바르지 않습니다.")))
+            .switchIfEmpty(Mono.error(AuthenticationException("이메일 또는 비밀번호가 올바르지 않습니다.", ErrorCode.AUTHENTICATION_FAILED)))
             .flatMap { user ->
                 generateAuthResponse(user)
             }
@@ -60,11 +61,11 @@ class AuthService(
     fun refreshToken(request: RefreshTokenRequest): Mono<RefreshTokenResponse> {
         return Mono.fromCallable {
             if (!jwtTokenProvider.validateToken(request.refreshToken)) {
-                throw JwtAuthenticationException("유효하지 않은 리프레시 토큰입니다.")
+                throw JwtAuthenticationException("유효하지 않은 리프레시 토큰입니다.", ErrorCode.JWT_AUTHENTICATION_FAILED)
             }
             
             if (!jwtTokenProvider.isRefreshToken(request.refreshToken)) {
-                throw JwtAuthenticationException("리프레시 토큰이 아닙니다.")
+                throw JwtAuthenticationException("리프레시 토큰이 아닙니다.", ErrorCode.JWT_AUTHENTICATION_FAILED)
             }
             
             val email = jwtTokenProvider.getEmailFromToken(request.refreshToken)
@@ -83,14 +84,14 @@ class AuthService(
     fun validateUser(token: String): Mono<UserDto> {
         return Mono.fromCallable {
             if (!jwtTokenProvider.validateToken(token)) {
-                throw JwtAuthenticationException("유효하지 않은 토큰입니다.")
+                throw JwtAuthenticationException("유효하지 않은 토큰입니다.", ErrorCode.JWT_AUTHENTICATION_FAILED)
             }
             
             val email = jwtTokenProvider.getEmailFromToken(token)
             email
         }.flatMap { email ->
             userRepository.findByEmail(email)
-                .switchIfEmpty(Mono.error(ResourceNotFoundException("사용자를 찾을 수 없습니다.")))
+                .switchIfEmpty(Mono.error(ResourceNotFoundException("사용자를 찾을 수 없습니다.", ErrorCode.USER_NOT_FOUND)))
                 .map { user -> user.toDto() }
         }
     }
@@ -116,12 +117,12 @@ class AuthService(
         return checkEmailExists(request.email)
             .flatMap { emailExists ->
                 if (emailExists) {
-                    Mono.error<Void>(ValidationException("이미 사용 중인 이메일입니다.", "email"))
+                    Mono.error<Void>(ValidationException("이미 사용 중인 이메일입니다.", "email", ErrorCode.DUPLICATE_EMAIL))
                 } else {
                     checkNicknameExists(request.nickname)
                         .flatMap { nicknameExists ->
                             if (nicknameExists) {
-                                Mono.error<Void>(ValidationException("이미 사용 중인 닉네임입니다.", "nickname"))
+                                Mono.error<Void>(ValidationException("이미 사용 중인 닉네임입니다.", "nickname", ErrorCode.DUPLICATE_NICKNAME))
                             } else {
                                 Mono.empty<Void>()
                             }
@@ -143,7 +144,7 @@ class AuthService(
         
         return userRepository.save(user)
             .onErrorMap { exception ->
-                DatabaseException("사용자 생성 중 오류가 발생했습니다.", exception)
+                DatabaseException("사용자 생성 중 오류가 발생했습니다.", ErrorCode.DATABASE_ERROR, exception)
             }
     }
 
