@@ -236,7 +236,7 @@ class WebSocketMessageHandler(
         session: WebSocketSession
     ): Mono<Void> {
         log.debug("Heartbeat received from session: {}", session.id)
-        // 단순히 세션 활동 시간만 업데이트 (이미 위에서 수행됨)
+        sessionManager.handleHeartbeat(session.id)
         return Mono.empty()
     }
 

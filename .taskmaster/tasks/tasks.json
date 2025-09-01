@@ -526,8 +526,8 @@
             "dependencies": [
               "7.5"
             ],
-            "details": "handleError() 메서드 구현, 연결 끊김 처리, 메시지 파싱 오류 처리, 인증 실패 처리, 채팅방 접근 권한 오류 처리, 클라이언트에 에러 메시지 전송, 로깅 및 모니터링 연동.",
-            "status": "in-progress",
+            "details": "handleError() 메서드 구현, 연결 끊김 처리, 메시지 파싱 오류 처리, 인증 실패 처리, 채팅방 접근 권한 오류 처리, 클라이언트에 에러 메시지 전송, 로깅 및 모니터링 연동.\n<info added on 2025-09-01T07:49:04.634Z>\n시스템 검토 완료: WebSocketErrorHandler, ChatWebSocketHandler, WebSocketMessageHandler 클래스들이 요구사항에 맞게 구현되어 있음을 확인. 에러 핸들링, 로깅, 모니터링 기능이 모두 포함되어 있어 추가 구현 작업 없이 검토 완료 상태로 전환.\n</info added on 2025-09-01T07:49:04.634Z>",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -539,7 +539,7 @@
               "7.7"
             ],
             "details": "연결 상태 추적 (CONNECTING, CONNECTED, DISCONNECTED), 하트비트 메커니즘 구현, 비정상 연결 감지 및 정리, 연결 통계 수집, 관리자용 연결 상태 모니터링 API, 자동 재연결 지원을 위한 클라이언트 가이드라인 제공.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-09-01T05:56:08.036Z",
+      "updated": "2025-09-01T07:59:16.068Z",
       "description": "Tasks for master context"
     }
   }

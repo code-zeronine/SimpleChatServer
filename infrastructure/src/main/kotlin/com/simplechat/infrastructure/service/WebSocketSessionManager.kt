@@ -204,6 +204,20 @@ class WebSocketSessionManager {
             )
         }
     }
+
+    fun handleHeartbeat(sessionId: String) {
+        sessionMetadata[sessionId]?.let { metadata ->
+            sessionMetadata[sessionId] = metadata.copy(
+                lastActivityAt = Instant.now()
+            )
+        }
+    }
+
+    fun updateSessionStatus(sessionId: String, status: String) {
+        sessionMetadata[sessionId]?.let { metadata ->
+            sessionMetadata[sessionId] = metadata.copy(status = status)
+        }
+    }
     
     /**
      * 캐시 통계 조회
@@ -316,7 +330,8 @@ data class SessionMetadata(
     val connectedAt: Instant,
     val lastActivityAt: Instant,
     val messageCount: Long,
-    val lastMessageAt: Instant?
+    val lastMessageAt: Instant?,
+    val status: String = "CONNECTED"
 )
 
 /**

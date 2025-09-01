@@ -60,20 +60,29 @@ class WebSocketMonitoringController(
     @PreAuthorize("hasRole('ADMIN')")
     fun getWebSocketSessions(): ResponseEntity<ApiResponse<Map<String, Any>>> {
         return try {
-            val sessionsByUser = emptyMap<Long, List<String>>()
-            val sessionsByRoom = emptyMap<String, List<String>>()
-            
+            val allSessions = sessionManager.getAllActiveSessions()
+            val sessionsInfo = allSessions.mapNotNull { session ->
+                sessionManager.getSessionMetadata(session.id)?.let {
+                    mapOf(
+                        "sessionId" to it.sessionId,
+                        "userId" to it.userId,
+                        "chatRoomId" to it.chatRoomId,
+                        "connectedAt" to it.connectedAt.toString(),
+                        "lastActivityAt" to it.lastActivityAt.toString(),
+                        "messageCount" to it.messageCount,
+                        "status" to it.status
+                    )
+                }
+            }
+
             val sessionInfo = mapOf(
-                "sessionsByUser" to sessionsByUser,
-                "sessionsByRoom" to sessionsByRoom,
-                "totalSessions" to 0,
-                "totalUsers" to sessionsByUser.size,
-                "totalRooms" to sessionsByRoom.size,
+                "sessions" to sessionsInfo,
+                "totalSessions" to allSessions.size,
                 "timestamp" to System.currentTimeMillis()
             )
-            
+
             ResponseEntity.ok(ApiResponse.success(sessionInfo))
-            
+
         } catch (e: Exception) {
             logger.error("Error retrieving WebSocket session information: {}", e.message, e)
             ResponseEntity.internalServerError()
