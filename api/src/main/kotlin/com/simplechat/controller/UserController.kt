@@ -80,15 +80,22 @@ class UserController(
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
         @Parameter(description = "업데이트할 프로필 정보", required = true)
         @RequestBody updateRequest: Map<String, String>
-    ): Mono<ResponseEntity<ApiResponse<String>>> {
+    ): Mono<ResponseEntity<ApiResponse<UserDto>>> {
+        val newNickname = updateRequest["nickname"]
         return jwtAuthenticationHelper.extractTokenFromHeader(authHeader)
             .flatMap { token ->
                 jwtAuthenticationHelper.validateToken(token)
                     .then(jwtAuthenticationHelper.getEmailFromToken(token))
             }
-            .map { email ->
-                // 실제 프로필 업데이트 로직은 추후 구현
-                ResponseEntity.ok(ApiResponse.success("프로필이 성공적으로 업데이트되었습니다.", "사용자: $email"))
+            .flatMap { email ->
+                if (newNickname == null) {
+                    Mono.error(Exception("Nickname is required"))
+                } else {
+                    authService.updateNickname(email, newNickname)
+                }
+            }
+            .map { updatedUser ->
+                ResponseEntity.ok(ApiResponse.success(updatedUser, "프로필이 성공적으로 수정되었습니다."))
             }
     }
 }

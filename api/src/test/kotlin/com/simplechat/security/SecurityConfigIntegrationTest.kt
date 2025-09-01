@@ -37,7 +37,7 @@ class SecurityConfigIntegrationTest {
             .exchange()
             .expectStatus().isOk
             .expectBody()
-            .jsonPath("$.exists").isBoolean
+            .jsonPath("$.data.exists").isBoolean
     }
 
     @Test

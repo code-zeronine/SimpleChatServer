@@ -67,9 +67,10 @@ class AuthControllerTest {
             .assertNext { response ->
                 assertEquals(HttpStatus.CREATED, response.statusCode)
                 assertNotNull(response.body)
-                assertEquals("access_token", response.body!!.accessToken)
-                assertEquals("refresh_token", response.body!!.refreshToken)
-                assertEquals(testUserDto.email, response.body!!.user.email)
+                assertNotNull(response.body!!.data)
+                assertEquals("access_token", response.body!!.data!!.accessToken)
+                assertEquals("refresh_token", response.body!!.data!!.refreshToken)
+                assertEquals(testUserDto.email, response.body!!.data!!.user.email)
             }
             .verifyComplete()
     }
@@ -107,9 +108,10 @@ class AuthControllerTest {
             .assertNext { response ->
                 assertEquals(HttpStatus.OK, response.statusCode)
                 assertNotNull(response.body)
-                assertEquals("access_token", response.body!!.accessToken)
-                assertEquals("refresh_token", response.body!!.refreshToken)
-                assertEquals(testUserDto.email, response.body!!.user.email)
+                assertNotNull(response.body!!.data)
+                assertEquals("access_token", response.body!!.data!!.accessToken)
+                assertEquals("refresh_token", response.body!!.data!!.refreshToken)
+                assertEquals(testUserDto.email, response.body!!.data!!.user.email)
             }
             .verifyComplete()
     }
@@ -147,8 +149,9 @@ class AuthControllerTest {
             .assertNext { response ->
                 assertEquals(HttpStatus.OK, response.statusCode)
                 assertNotNull(response.body)
-                assertEquals("new_access_token", response.body!!.accessToken)
-                assertEquals(3600000L, response.body!!.expiresIn)
+                assertNotNull(response.body!!.data)
+                assertEquals("new_access_token", response.body!!.data!!.accessToken)
+                assertEquals(3600000L, response.body!!.data!!.expiresIn)
             }
             .verifyComplete()
     }
@@ -164,7 +167,8 @@ class AuthControllerTest {
             .assertNext { response ->
                 assertEquals(HttpStatus.OK, response.statusCode)
                 assertNotNull(response.body)
-                assertEquals(true, response.body!!["exists"])
+                assertNotNull(response.body!!.data)
+                assertEquals(true, response.body!!.data!!["exists"])
             }
             .verifyComplete()
     }
@@ -180,7 +184,8 @@ class AuthControllerTest {
             .assertNext { response ->
                 assertEquals(HttpStatus.OK, response.statusCode)
                 assertNotNull(response.body)
-                assertEquals(false, response.body!!["exists"])
+                assertNotNull(response.body!!.data)
+                assertEquals(false, response.body!!.data!!["exists"])
             }
             .verifyComplete()
     }
@@ -196,7 +201,8 @@ class AuthControllerTest {
             .assertNext { response ->
                 assertEquals(HttpStatus.OK, response.statusCode)
                 assertNotNull(response.body)
-                assertEquals(true, response.body!!["exists"])
+                assertNotNull(response.body!!.data)
+                assertEquals(true, response.body!!.data!!["exists"])
             }
             .verifyComplete()
     }
@@ -212,7 +218,8 @@ class AuthControllerTest {
             .assertNext { response ->
                 assertEquals(HttpStatus.OK, response.statusCode)
                 assertNotNull(response.body)
-                assertEquals(false, response.body!!["exists"])
+                assertNotNull(response.body!!.data)
+                assertEquals(false, response.body!!.data!!["exists"])
             }
             .verifyComplete()
     }

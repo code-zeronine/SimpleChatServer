@@ -114,6 +114,15 @@ class AuthService(
         return userRepository.existsByNickname(nickname)
     }
 
+    fun updateNickname(email: String, newNickname: String): Mono<UserDto> {
+        return userRepository.findByEmail(email)
+            .switchIfEmpty(Mono.error(ResourceNotFoundException("사용자를 찾을 수 없습니다.", ErrorCode.USER_NOT_FOUND)))
+            .flatMap { user ->
+                userRepository.save(user.copy(nickname = newNickname))
+            }
+            .map { it.toDto() }
+    }
+
     /**
      * 회원가입 요청 검증
      */

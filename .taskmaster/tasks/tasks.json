@@ -527,7 +527,7 @@
               "7.5"
             ],
             "details": "handleError() 메서드 구현, 연결 끊김 처리, 메시지 파싱 오류 처리, 인증 실패 처리, 채팅방 접근 권한 오류 처리, 클라이언트에 에러 메시지 전송, 로깅 및 모니터링 연동.",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-09-01T05:39:31.326Z",
+      "updated": "2025-09-01T05:56:08.036Z",
       "description": "Tasks for master context"
     }
   }

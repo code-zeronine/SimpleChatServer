@@ -57,8 +57,9 @@ class UserControllerTest {
             .assertNext { response ->
                 assertEquals(HttpStatus.OK, response.statusCode)
                 assertNotNull(response.body)
-                assertEquals(testUserDto.email, response.body!!.email)
-                assertEquals(testUserDto.nickname, response.body!!.nickname)
+                assertNotNull(response.body!!.data)
+                assertEquals(testUserDto.email, response.body!!.data!!.email)
+                assertEquals(testUserDto.nickname, response.body!!.data!!.nickname)
             }
             .verifyComplete()
 
@@ -73,23 +74,28 @@ class UserControllerTest {
         val authHeader = "Bearer valid_token"
         val token = "valid_token"
         val email = "test@example.com"
-        val updateRequest = mapOf("nickname" to "newNickname")
-        
+        val newNickname = "newNickname"
+        val updateRequest = mapOf("nickname" to newNickname)
+        val updatedUserDto = testUserDto.copy(nickname = newNickname)
+
         `when`(jwtAuthenticationHelper.extractTokenFromHeader(authHeader)).thenReturn(Mono.just(token))
         `when`(jwtAuthenticationHelper.validateToken(token)).thenReturn(Mono.empty())
         `when`(jwtAuthenticationHelper.getEmailFromToken(token)).thenReturn(Mono.just(email))
+        `when`(authService.updateNickname(email, newNickname)).thenReturn(Mono.just(updatedUserDto))
 
         // When & Then
         StepVerifier.create(userController.updateProfile(authHeader, updateRequest))
             .assertNext { response ->
                 assertEquals(HttpStatus.OK, response.statusCode)
                 assertNotNull(response.body)
-                assertTrue(response.body!!.contains(email))
+                assertNotNull(response.body!!.data)
+                assertEquals(updatedUserDto, response.body!!.data)
             }
             .verifyComplete()
 
         verify(jwtAuthenticationHelper).extractTokenFromHeader(authHeader)
         verify(jwtAuthenticationHelper).validateToken(token)
         verify(jwtAuthenticationHelper).getEmailFromToken(token)
+        verify(authService).updateNickname(email, newNickname)
     }
 }

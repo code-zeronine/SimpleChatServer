@@ -119,7 +119,9 @@ data class ErrorWebSocketMessage(
     override val timestamp: Instant,
     override val sessionId: String?,
     val errorCode: String,
-    val errorMessage: String
+    val errorMessage: String,
+    val originalMessage: String? = null,
+    val details: Map<String, Any>? = null
 ) : WebSocketMessage()
 
 data class AckWebSocketMessage(

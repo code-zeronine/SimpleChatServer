@@ -1,41 +1,110 @@
 package com.simplechat.infrastructure.handler
 
+import com.simplechat.domain.exception.WebSocketAuthenticationException
+import com.simplechat.domain.exception.WebSocketConnectionException
+import com.simplechat.domain.exception.WebSocketErrorCode
+import com.simplechat.infrastructure.security.WebSocketAuthService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Mono
+import org.springframework.security.core.context.ReactiveSecurityContextHolder
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import com.simplechat.infrastructure.security.jwt.JwtUserDetails
 
 /**
  * 채팅 WebSocket 핸들러
  * 
  * WebSocket 연결을 관리하고 메시지 처리 로직과 연동합니다.
+ * 통합된 에러 처리 시스템을 포함합니다.
  */
 @Component
 class ChatWebSocketHandler(
-    private val messageHandler: WebSocketMessageHandler
+    private val messageHandler: WebSocketMessageHandler,
+    private val errorHandler: WebSocketErrorHandler,
+    private val authService: WebSocketAuthService
 ) : WebSocketHandler {
     
     private val logger = LoggerFactory.getLogger(ChatWebSocketHandler::class.java)
     
     override fun handle(session: WebSocketSession): Mono<Void> {
-        // URI에서 사용자 ID 추출 (예: /ws/chat/123)
-        val userId = extractUserIdFromPath(session) ?: return session.close()
-        
-        logger.info("WebSocket connection established for user {} from {}", 
-            userId, session.handshakeInfo.remoteAddress)
-        
-        val derivedChatRoomId = "room-${userId}"
-        val derivedUsername = "user-${userId}"
-        return messageHandler.handleSession(session, derivedChatRoomId, derivedUsername, userId)
-            .doOnError { error ->
-                logger.error("WebSocket session error for user {}: {}", userId, error.message, error)
+        return Mono.fromCallable { 
+            logger.info("WebSocket connection attempt from {}", session.handshakeInfo.remoteAddress)
+            session
+        }
+        .flatMap { validateConnection(it) }
+        .flatMap { validatedSession ->
+            // URI에서 사용자 ID 추출
+            val userId = extractUserIdFromPath(validatedSession)
+            if (userId == null) {
+                return@flatMap errorHandler.handleAuthenticationError(
+                    validatedSession, 
+                    "사용자 ID를 추출할 수 없습니다"
+                )
             }
-            .onErrorResume { error ->
-                logger.error("Closing WebSocket session due to error for user {}: {}", 
-                    userId, error.message)
-                session.close()
+            
+            // 인증 확인 및 사용자 정보 추출
+            Mono.defer { ReactiveSecurityContextHolder.getContext() }
+                .map { it.authentication }
+                .cast(UsernamePasswordAuthenticationToken::class.java)
+                .map { it.principal }
+                .cast(JwtUserDetails::class.java)
+                .flatMap { userDetails ->
+                    val authenticatedUserId = userDetails.id
+                    logger.info("WebSocket connection established for user {} (ID: {}) from {}", 
+                        userDetails.username, authenticatedUserId, session.handshakeInfo.remoteAddress)
+                    
+                    val derivedChatRoomId = "room-${authenticatedUserId}"
+                    val derivedUsername = "user-${authenticatedUserId}"
+                    
+                    // 메시지 핸들링 시작
+                    messageHandler.handleSession(validatedSession, derivedChatRoomId, derivedUsername, authenticatedUserId)
+                }
+                .onErrorResume { error ->
+                    logger.warn("Authentication or user details extraction failed: {}", error.message)
+                    errorHandler.handleAuthenticationError(
+                        validatedSession, 
+                        "인증에 실패했거나 사용자 정보를 가져올 수 없습니다: ${error.message}"
+                    )
+                }
+        }
+        .doOnError { error ->
+            logger.error("WebSocket connection error: {}", error.message, error)
+        }
+        .onErrorResume { error ->
+            when (error) {
+                is WebSocketConnectionException -> {
+                    errorHandler.handleConnectionError(session, error.message, true)
+                }
+                is WebSocketAuthenticationException -> {
+                    errorHandler.handleAuthenticationError(session, error.message)
+                }
+                else -> {
+                    logger.error("Unexpected WebSocket error: {}", error.message, error)
+                    errorHandler.handleException(session, error)
+                        .then(errorHandler.closeSessionSafely(session, "Unexpected error"))
+                }
             }
+        }
+    }
+    
+    /**
+     * 연결 유효성을 검사합니다.
+     */
+    private fun validateConnection(session: WebSocketSession): Mono<WebSocketSession> {
+        return Mono.fromCallable {
+            // 기본적인 연결 검증
+            if (!session.isOpen) {
+                throw WebSocketConnectionException(
+                    "세션이 이미 닫혀있습니다",
+                    WebSocketErrorCode.WS_CONNECTION_CLOSED
+                )
+            }
+            
+            // 추가적인 연결 제한 검사는 AuthService에서 처리
+            session
+        }
     }
     
     /**
