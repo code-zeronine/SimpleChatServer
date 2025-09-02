@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SimpleChatServer 실시간 채팅">
+    <title>채팅 - SimpleChatServer</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/chat.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 채팅 헤더 -->
+        <header class="chat-header">
+            <div class="header-left">
+                <button class="back-btn" id="backBtn" title="채팅방 목록으로">
+                    <span class="back-icon">←</span>
+                </button>
+                <div class="room-info">
+                    <h1 class="room-name" id="roomName">채팅방</h1>
+                    <div class="room-status">
+                        <span class="member-count" id="memberCount">참여자 0명</span>
+                        <span class="connection-status" id="connectionStatus">연결 중...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="header-btn" id="roomSettingsBtn" title="채팅방 설정">
+                    <span class="settings-icon">⚙️</span>
+                </button>
+                <button class="header-btn" id="memberListBtn" title="참여자 목록">
+                    <span class="members-icon">👥</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 메시지 영역 -->
+        <main class="chat-main">
+            <div class="messages-container" id="messagesContainer">
+                <div class="messages-list" id="messagesList">
+                    <!-- 환영 메시지 -->
+                    <div class="system-message">
+                        <div class="system-message-content">
+                            <span class="welcome-icon">👋</span>
+                            <p>채팅방에 오신 것을 환영합니다!</p>
+                            <small>메시지를 입력하여 대화를 시작하세요.</small>
+                        </div>
+                    </div>
+
+                    <!-- 로딩 인디케이터 -->
+                    <div class="loading-messages" id="loadingMessages" style="display: none;">
+                        <div class="loading-spinner">
+                            <div class="spinner"></div>
+                        </div>
+                        <p>이전 메시지를 불러오는 중...</p>
+                    </div>
+
+                    <!-- 메시지들이 여기에 동적으로 추가됩니다 -->
+                </div>
+
+                <!-- 스크롤 다운 버튼 -->
+                <button class="scroll-down-btn" id="scrollDownBtn" style="display: none;">
+                    <span class="scroll-icon">↓</span>
+                    <span class="unread-count" id="unreadCount">0</span>
+                </button>
+            </div>
+        </main>
+
+        <!-- 메시지 입력 영역 -->
+        <footer class="chat-input-area">
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <!-- 파일 첨부 버튼 -->
+                    <button class="attachment-btn" id="attachmentBtn" title="파일 첨부">
+                        <span class="attachment-icon">📎</span>
+                    </button>
+
+                    <!-- 메시지 입력창 -->
+                    <div class="message-input-wrapper">
+                        <textarea 
+                            id="messageInput" 
+                            class="message-input"
+                            placeholder="메시지를 입력하세요..."
+                            rows="1"
+                            maxlength="1000"
+                        ></textarea>
+                        <div class="input-actions">
+                            <button class="emoji-btn" id="emojiBtn" title="이모지">
+                                <span class="emoji-icon">😊</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 전송 버튼 -->
+                    <button class="send-btn" id="sendBtn" title="전송" disabled>
+                        <span class="send-icon">📤</span>
+                    </button>
+                </div>
+
+                <!-- 타이핑 인디케이터 -->
+                <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                    <div class="typing-animation">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <span class="typing-text" id="typingText">누군가가 입력 중...</span>
+                </div>
+
+                <!-- 메시지 카운터 -->
+                <div class="message-counter" id="messageCounter">
+                    <span class="char-count">0</span>/1000
+                </div>
+            </div>
+        </footer>
+
+        <!-- 파일 첨부 모달 -->
+        <div class="modal" id="attachmentModal">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>파일 첨부</h3>
+                    <button class="modal-close" id="closeAttachmentModal">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="file-drop-area" id="fileDropArea">
+                        <div class="drop-icon">📁</div>
+                        <p>파일을 여기로 드래그하거나 클릭하여 선택하세요</p>
+                        <input type="file" id="fileInput" multiple accept="image/*,application/pdf,.txt,.doc,.docx">
+                        <button class="btn btn-secondary" id="selectFileBtn">파일 선택</button>
+                    </div>
+                    <div class="file-list" id="fileList"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelAttachment">취소</button>
+                    <button type="button" class="btn btn-primary" id="uploadFiles" disabled>
+                        <span class="btn-text">전송</span>
+                        <span class="btn-loading" style="display: none;">
+                            <span class="loading-spinner"></span>
+                            업로드 중...
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 참여자 목록 사이드바 -->
+        <aside class="members-sidebar" id="membersSidebar">
+            <div class="sidebar-header">
+                <h3>참여자 목록</h3>
+                <button class="sidebar-close" id="closeMembersSidebar">×</button>
+            </div>
+            <div class="sidebar-content">
+                <div class="members-list" id="membersList">
+                    <!-- 참여자 목록이 여기에 동적으로 생성됩니다 -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- 오버레이 -->
+        <div class="overlay" id="overlay"></div>
+
+        <!-- 토스트 메시지 -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <!-- 히든 파일 입력 -->
+    <input type="file" id="hiddenFileInput" style="display: none;" multiple>
+
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/chat.js"></script>
+</body>
+</html>

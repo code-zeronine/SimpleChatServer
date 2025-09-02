@@ -1,0 +1,920 @@
+/**
+ * SimpleChatServer - Chat Page Styles
+ * 
+ * 실시간 채팅 화면의 스타일을 정의합니다.
+ */
+
+/* ==========================================================================
+   Chat Layout
+   ========================================================================== */
+
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--color-background);
+    overflow: hidden;
+}
+
+/* ==========================================================================
+   Chat Header
+   ========================================================================== */
+
+.chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: var(--color-gray-100);
+    border-radius: 50%;
+    color: var(--color-text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+    background: var(--color-gray-200);
+    transform: translateX(-2px);
+}
+
+.back-icon {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.room-info {
+    flex: 1;
+}
+
+.room-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0;
+    line-height: 1.2;
+}
+
+.room-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.member-count,
+.connection-status {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+}
+
+.connection-status {
+    position: relative;
+}
+
+.connection-status::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-success);
+    margin-right: 0.5rem;
+    animation: pulse 2s infinite;
+}
+
+.connection-status.connecting::before {
+    background: var(--color-warning);
+}
+
+.connection-status.disconnected::before {
+    background: var(--color-danger);
+    animation: none;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.header-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    border-radius: 50%;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.header-btn:hover {
+    background: var(--color-gray-100);
+    color: var(--color-text);
+}
+
+/* ==========================================================================
+   Messages Area
+   ========================================================================== */
+
+.chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+.messages-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+.messages-list {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+}
+
+.messages-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.messages-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.messages-list::-webkit-scrollbar-thumb {
+    background: var(--color-gray-300);
+    border-radius: 3px;
+}
+
+.messages-list::-webkit-scrollbar-thumb:hover {
+    background: var(--color-gray-400);
+}
+
+/* ==========================================================================
+   System Messages
+   ========================================================================== */
+
+.system-message {
+    display: flex;
+    justify-content: center;
+    margin: 2rem 0;
+}
+
+.system-message-content {
+    background: var(--color-gray-50);
+    padding: 1rem 1.5rem;
+    border-radius: 1rem;
+    text-align: center;
+    max-width: 300px;
+}
+
+.welcome-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.system-message-content p {
+    margin: 0 0 0.25rem 0;
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+.system-message-content small {
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+}
+
+/* ==========================================================================
+   Chat Messages
+   ========================================================================== */
+
+.message {
+    display: flex;
+    margin-bottom: 1rem;
+    animation: messageSlideIn 0.3s ease-out;
+}
+
+.message.own {
+    justify-content: flex-end;
+}
+
+.message.other {
+    justify-content: flex-start;
+}
+
+.message-bubble {
+    max-width: 70%;
+    min-width: 100px;
+    padding: 0.75rem 1rem;
+    border-radius: 1.25rem;
+    position: relative;
+    word-wrap: break-word;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.message.own .message-bubble {
+    background: var(--color-primary);
+    color: white;
+    border-bottom-right-radius: 0.5rem;
+}
+
+.message.other .message-bubble {
+    background: var(--color-surface);
+    color: var(--color-text);
+    border-bottom-left-radius: 0.5rem;
+    border: 1px solid var(--color-border);
+}
+
+.message-content {
+    font-size: 0.95rem;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.message-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    gap: 0.75rem;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    white-space: nowrap;
+}
+
+.message.own .message-time {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.message.other .message-time {
+    color: var(--color-text-secondary);
+}
+
+.message-status {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+}
+
+.status-icon {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.status-sending .status-icon {
+    background: var(--color-warning);
+    animation: pulse 1s infinite;
+}
+
+.status-sent .status-icon {
+    background: var(--color-success);
+}
+
+.status-failed .status-icon {
+    background: var(--color-danger);
+}
+
+/* ==========================================================================
+   Message Grouping
+   ========================================================================== */
+
+.message-group {
+    margin-bottom: 1.5rem;
+}
+
+.message-group .message:not(:last-child) {
+    margin-bottom: 0.25rem;
+}
+
+.message-group .message:not(:last-child) .message-bubble {
+    border-radius: 1.25rem;
+}
+
+.message-group .message.own:not(:last-child) .message-bubble {
+    border-bottom-right-radius: 1.25rem;
+}
+
+.message-group .message.other:not(:last-child) .message-bubble {
+    border-bottom-left-radius: 1.25rem;
+}
+
+.message-group .message:not(:last-child) .message-meta {
+    display: none;
+}
+
+/* ==========================================================================
+   Loading Messages
+   ========================================================================== */
+
+.loading-messages {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+    color: var(--color-text-secondary);
+}
+
+.loading-spinner {
+    margin-bottom: 1rem;
+}
+
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--color-gray-200);
+    border-top: 2px solid var(--color-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* ==========================================================================
+   Scroll Down Button
+   ========================================================================== */
+
+.scroll-down-btn {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    width: 48px;
+    height: 48px;
+    border: none;
+    background: var(--color-surface);
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.scroll-down-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.scroll-icon {
+    font-size: 1.2rem;
+    color: var(--color-text);
+}
+
+.unread-count {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--color-danger);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 16px;
+    text-align: center;
+    display: none;
+}
+
+.unread-count.show {
+    display: block;
+}
+
+/* ==========================================================================
+   Chat Input Area
+   ========================================================================== */
+
+.chat-input-area {
+    padding: 1rem;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+}
+
+.input-container {
+    max-width: 100%;
+}
+
+.input-wrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: 1.5rem;
+    padding: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.input-wrapper:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.attachment-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    border-radius: 50%;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.attachment-btn:hover {
+    background: var(--color-gray-100);
+    color: var(--color-text);
+}
+
+.message-input-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.message-input {
+    width: 100%;
+    min-height: 36px;
+    max-height: 120px;
+    border: none;
+    background: transparent;
+    color: var(--color-text);
+    font-size: 0.95rem;
+    line-height: 1.4;
+    resize: none;
+    outline: none;
+    padding: 8px 40px 8px 8px;
+}
+
+.message-input::placeholder {
+    color: var(--color-text-secondary);
+}
+
+.input-actions {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+}
+
+.emoji-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    border-radius: 50%;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.emoji-btn:hover {
+    background: var(--color-gray-100);
+}
+
+.send-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: var(--color-primary);
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.send-btn:hover:not(:disabled) {
+    background: var(--color-primary-dark);
+    transform: scale(1.05);
+}
+
+.send-btn:disabled {
+    background: var(--color-gray-300);
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ==========================================================================
+   Typing Indicator
+   ========================================================================== */
+
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding: 0 1rem;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+}
+
+.typing-animation {
+    display: flex;
+    gap: 2px;
+}
+
+.typing-animation span {
+    width: 4px;
+    height: 4px;
+    background: var(--color-primary);
+    border-radius: 50%;
+    animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-animation span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-animation span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+/* ==========================================================================
+   Message Counter
+   ========================================================================== */
+
+.message-counter {
+    text-align: right;
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    margin-top: 0.5rem;
+    padding: 0 1rem;
+}
+
+.message-counter.warning {
+    color: var(--color-warning);
+}
+
+.message-counter.danger {
+    color: var(--color-danger);
+}
+
+/* ==========================================================================
+   File Attachment Modal
+   ========================================================================== */
+
+.file-drop-area {
+    border: 2px dashed var(--color-border);
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+    background: var(--color-gray-50);
+    transition: all 0.2s ease;
+}
+
+.file-drop-area.drag-over {
+    border-color: var(--color-primary);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.drop-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.file-drop-area p {
+    margin-bottom: 1rem;
+    color: var(--color-text-secondary);
+}
+
+.file-list {
+    margin-top: 1rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.file-icon {
+    font-size: 1.5rem;
+}
+
+.file-details {
+    flex: 1;
+}
+
+.file-name {
+    font-weight: 500;
+    color: var(--color-text);
+    margin: 0;
+}
+
+.file-size {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+}
+
+.remove-file-btn {
+    background: var(--color-danger);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.remove-file-btn:hover {
+    background: var(--color-danger-dark);
+}
+
+/* ==========================================================================
+   Members Sidebar
+   ========================================================================== */
+
+.members-sidebar {
+    position: fixed;
+    top: 0;
+    right: -350px;
+    width: 350px;
+    height: 100vh;
+    background: var(--color-surface);
+    border-left: 1px solid var(--color-border);
+    z-index: 200;
+    transition: right 0.3s ease;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+.members-sidebar.open {
+    right: 0;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.sidebar-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+}
+
+.sidebar-close:hover {
+    background: var(--color-gray-100);
+    color: var(--color-text);
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.members-list {
+    padding: 1rem;
+}
+
+.member-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    transition: background-color 0.2s ease;
+}
+
+.member-item:hover {
+    background: var(--color-gray-50);
+}
+
+.member-avatar {
+    width: 40px;
+    height: 40px;
+    background: var(--color-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.member-info {
+    flex: 1;
+}
+
+.member-name {
+    font-weight: 500;
+    color: var(--color-text);
+    margin: 0;
+}
+
+.member-status {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    margin: 0.25rem 0 0 0;
+}
+
+.member-status.online {
+    color: var(--color-success);
+}
+
+.member-status.offline {
+    color: var(--color-text-secondary);
+}
+
+/* ==========================================================================
+   Overlay
+   ========================================================================== */
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 150;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes typing {
+    0%, 60%, 100% {
+        transform: translateY(0);
+    }
+    30% {
+        transform: translateY(-10px);
+    }
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .chat-header {
+        padding: 0.75rem 1rem;
+    }
+    
+    .room-name {
+        font-size: 1.125rem;
+    }
+    
+    .messages-list {
+        padding: 0.75rem;
+    }
+    
+    .message-bubble {
+        max-width: 85%;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.9rem;
+    }
+    
+    .chat-input-area {
+        padding: 0.75rem;
+    }
+    
+    .members-sidebar {
+        width: 100%;
+        right: -100%;
+    }
+    
+    .header-right {
+        gap: 0.25rem;
+    }
+    
+    .header-btn {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+@media (max-width: 480px) {
+    .chat-header {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .room-name {
+        font-size: 1rem;
+    }
+    
+    .messages-list {
+        padding: 0.5rem;
+    }
+    
+    .message-bubble {
+        max-width: 90%;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    
+    .chat-input-area {
+        padding: 0.5rem;
+    }
+}
