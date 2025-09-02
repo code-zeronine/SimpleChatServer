@@ -230,6 +230,13 @@ class DatabaseConfig : AbstractReactiveMongoConfiguration() {
                         .append("userId", 1)
                         .append("timestamp", -1)
                 ).named("idx_userId_timestamp_compound")
+            ),
+            IndexDefinition(
+                "idx_content_text",
+                org.springframework.data.mongodb.core.index.TextIndexDefinition.builder()
+                    .onField("content")
+                    .named("idx_content_text")
+                    .build()
             )
         )
     }

@@ -46,4 +46,18 @@ class MessageController(
         return messageService.countMessages(roomId)
             .map { ApiResponse.success(mapOf("count" to it)) }
     }
+
+    @GetMapping("/search")
+    fun searchMessages(
+        @RequestParam roomId: String?,
+        @RequestParam keyword: String?,
+        @RequestParam userId: String?,
+        @RequestParam messageType: String?,
+        @RequestParam startDate: String?,
+        @RequestParam endDate: String?,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "50") size: Int
+    ): Mono<PagedApiResponse<MessageDto>> {
+        return messageService.searchMessages(roomId, keyword, userId, messageType, startDate, endDate, page, size)
+    }
 }

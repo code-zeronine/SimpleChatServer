@@ -227,7 +227,7 @@ data class ErrorSequence(
     var mostFrequentError: String? = null,
     private val errorHistory: MutableList<String> = mutableListOf()
 ) {
-    fun addError(errorCode: WebSocketErrorCode, severity: ErrorSeverity) {
+    fun addError(errorCode: WebSocketErrorCode, @Suppress("UNUSED_PARAMETER") severity: ErrorSeverity) {
         consecutiveErrors++
         lastErrorTime = Instant.now()
         errorHistory.add(errorCode.code)

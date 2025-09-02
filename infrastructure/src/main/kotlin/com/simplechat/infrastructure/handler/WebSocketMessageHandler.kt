@@ -18,7 +18,7 @@ import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Mono
 import java.time.Instant
 import java.util.*
-import com.simplechat.domain.entity.ChatMessage as ChatMessageEntity
+import com.simplechat.domain.entity.ChatMessage
 
 @Component
 class WebSocketMessageHandler(
@@ -185,13 +185,13 @@ class WebSocketMessageHandler(
         chatRoomId: String
     ): Mono<Void> {
         // DTO -> Domain Entity Mapping
-        val chatMessageEntity = ChatMessageEntity(
+        val domainChatMessage = ChatMessage(
             roomId = chatMessage.roomId,
             userId = chatMessage.userId,
             content = chatMessage.content
         )
 
-        return chatMessageService.saveMessage(chatMessageEntity)
+        return chatMessageService.saveMessage(domainChatMessage)
             .then(Mono.defer {
                 messageBrokerService.broadcast(chatRoomId, chatMessage)
                 Mono.empty<Void>()

@@ -3,7 +3,7 @@ package com.simplechat.infrastructure.service
 import com.simplechat.domain.entity.ChatMessage
 import com.simplechat.domain.service.ChatMessageDomainService
 import com.simplechat.infrastructure.entity.ChatMessageEntity
-import com.simplechat.infrastructure.repository.ChatMessageRepository
+import com.simplechat.infrastructure.repository.ChatMessageMongoRepository
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.time.LocalDateTime
@@ -16,7 +16,7 @@ import java.time.LocalDateTime
  */
 @Service
 class ChatMessageService(
-    private val chatMessageRepository: ChatMessageRepository
+    private val chatMessageRepository: ChatMessageMongoRepository
 ) : ChatMessageDomainService {
     
     override fun saveMessage(message: ChatMessage): Mono<Void> {

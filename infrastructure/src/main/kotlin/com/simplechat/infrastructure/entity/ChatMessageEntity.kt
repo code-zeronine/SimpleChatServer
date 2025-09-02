@@ -9,6 +9,8 @@ import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.core.mapping.Field
 import java.time.LocalDateTime
 
+import org.springframework.data.mongodb.core.index.TextIndexed
+
 /**
  * ChatMessage 도메인 엔티티의 MongoDB 매핑을 위한 데이터베이스 엔티티
  * 
@@ -30,6 +32,7 @@ data class ChatMessageEntity(
     val userId: Long,
     
     @Field("content")
+    @TextIndexed
     val content: String,
     
     @Field("timestamp")

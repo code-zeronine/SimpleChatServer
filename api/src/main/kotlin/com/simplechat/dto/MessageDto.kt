@@ -7,5 +7,7 @@ data class MessageDto(
     val roomId: String,
     val userId: Long,
     val content: String,
-    val timestamp: Instant
+    val timestamp: Instant,
+    val highlightedContent: String? = null,
+    val messageType: String? = null
 )

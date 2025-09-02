@@ -9,7 +9,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.LocalDateTime
 
-interface ChatMessageRepository : ReactiveMongoRepository<ChatMessageEntity, String> {
+interface ChatMessageMongoRepository : ReactiveMongoRepository<ChatMessageEntity, String>, ChatMessageRepositoryCustom {
     
     /**
      * 특정 채팅방의 메시지를 최신순으로 페이지네이션하여 조회
@@ -71,4 +71,9 @@ interface ChatMessageRepository : ReactiveMongoRepository<ChatMessageEntity, Str
      * 특정 채팅방의 최신 메시지 조회
      */
     fun findTopByRoomIdOrderByTimestampDesc(roomId: Long): Mono<ChatMessageEntity>
+
+    /**
+     * 텍스트 검색 및 필터링
+     */
+    fun findAllBy(criteria: org.springframework.data.mongodb.core.query.TextCriteria, pageable: Pageable): Flux<ChatMessageEntity>
 }
