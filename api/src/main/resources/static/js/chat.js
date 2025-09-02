@@ -380,21 +380,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isTyping) {
                 if (!this.typingTimer) {
                     // 타이핑 시작 신호 전송
-                    this.websocket.send(JSON.stringify({
-                        type: 'typing_start',
-                        roomId: this.currentRoomId,
-                        userId: this.currentUser.id
-                    }));
+                    this.websocket.startTyping();
                 }
                 
                 // 타이핑 중단 타이머 재설정
                 clearTimeout(this.typingTimer);
                 this.typingTimer = setTimeout(() => {
-                    this.websocket.send(JSON.stringify({
-                        type: 'typing_stop',
-                        roomId: this.currentRoomId,
-                        userId: this.currentUser.id
-                    }));
+                    this.websocket.stopTyping();
                     this.typingTimer = null;
                 }, 3000);
             }
@@ -431,12 +423,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // WebSocket으로 메시지 전송
             try {
-                this.websocket.send(JSON.stringify({
-                    type: 'message',
-                    roomId: this.currentRoomId,
-                    content: content,
-                    tempId: tempId
-                }));
+                if (!this.websocket.sendChatMessage(content, { tempId })) {
+                    throw new Error('메시지 전송 실패');
+                }
             } catch (error) {
                 console.error('메시지 전송 오류:', error);
                 this.updateMessageStatus(tempId, 'failed');
@@ -519,47 +508,74 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // WebSocket 연결
         connectWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws/chat`;
+            const { WebSocket } = window.SimpleChatServer.utils;
             
             try {
-                this.websocket = new WebSocket(wsUrl);
+                this.websocket = WebSocket.getClient();
                 
-                this.websocket.onopen = () => {
+                // WebSocket 이벤트 리스너 설정
+                this.websocket.on('open', () => {
                     console.log('WebSocket 연결됨');
                     this.isConnected = true;
                     this.updateConnectionStatus('connected');
-                    
-                    // 채팅방 입장
-                    this.websocket.send(JSON.stringify({
-                        type: 'join',
-                        roomId: this.currentRoomId,
-                        userId: this.currentUser.id
-                    }));
-                };
+                });
                 
-                this.websocket.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-                    this.handleWebSocketMessage(data);
-                };
-                
-                this.websocket.onclose = () => {
+                this.websocket.on('close', () => {
                     console.log('WebSocket 연결 해제됨');
                     this.isConnected = false;
                     this.updateConnectionStatus('disconnected');
-                    
-                    // 재연결 시도
-                    setTimeout(() => {
-                        if (!this.isConnected) {
-                            this.connectWebSocket();
-                        }
-                    }, 5000);
-                };
+                });
                 
-                this.websocket.onerror = (error) => {
+                this.websocket.on('error', (error) => {
                     console.error('WebSocket 오류:', error);
                     this.updateConnectionStatus('error');
-                };
+                });
+                
+                this.websocket.on('stateChange', (state) => {
+                    if (state.state === 'reconnecting') {
+                        this.updateConnectionStatus('connecting');
+                    } else if (state.state === 'connected') {
+                        this.updateConnectionStatus('connected');
+                        this.isConnected = true;
+                    } else if (state.state === 'disconnected') {
+                        this.updateConnectionStatus('disconnected');
+                        this.isConnected = false;
+                    }
+                });
+                
+                // 메시지 타입별 핸들러 등록
+                this.websocket.onMessage('message', (data) => {
+                    if (data.userId !== this.currentUser.id) {
+                        this.addMessage(data, false);
+                    } else {
+                        this.updateMessageStatus(data.tempId, 'sent');
+                    }
+                });
+                
+                this.websocket.onMessage('typing_start', (data) => {
+                    if (data.userId !== this.currentUser.id) {
+                        this.showTypingIndicator(data.userName);
+                    }
+                });
+                
+                this.websocket.onMessage('typing_stop', (data) => {
+                    if (data.userId !== this.currentUser.id) {
+                        this.hideTypingIndicator();
+                    }
+                });
+                
+                this.websocket.onMessage('user_joined', (data) => {
+                    Toast.info(`${data.userName}님이 입장했습니다.`);
+                    this.updateMemberCount(data.memberCount);
+                });
+                
+                this.websocket.onMessage('user_left', (data) => {
+                    Toast.info(`${data.userName}님이 퇴장했습니다.`);
+                    this.updateMemberCount(data.memberCount);
+                });
+                
+                // 연결 및 채팅방 입장
+                this.websocket.connect(this.currentUser, this.currentRoomId);
                 
             } catch (error) {
                 console.error('WebSocket 연결 오류:', error);
@@ -567,43 +583,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
         
-        // WebSocket 메시지 처리
+        // WebSocket 메시지 처리 (더 이상 사용되지 않음 - 새 클라이언트에서 처리)
         handleWebSocketMessage(data) {
-            switch (data.type) {
-                case 'message':
-                    if (data.userId !== this.currentUser.id) {
-                        this.addMessage(data, false);
-                    } else {
-                        // 본인 메시지 확인
-                        this.updateMessageStatus(data.tempId, 'sent');
-                    }
-                    break;
-                    
-                case 'typing_start':
-                    if (data.userId !== this.currentUser.id) {
-                        this.showTypingIndicator(data.userName);
-                    }
-                    break;
-                    
-                case 'typing_stop':
-                    if (data.userId !== this.currentUser.id) {
-                        this.hideTypingIndicator();
-                    }
-                    break;
-                    
-                case 'user_joined':
-                    Toast.info(`${data.userName}님이 입장했습니다.`);
-                    this.updateMemberCount(data.memberCount);
-                    break;
-                    
-                case 'user_left':
-                    Toast.info(`${data.userName}님이 퇴장했습니다.`);
-                    this.updateMemberCount(data.memberCount);
-                    break;
-                    
-                default:
-                    console.log('알 수 없는 메시지 타입:', data.type);
-            }
+            // 레거시 메소드 - 새로운 WebSocket 클라이언트에서 이벤트 핸들러로 처리됨
+            console.log('Legacy message handler called:', data.type);
         },
         
         // 연결 상태 업데이트
@@ -839,7 +822,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 정리
         cleanup() {
             if (this.websocket) {
-                this.websocket.close();
+                this.websocket.disconnect();
             }
             
             if (this.typingTimer) {

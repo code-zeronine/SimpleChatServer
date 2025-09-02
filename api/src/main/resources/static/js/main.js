@@ -8,7 +8,8 @@
 window.SimpleChatServer = {
     apiUrl: '/api',
     wsUrl: `ws://${window.location.host}/ws/chat`,
-    version: '1.0.0'
+    version: '1.0.0',
+    utils: {} // 유틸리티 객체 초기화
 };
 
 /**
@@ -668,5 +669,91 @@ document.addEventListener('DOMContentLoaded', function() {
     styleEl.textContent = globalStyles;
     document.head.appendChild(styleEl);
 });
+
+/**
+ * WebSocket 클라이언트 유틸리티
+ */
+const WebSocket = {
+    /**
+     * 글로벌 클라이언트 인스턴스 가져오기
+     */
+    getClient: (options = {}) => {
+        if (typeof window.WebSocketClient !== 'undefined') {
+            return window.WebSocketClient.getGlobalClient({
+                debug: window.location.hostname === 'localhost',
+                ...options
+            });
+        }
+        return null;
+    },
+    
+    /**
+     * 새 클라이언트 생성
+     */
+    createClient: (options = {}) => {
+        if (typeof window.ChatClient !== 'undefined') {
+            return new window.ChatClient({
+                debug: window.location.hostname === 'localhost',
+                ...options
+            });
+        }
+        return null;
+    },
+    
+    /**
+     * 연결 상태 확인
+     */
+    isConnected: () => {
+        const client = WebSocket.getClient();
+        return client ? client.isConnectionOpen() : false;
+    },
+    
+    /**
+     * 연결 상태 정보
+     */
+    getConnectionState: () => {
+        const client = WebSocket.getClient();
+        return client ? client.getConnectionState() : null;
+    },
+    
+    /**
+     * 간편 메시지 전송
+     */
+    sendMessage: (content, options = {}) => {
+        const client = WebSocket.getClient();
+        return client ? client.sendChatMessage(content, options) : false;
+    },
+    
+    /**
+     * 채팅방 입장
+     */
+    joinRoom: (roomId, user = null) => {
+        const client = WebSocket.getClient();
+        return client ? client.joinRoom(roomId, user) : false;
+    },
+    
+    /**
+     * 채팅방 퇴장
+     */
+    leaveRoom: (roomId = null) => {
+        const client = WebSocket.getClient();
+        return client ? client.leaveRoom(roomId) : false;
+    }
+};
+
+/**
+ * 유틸리티 모듈 통합
+ * 전역 네임스페이스에 등록
+ */
+window.SimpleChatServer.utils = {
+    DOM,
+    Http,
+    Storage,
+    Auth,
+    Form,
+    Toast,
+    Utils,
+    WebSocket
+};
 
 console.log('SimpleChatServer main.js loaded successfully');
