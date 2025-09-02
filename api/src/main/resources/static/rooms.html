@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SimpleChatServer 채팅방 목록">
+    <title>채팅방 - SimpleChatServer</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/rooms.css">
+</head>
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="container">
+                <div class="header-left">
+                    <h1 class="logo">
+                        <span class="logo-icon">💬</span>
+                        SimpleChatServer
+                    </h1>
+                </div>
+                <div class="header-right">
+                    <div class="user-info" id="userInfo">
+                        <span class="user-name" id="userName">사용자</span>
+                        <button class="btn btn-secondary btn-small" id="logoutBtn">로그아웃</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="container">
+                <div class="rooms-header">
+                    <div class="rooms-title">
+                        <h2>채팅방</h2>
+                        <span class="rooms-count" id="roomsCount">0개의 채팅방</span>
+                    </div>
+                    <div class="rooms-actions">
+                        <div class="search-box">
+                            <input 
+                                type="text" 
+                                id="searchInput" 
+                                class="search-input" 
+                                placeholder="채팅방 검색..."
+                            >
+                            <button class="search-btn" id="searchBtn">
+                                <span class="search-icon">🔍</span>
+                            </button>
+                        </div>
+                        <button class="btn btn-primary" id="createRoomBtn">
+                            <span class="btn-icon">+</span>
+                            채팅방 만들기
+                        </button>
+                    </div>
+                </div>
+
+                <div class="rooms-filters">
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" data-filter="all">모든 채팅방</button>
+                        <button class="filter-tab" data-filter="joined">참여 중</button>
+                        <button class="filter-tab" data-filter="public">공개 채팅방</button>
+                        <button class="filter-tab" data-filter="private">비공개 채팅방</button>
+                    </div>
+                    <div class="sort-options">
+                        <select id="sortSelect" class="sort-select">
+                            <option value="recent">최근 활동순</option>
+                            <option value="name">이름순</option>
+                            <option value="members">참여자 많은순</option>
+                            <option value="created">생성일순</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="rooms-grid" id="roomsGrid">
+                    <!-- 채팅방 카드들이 여기에 동적으로 생성됩니다 -->
+                    <div class="loading-spinner" id="loadingSpinner">
+                        <div class="spinner"></div>
+                        <p>채팅방 목록을 불러오는 중...</p>
+                    </div>
+                </div>
+
+                <!-- 빈 상태 표시 -->
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <div class="empty-icon">💬</div>
+                    <h3>채팅방이 없습니다</h3>
+                    <p>첫 번째 채팅방을 만들어보세요!</p>
+                    <button class="btn btn-primary" id="createFirstRoomBtn">채팅방 만들기</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- 채팅방 생성 모달 -->
+        <div class="modal" id="createRoomModal">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>새 채팅방 만들기</h3>
+                    <button class="modal-close" id="closeCreateRoomModal">×</button>
+                </div>
+                <div class="modal-body">
+                    <form id="createRoomForm" class="create-room-form">
+                        <div class="form-group">
+                            <label for="roomName" class="form-label">채팅방 이름</label>
+                            <input 
+                                type="text" 
+                                id="roomName" 
+                                name="roomName" 
+                                class="form-input"
+                                placeholder="채팅방 이름을 입력하세요"
+                                required
+                                maxlength="50"
+                            >
+                            <div class="form-error" id="roomNameError"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="roomDescription" class="form-label">설명 (선택)</label>
+                            <textarea 
+                                id="roomDescription" 
+                                name="roomDescription" 
+                                class="form-textarea"
+                                placeholder="채팅방에 대한 설명을 입력하세요"
+                                rows="3"
+                                maxlength="200"
+                            ></textarea>
+                            <div class="form-hint">최대 200자</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">채팅방 설정</label>
+                            <div class="form-options">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="isPublic" name="isPublic" checked>
+                                    <span class="checkbox-text">공개 채팅방</span>
+                                    <small class="option-desc">모든 사용자가 참여할 수 있습니다</small>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="allowSearch" name="allowSearch" checked>
+                                    <span class="checkbox-text">검색 허용</span>
+                                    <small class="option-desc">검색 결과에 노출됩니다</small>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="maxMembers" class="form-label">최대 참여자 수</label>
+                            <input 
+                                type="number" 
+                                id="maxMembers" 
+                                name="maxMembers" 
+                                class="form-input"
+                                value="100"
+                                min="2"
+                                max="1000"
+                            >
+                            <div class="form-hint">2명 ~ 1000명</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelCreateRoom">취소</button>
+                    <button type="submit" form="createRoomForm" class="btn btn-primary" id="submitCreateRoom">
+                        <span class="btn-text">채팅방 만들기</span>
+                        <span class="btn-loading" style="display: none;">
+                            <span class="loading-spinner"></span>
+                            생성 중...
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 채팅방 상세 정보 모달 -->
+        <div class="modal" id="roomDetailModal">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h3 id="roomDetailTitle">채팅방 정보</h3>
+                    <button class="modal-close" id="closeRoomDetailModal">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="room-detail-content" id="roomDetailContent">
+                        <!-- 채팅방 상세 정보가 여기에 동적으로 생성됩니다 -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="closeRoomDetail">닫기</button>
+                    <button type="button" class="btn btn-primary" id="joinRoomBtn">
+                        채팅방 참여
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 토스트 메시지 -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/rooms.js"></script>
+</body>
+</html>

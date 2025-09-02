@@ -133,7 +133,12 @@ class RedisMonitoringService(
      * Redis 연결 상태 확인
      */
     fun checkRedisConnection(): Mono<Boolean> {
-        return redisTemplate.hasKey("health:ping")
+        //return redisTemplate.hasKey("health:ping")
+        //    .timeout(Duration.ofSeconds(5))
+        //    .onErrorReturn(false)
+        return connectionFactory.reactiveConnection
+            .ping()
+            .map { pong -> pong == "PONG" }
             .timeout(Duration.ofSeconds(5))
             .onErrorReturn(false)
     }

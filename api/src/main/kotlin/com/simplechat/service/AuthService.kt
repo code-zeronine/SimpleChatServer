@@ -1,5 +1,6 @@
 package com.simplechat.service
 
+import com.simplechat.controller.WebSocketMonitoringController
 import com.simplechat.domain.entity.User
 import com.simplechat.domain.exception.AuthenticationException
 import com.simplechat.domain.exception.DatabaseException
@@ -16,6 +17,7 @@ import com.simplechat.dto.SignUpRequest
 import com.simplechat.dto.UserDto
 import com.simplechat.infrastructure.config.JwtProperties
 import com.simplechat.infrastructure.security.jwt.JwtTokenProvider
+import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
@@ -31,6 +33,8 @@ class AuthService(
     private val jwtTokenProvider: JwtTokenProvider,
     private val jwtProperties: JwtProperties
 ) {
+
+    private val logger = LoggerFactory.getLogger(AuthService::class.java)
 
     /**
      * 회원가입 처리
@@ -52,7 +56,14 @@ class AuthService(
     fun login(request: LoginRequest): Mono<AuthResponse> {
         return userRepository.findByEmail(request.email)
             .switchIfEmpty(Mono.error(AuthenticationException("이메일 또는 비밀번호가 올바르지 않습니다.", ErrorCode.AUTHENTICATION_FAILED)))
-            .filter { user -> passwordEncoder.matches(request.password, user.passwordHash) }
+            .filter { user ->
+                logger.info("Login request: {}, password: [{}], user: {}, user passwordHash: [{}]", request, request.password, user, user.passwordHash)
+                val pwd = passwordEncoder.encode(request.password)
+                logger.info("encoded password: [{}]", pwd)
+                val result = passwordEncoder.matches(request.password, user.passwordHash)
+                logger.info("result: {}", result)
+                result
+            }
             .switchIfEmpty(Mono.error(AuthenticationException("이메일 또는 비밀번호가 올바르지 않습니다.", ErrorCode.AUTHENTICATION_FAILED)))
             .flatMap { user ->
                 generateAuthResponse(user)

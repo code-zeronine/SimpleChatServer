@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SimpleChatServer - 실시간 채팅 플랫폼">
+    <title>SimpleChatServer</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/index.css">
+</head>
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="container">
+                <h1 class="logo">
+                    <span class="logo-icon">💬</span>
+                    SimpleChatServer
+                </h1>
+                <nav class="nav">
+                    <a href="/login" class="nav-link">로그인</a>
+                </nav>
+            </div>
+        </header>
+
+        <main class="main">
+            <div class="container">
+                <section class="hero">
+                    <div class="hero-content">
+                        <h1 class="hero-title">실시간 채팅을 시작하세요</h1>
+                        <p class="hero-description">
+                            SimpleChatServer는 WebSocket을 활용한 고성능 실시간 채팅 플랫폼입니다.
+                            사용자 인증, 채팅방 관리, 메시지 검색 등 다양한 기능을 제공합니다.
+                        </p>
+                        <div class="hero-actions">
+                            <a href="/login" class="btn btn-primary">시작하기</a>
+                            <a href="#features" class="btn btn-secondary">기능 살펴보기</a>
+                        </div>
+                    </div>
+                    <div class="hero-image">
+                        <div class="chat-preview">
+                            <div class="chat-window">
+                                <div class="chat-header">
+                                    <div class="chat-header-info">
+                                        <span class="chat-title">일반 채팅방</span>
+                                        <span class="chat-users">3명 온라인</span>
+                                    </div>
+                                    <div class="chat-status online">연결됨</div>
+                                </div>
+                                <div class="chat-messages">
+                                    <div class="message">
+                                        <span class="message-author">Alice</span>
+                                        <span class="message-content">안녕하세요! 👋</span>
+                                    </div>
+                                    <div class="message">
+                                        <span class="message-author">Bob</span>
+                                        <span class="message-content">반가워요!</span>
+                                    </div>
+                                    <div class="message mine">
+                                        <span class="message-content">저도 반갑습니다 😊</span>
+                                    </div>
+                                </div>
+                                <div class="chat-input">
+                                    <input type="text" placeholder="메시지를 입력하세요..." disabled>
+                                    <button disabled>전송</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="features" class="features">
+                    <div class="container">
+                        <h2 class="section-title">주요 기능</h2>
+                        <div class="features-grid">
+                            <div class="feature-card">
+                                <div class="feature-icon">🔐</div>
+                                <h3 class="feature-title">JWT 인증</h3>
+                                <p class="feature-description">
+                                    안전한 JWT 토큰 기반 사용자 인증 시스템
+                                </p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">⚡</div>
+                                <h3 class="feature-title">실시간 메시징</h3>
+                                <p class="feature-description">
+                                    WebSocket 기반 실시간 메시지 송수신
+                                </p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">🏠</div>
+                                <h3 class="feature-title">채팅방 관리</h3>
+                                <p class="feature-description">
+                                    다중 채팅방 생성 및 사용자 권한 관리
+                                </p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">🔍</div>
+                                <h3 class="feature-title">메시지 검색</h3>
+                                <p class="feature-description">
+                                    MongoDB 텍스트 인덱스를 활용한 전문 검색
+                                </p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">⚡</div>
+                                <h3 class="feature-title">Redis 캐싱</h3>
+                                <p class="feature-description">
+                                    고성능 캐싱으로 빠른 메시지 조회
+                                </p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">📱</div>
+                                <h3 class="feature-title">반응형 UI</h3>
+                                <p class="feature-description">
+                                    모바일과 데스크톱을 지원하는 반응형 인터페이스
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="container">
+                <p>&copy; 2025 SimpleChatServer. All rights reserved.</p>
+                <p>Built with Spring Boot WebFlux + Kotlin + WebSocket</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/index.js"></script>
+</body>
+</html>

@@ -16,13 +16,13 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:simplechat123}
       database: ${REDIS_DATABASE:0}
-      timeout: 5000ms
+      timeout: 10000ms
       lettuce:
         pool:
           max-active: ${REDIS_POOL_MAX_ACTIVE:20}
           max-idle: ${REDIS_POOL_MAX_IDLE:20}
           min-idle: ${REDIS_POOL_MIN_IDLE:5}
-          max-wait: 2000ms
+          max-wait: 5000ms
           time-between-eviction-runs: 30s
         shutdown-timeout: 200ms
         client-name: ${REDIS_CLIENT_NAME:simple-chat-prod}

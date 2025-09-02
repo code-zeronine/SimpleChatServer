@@ -15,10 +15,8 @@ class HealthCheckRouter(
 
     @Bean
     fun healthCheckRoutes(): RouterFunction<ServerResponse> = router {
-        accept(MediaType.APPLICATION_JSON).nest {
-            GET("/health", healthCheckHandler::health)
-            GET("/ping", healthCheckHandler::ping)
-            GET("/info", healthCheckHandler::info)
-        }
+        GET("/health", healthCheckHandler::health)
+        GET("/ping", healthCheckHandler::ping)
+        GET("/info", healthCheckHandler::info)
     }
 }

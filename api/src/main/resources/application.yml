@@ -8,7 +8,7 @@ spring:
     default: dev
   
   webflux:
-    base-path: /api
+    base-path: /
 
   data:
     # MongoDB Configuration
@@ -21,7 +21,7 @@ spring:
       port: 6379
       password: simplechat123
       database: 0
-      timeout: 2000ms
+      timeout: 5000ms
       lettuce:
         pool:
           max-active: 8

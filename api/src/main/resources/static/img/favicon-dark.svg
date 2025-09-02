@@ -1,0 +1,23 @@
+<svg viewBox="0 0 256 256" height="256" width="256" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
+  <defs>
+    <lineargradient y2="1" x2="1" y1="0" x1="0" id="bg">
+      <stop stop-color="#1F5E9A" offset="0%"></stop>
+      <stop stop-color="#3AA4E6" offset="100%"></stop>
+    </lineargradient>
+    <filter height="140%" width="140%" y="-20%" x="-20%" id="shadow">
+      <fedropshadow flood-opacity="0.16" flood-color="#000000" stdDeviation="6" dy="4" dx="0"></fedropshadow>
+    </filter>
+  </defs>
+
+  <rect fill="url(#bg)" rx="56" height="240" width="240" y="8" x="8"></rect>
+
+  <g filter="url(#shadow)">
+    <path stroke-linejoin="round" stroke-width="6" stroke="#1D2A39" fill="#FFFFFF" d="M64 70c-15 0-26 11-26 26v48c0 15 11 26 26 26h58l22 20c3 3 8 1 8-3v-17h12c15 0 26-11 26-26V96c0-15-11-26-26-26H64z"></path>
+  </g>
+
+  <circle fill="#1D2A39" r="6" cy="118" cx="104"></circle>
+  <circle fill="#1D2A39" r="6" cy="118" cx="148"></circle>
+  <path stroke-linecap="round" stroke-width="6" stroke="#1D2A39" fill="none" d="M100 142c10 10 46 10 56 0"></path>
+
+  <path fill="#FF6B6B" d="M178 92c6-10 22-8 24 4 2-12 18-14 24-4 8 12-8 26-24 36-16-10-32-24-24-36z"></path>
+</svg>

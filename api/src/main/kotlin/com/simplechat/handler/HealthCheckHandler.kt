@@ -19,11 +19,13 @@ class HealthCheckHandler {
         )
 
         return ServerResponse.ok()
+            .header("Content-Type", "application/json")
             .bodyValue(healthStatus)
     }
 
     fun ping(request: ServerRequest): Mono<ServerResponse> {
         return ServerResponse.ok()
+            .header("Content-Type", "application/json")
             .bodyValue(mapOf("message" to "pong", "timestamp" to Instant.now().toString()))
     }
 
@@ -50,6 +52,7 @@ class HealthCheckHandler {
         )
 
         return ServerResponse.ok()
+            .header("Content-Type", "application/json")
             .bodyValue(systemInfo)
     }
 }

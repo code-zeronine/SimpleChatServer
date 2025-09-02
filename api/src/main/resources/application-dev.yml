@@ -10,7 +10,7 @@ spring:
       port: 6379
       password: simplechat123
       database: 0
-      timeout: 2000ms
+      timeout: 5000ms
       lettuce:
         pool:
           max-active: 10
@@ -49,6 +49,8 @@ logging:
     org.springframework.security: DEBUG
     org.springframework.data.r2dbc: DEBUG
     io.r2dbc.postgresql: DEBUG
+    io.lettuce.core: DEBUG
+    org.springframework.data.redis: DEBUG
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"
 

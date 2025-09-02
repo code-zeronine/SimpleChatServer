@@ -6,6 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.expectBody
+import org.springframework.http.MediaType
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("dev")
@@ -20,13 +21,11 @@ class HealthCheckHandlerTest {
             .uri("/health")
             .exchange()
             .expectStatus().isOk
-            .expectBody<Map<String, Any>>()
-            .consumeWith { response ->
-                val body = response.responseBody!!
-                assert(body["status"] == "UP")
-                assert(body["service"] == "simple-chat-server")
-                assert(body.containsKey("timestamp"))
-            }
+            .expectHeader().contentType(MediaType.APPLICATION_JSON)
+            .expectBody()
+            .jsonPath("$.status").isEqualTo("UP")
+            .jsonPath("$.service").isEqualTo("simple-chat-server")
+            .jsonPath("$.timestamp").exists()
     }
 
     @Test
@@ -35,12 +34,10 @@ class HealthCheckHandlerTest {
             .uri("/ping")
             .exchange()
             .expectStatus().isOk
-            .expectBody<Map<String, Any>>()
-            .consumeWith { response ->
-                val body = response.responseBody!!
-                assert(body["message"] == "pong")
-                assert(body.containsKey("timestamp"))
-            }
+            .expectHeader().contentType(MediaType.APPLICATION_JSON)
+            .expectBody()
+            .jsonPath("$.message").isEqualTo("pong")
+            .jsonPath("$.timestamp").exists()
     }
 
     @Test
@@ -49,14 +46,12 @@ class HealthCheckHandlerTest {
             .uri("/info")
             .exchange()
             .expectStatus().isOk
-            .expectBody<Map<String, Any>>()
-            .consumeWith { response ->
-                val body = response.responseBody!!
-                assert(body["service"] == "simple-chat-server")
-                assert(body["version"] == "0.0.1-SNAPSHOT")
-                assert(body.containsKey("java"))
-                assert(body.containsKey("system"))
-                assert(body.containsKey("memory"))
-            }
+            .expectHeader().contentType(MediaType.APPLICATION_JSON)
+            .expectBody()
+            .jsonPath("$.service").isEqualTo("simple-chat-server")
+            .jsonPath("$.version").isEqualTo("0.0.1-SNAPSHOT")
+            .jsonPath("$.java").exists()
+            .jsonPath("$.system").exists()
+            .jsonPath("$.memory").exists()
     }
 }
