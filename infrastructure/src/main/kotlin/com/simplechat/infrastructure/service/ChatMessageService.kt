@@ -1,9 +1,11 @@
 package com.simplechat.infrastructure.service
 
 import com.simplechat.domain.entity.ChatMessage
+import com.simplechat.domain.event.MessageSavedEvent
 import com.simplechat.domain.service.ChatMessageDomainService
 import com.simplechat.infrastructure.entity.ChatMessageEntity
 import com.simplechat.infrastructure.repository.ChatMessageMongoRepository
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.time.LocalDateTime
@@ -16,7 +18,8 @@ import java.time.LocalDateTime
  */
 @Service
 class ChatMessageService(
-    private val chatMessageRepository: ChatMessageMongoRepository
+    private val chatMessageRepository: ChatMessageMongoRepository,
+    private val eventPublisher: ApplicationEventPublisher
 ) : ChatMessageDomainService {
     
     override fun saveMessage(message: ChatMessage): Mono<Void> {
@@ -29,7 +32,16 @@ class ChatMessageService(
             timestamp = LocalDateTime.now()
         )
         
-        return chatMessageRepository.save(entity).then()
+        return chatMessageRepository.save(entity)
+            .doOnSuccess { savedEntity ->
+                // 메시지 저장 이벤트 발행
+                val savedMessage = message.copy(
+                    id = savedEntity.id,
+                    timestamp = savedEntity.timestamp
+                )
+                eventPublisher.publishEvent(MessageSavedEvent(savedMessage))
+            }
+            .then()
     }
     
     override fun validateMessage(message: ChatMessage): Boolean {

@@ -130,16 +130,13 @@ class ChatMessageRepositoryImpl(
         startDate: LocalDateTime?,
         endDate: LocalDateTime?
     ): Mono<Long> {
-        // MongoDB의 Custom Repository에서 카운트 기능을 구현해야 합니다
-        // 일단 기본 구현으로 검색 후 카운트
-        return mongoRepository.searchMessages(
+        return mongoRepository.countSearchResults(
             roomId = roomId,
             keyword = keyword,
             userId = userId,
             messageType = messageType,
             startDate = startDate,
-            endDate = endDate,
-            pageable = PageRequest.of(0, Int.MAX_VALUE)
-        ).count()
+            endDate = endDate
+        )
     }
 }

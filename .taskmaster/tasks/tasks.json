@@ -554,7 +554,7 @@
         "dependencies": [
           5
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -596,7 +596,7 @@
               "8.3"
             ],
             "details": "1. Redis 캐시 설정 및 연결 구성\n2. 최근 메시지 캐싱 전략 구현 (채팅방별 최근 50개)\n3. 캐시 키 네이밍 규칙 및 TTL 설정\n4. 캐시 무효화 전략 (새 메시지 발생 시)\n5. 캐시 히트/미스 모니터링\n6. MongoDB 쿼리 성능 최적화 (복합 인덱스)\n7. 메모리 사용량 최적화 및 캐시 크기 제한",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -764,7 +764,7 @@
     ],
     "metadata": {
       "created": "2025-08-19T08:12:10.318Z",
-      "updated": "2025-09-02T00:13:34.559Z",
+      "updated": "2025-09-02T00:45:17.339Z",
       "description": "Tasks for master context"
     }
   }

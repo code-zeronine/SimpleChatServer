@@ -4,6 +4,7 @@ import com.simplechat.dto.ApiResponse
 import com.simplechat.dto.MessageDto
 import com.simplechat.dto.PagedApiResponse
 import com.simplechat.service.MessageService
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
@@ -59,5 +60,34 @@ class MessageController(
         @RequestParam(defaultValue = "50") size: Int
     ): Mono<PagedApiResponse<MessageDto>> {
         return messageService.searchMessages(roomId, keyword, userId, messageType, startDate, endDate, page, size)
+    }
+
+    @GetMapping("/room/{roomId}/cache/stats")
+    fun getCacheStats(@PathVariable roomId: String): Mono<ApiResponse<Map<String, Any>>> {
+        require(roomId.isNotBlank()) { "roomId must not be blank" }
+        return messageService.getCacheStats(roomId)
+            .map { stats ->
+                ApiResponse.success(
+                    mapOf(
+                        "roomId" to stats.roomId,
+                        "cacheHits" to stats.hits,
+                        "cacheMisses" to stats.misses,
+                        "hitRate" to String.format("%.2f%%", stats.hitRate)
+                    )
+                )
+            }
+    }
+
+    @DeleteMapping("/room/{roomId}/cache")
+    fun invalidateCache(@PathVariable roomId: String): Mono<ApiResponse<Map<String, String>>> {
+        require(roomId.isNotBlank()) { "roomId must not be blank" }
+        return messageService.invalidateRoomCache(roomId)
+            .then(
+                Mono.just(
+                    ApiResponse.success(
+                        mapOf("message" to "Cache invalidated successfully for room $roomId")
+                    )
+                )
+            )
     }
 }

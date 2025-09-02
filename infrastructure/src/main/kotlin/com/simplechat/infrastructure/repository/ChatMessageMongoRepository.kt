@@ -9,7 +9,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.LocalDateTime
 
-interface ChatMessageMongoRepository : ReactiveMongoRepository<ChatMessageEntity, String>, ChatMessageRepositoryCustom {
+interface ChatMessageMongoRepository : ReactiveMongoRepository<ChatMessageEntity, String>, MessageSearchRepository {
     
     /**
      * 특정 채팅방의 메시지를 최신순으로 페이지네이션하여 조회
