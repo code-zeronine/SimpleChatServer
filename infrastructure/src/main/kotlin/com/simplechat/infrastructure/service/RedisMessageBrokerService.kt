@@ -6,6 +6,7 @@ import com.simplechat.domain.service.MessageBrokerDomainService
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.data.redis.listener.ChannelTopic
 import org.springframework.data.redis.listener.ReactiveRedisMessageListenerContainer
@@ -31,7 +32,7 @@ import java.util.concurrent.atomic.AtomicLong
  */
 @Service
 class RedisMessageBrokerService(
-    private val redisTemplate: ReactiveRedisTemplate<String, Any>,
+    @Qualifier("reactiveStringRedisTemplate") private val redisTemplate: ReactiveRedisTemplate<String, String>,
     private val messageListenerContainer: ReactiveRedisMessageListenerContainer,
     private val objectMapper: ObjectMapper
 ) : MessageBrokerDomainService { // Implement the interface

@@ -5,32 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="SimpleChatServer 실시간 채팅">
     <title>채팅 - SimpleChatServer</title>
+    <link rel="icon" href="/static/img/favicon-light.svg" media="(prefers-color-scheme: light)">
+    <link rel="icon" href="/static/img/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+    <link rel="apple-touch-icon" href="/static/img/favicon-180.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
     <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="/static/css/chat.css">
 </head>
 <body>
     <div id="app">
         <!-- 채팅 헤더 -->
-        <header class="chat-header">
-            <div class="header-left">
-                <button class="back-btn" id="backBtn" title="채팅방 목록으로">
-                    <span class="back-icon">←</span>
-                </button>
-                <div class="room-info">
-                    <h1 class="room-name" id="roomName">채팅방</h1>
+        <header class="header">
+            <div class="container">
+                <div class="header-left">
+                    <button class="back-btn" id="backBtn" title="채팅방 목록으로">
+                        <span class="back-icon">←</span>
+                    </button>
+                    <h1 class="logo">
+                        <span class="logo-icon">💬</span>
+                        <span class="room-name" id="roomName">채팅방</span>
+                    </h1>
+                </div>
+                <div class="header-right">
                     <div class="room-status">
                         <span class="member-count" id="memberCount">참여자 0명</span>
                         <span class="connection-status" id="connectionStatus">연결 중...</span>
                     </div>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary btn-small" id="roomSettingsBtn" title="채팅방 설정">
+                            ⚙️
+                        </button>
+                        <button class="btn btn-secondary btn-small" id="memberListBtn" title="참여자 목록">
+                            👥
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <div class="header-right">
-                <button class="header-btn" id="roomSettingsBtn" title="채팅방 설정">
-                    <span class="settings-icon">⚙️</span>
-                </button>
-                <button class="header-btn" id="memberListBtn" title="참여자 목록">
-                    <span class="members-icon">👥</span>
-                </button>
             </div>
         </header>
 

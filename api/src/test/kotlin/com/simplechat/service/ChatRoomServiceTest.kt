@@ -149,7 +149,7 @@ class ChatRoomServiceTest {
             val updatedName = "Updated Room Name"
             val updatedRoom = chatRoom.copy(name = updatedName)
 
-            every { userChatRoomService.getUserChatRoomRelationship(admin.id!!, chatRoom.id!!) } returns Mono.just(adminRelationship)
+            every { userChatRoomService.findUserChatRoomRelationship(admin.id!!, chatRoom.id!!) } returns Mono.just(adminRelationship)
             every { chatRoomRepository.findById(chatRoom.id!!) } returns Mono.just(chatRoom)
             every { chatRoomRepository.existsByName(updatedName) } returns Mono.just(false)
             every { chatRoomRepository.save(any()) } returns Mono.just(updatedRoom)
@@ -161,7 +161,7 @@ class ChatRoomServiceTest {
 
         @Test
         fun `실패 - 권한이 없는 사용자는 채팅방 정보를 수정할 수 없다`() {
-            every { userChatRoomService.getUserChatRoomRelationship(member.id!!, chatRoom.id!!) } returns Mono.just(memberRelationship)
+            every { userChatRoomService.findUserChatRoomRelationship(member.id!!, chatRoom.id!!) } returns Mono.just(memberRelationship)
             every { chatRoomRepository.findById(chatRoom.id!!) } returns Mono.just(chatRoom)
 
             StepVerifier.create(chatRoomService.updateChatRoom(id = chatRoom.id!!, name = "New Name", requesterId = member.id!!))
@@ -172,7 +172,7 @@ class ChatRoomServiceTest {
         @Test
         fun `실패 - 이미 존재하는 이름으로 채팅방 이름을 변경할 수 없다`() {
             val existingName = "Existing Name"
-            every { userChatRoomService.getUserChatRoomRelationship(owner.id!!, chatRoom.id!!) } returns Mono.just(ownerRelationship)
+            every { userChatRoomService.findUserChatRoomRelationship(owner.id!!, chatRoom.id!!) } returns Mono.just(ownerRelationship)
             every { chatRoomRepository.findById(chatRoom.id!!) } returns Mono.just(chatRoom)
             every { chatRoomRepository.existsByName(existingName) } returns Mono.just(true)
 
@@ -187,7 +187,7 @@ class ChatRoomServiceTest {
     inner class DeleteChatRoom {
         @Test
         fun `성공 - 소유자가 채팅방을 삭제한다`() {
-            every { userChatRoomService.getUserChatRoomRelationship(owner.id!!, chatRoom.id!!) } returns Mono.just(ownerRelationship)
+            every { userChatRoomService.findUserChatRoomRelationship(owner.id!!, chatRoom.id!!) } returns Mono.just(ownerRelationship)
             every { chatRoomRepository.findById(chatRoom.id!!) } returns Mono.just(chatRoom)
             every { userChatRoomService.deleteAllByChatRoomId(chatRoom.id!!) } returns Mono.empty()
             every { chatRoomRepository.deleteById(chatRoom.id!!) } returns Mono.empty()
@@ -201,7 +201,7 @@ class ChatRoomServiceTest {
 
         @Test
         fun `실패 - 소유자가 아닌 사용자는 채팅방을 삭제할 수 없다`() {
-            every { userChatRoomService.getUserChatRoomRelationship(admin.id!!, chatRoom.id!!) } returns Mono.just(adminRelationship)
+            every { userChatRoomService.findUserChatRoomRelationship(admin.id!!, chatRoom.id!!) } returns Mono.just(adminRelationship)
             every { chatRoomRepository.findById(chatRoom.id!!) } returns Mono.just(chatRoom)
 
             StepVerifier.create(chatRoomService.deleteChatRoom(chatRoom.id!!, admin.id!!))
@@ -234,6 +234,7 @@ class ChatRoomServiceTest {
             )
 
             every { chatRoomRepository.findById(publicRoom.id!!) } returns Mono.just(publicRoom)
+            every { userChatRoomService.findUserChatRoomRelationship(newUser.id!!, publicRoom.id!!) } returns Mono.empty()
             every { userChatRoomService.joinChatRoom(newUser.id!!, publicRoom.id!!, ChatRoomRole.MEMBER, null) } returns Mono.just(newRelationship)
 
             StepVerifier.create(chatRoomService.joinChatRoom(newUser.id!!, publicRoom.id!!))
@@ -253,7 +254,8 @@ class ChatRoomServiceTest {
             )
 
             every { chatRoomRepository.findById(privateRoom.id!!) } returns Mono.just(privateRoom)
-            every { userChatRoomService.getUserChatRoomRelationship(admin.id!!, privateRoom.id!!) } returns Mono.just(adminRelationship)
+            every { userChatRoomService.findUserChatRoomRelationship(newUser.id!!, privateRoom.id!!) } returns Mono.empty()
+            every { userChatRoomService.findUserChatRoomRelationship(admin.id!!, privateRoom.id!!) } returns Mono.just(adminRelationship)
             every { userChatRoomService.joinChatRoom(newUser.id!!, privateRoom.id!!, ChatRoomRole.MEMBER, admin.id!!) } returns Mono.just(newRelationship)
 
             StepVerifier.create(chatRoomService.joinChatRoom(userId = newUser.id!!, roomId = privateRoom.id!!, invitedBy = admin.id!!))
@@ -265,6 +267,7 @@ class ChatRoomServiceTest {
         fun `실패 - 초대 없이 비공개 채팅방에 참여할 수 없다`() {
             val privateRoom = chatRoom.copy(isPrivate = true)
             every { chatRoomRepository.findById(privateRoom.id!!) } returns Mono.just(privateRoom)
+            every { userChatRoomService.findUserChatRoomRelationship(newUser.id!!, privateRoom.id!!) } returns Mono.empty()
 
             StepVerifier.create(chatRoomService.joinChatRoom(newUser.id!!, privateRoom.id!!))
                 .expectError(BusinessLogicException::class.java)
@@ -273,14 +276,16 @@ class ChatRoomServiceTest {
 
         @Test
         fun `실패 - 이미 참여한 채팅방에 다시 참여할 수 없다`() {
+            val activeRelationship = memberRelationship.copy(isActive = true)
             every { userChatRoomService.isActiveParticipant(member.id!!, chatRoom.id!!) } returns Mono.just(true)
             every { userRepository.findById(member.id!!) } returns Mono.just(member)
             every { chatRoomRepository.findById(chatRoom.id!!) } returns Mono.just(chatRoom)
             every { userChatRoomService.countActiveParticipants(chatRoom.id!!) } returns Mono.just(10L)
+            every { userChatRoomService.findUserChatRoomRelationship(member.id!!, chatRoom.id!!) } returns Mono.just(activeRelationship)
 
             StepVerifier.create(chatRoomService.joinChatRoom(member.id!!, chatRoom.id!!))
-                .expectError(BusinessLogicException::class.java)
-                .verify()
+                .expectNext(activeRelationship)
+                .verifyComplete()
         }
 
         @Test
@@ -288,6 +293,7 @@ class ChatRoomServiceTest {
             val fullRoom = chatRoom.copy(maxParticipants = 2)
             every { chatRoomRepository.findById(fullRoom.id!!) } returns Mono.just(fullRoom)
             every { userChatRoomService.countActiveParticipants(fullRoom.id!!) } returns Mono.just(2L)
+            every { userChatRoomService.findUserChatRoomRelationship(newUser.id!!, fullRoom.id!!) } returns Mono.empty()
 
             StepVerifier.create(chatRoomService.joinChatRoom(newUser.id!!, fullRoom.id!!))
                 .expectError(BusinessLogicException::class.java)
@@ -300,22 +306,22 @@ class ChatRoomServiceTest {
     inner class LeaveChatRoom {
         @Test
         fun `성공 - 일반 멤버가 채팅방을 나간다`() {
-            every { userChatRoomService.getUserChatRoomRelationship(member.id!!, chatRoom.id!!) } returns Mono.just(memberRelationship)
-            every { userChatRoomService.leaveChatRoom(member.id!!, chatRoom.id!!) } returns Mono.empty()
+            every { userChatRoomService.findUserChatRoomRelationship(member.id!!, chatRoom.id!!) } returns Mono.just(memberRelationship)
+            every { userChatRoomService.leaveChatRoomWithRelationship(memberRelationship) } returns Mono.empty()
 
             StepVerifier.create(chatRoomService.leaveChatRoom(member.id!!, chatRoom.id!!))
                 .verifyComplete()
 
-            verify { userChatRoomService.leaveChatRoom(member.id!!, chatRoom.id!!) }
+            verify { userChatRoomService.leaveChatRoomWithRelationship(memberRelationship) }
         }
 
         @Test
         fun `성공 - 소유자가 나가고 관리자가 새 소유자가 된다`() {
-            every { userChatRoomService.getUserChatRoomRelationship(owner.id!!, chatRoom.id!!) } returns Mono.just(ownerRelationship)
+            every { userChatRoomService.findUserChatRoomRelationship(owner.id!!, chatRoom.id!!) } returns Mono.just(ownerRelationship)
             every { userChatRoomService.getChatRoomAdmins(chatRoom.id!!) } returns Flux.just(adminRelationship)
             every { userChatRoomService.getChatRoomActiveParticipants(chatRoom.id!!) } returns Flux.just(ownerRelationship, adminRelationship)
             every { userChatRoomService.changeUserRole(owner.id!!, admin.id!!, chatRoom.id!!, ChatRoomRole.OWNER) } returns Mono.just(adminRelationship.changeRole(ChatRoomRole.OWNER))
-            every { userChatRoomService.leaveChatRoom(owner.id!!, chatRoom.id!!) } returns Mono.empty()
+            every { userChatRoomService.leaveChatRoomWithRelationship(ownerRelationship) } returns Mono.empty()
             // 혼자 있는 경우에 대한 백업 mock (switchIfEmpty에서 호출될 수 있음)
             every { userChatRoomService.deleteAllByChatRoomId(chatRoom.id!!) } returns Mono.empty()
             every { chatRoomRepository.deleteById(chatRoom.id!!) } returns Mono.empty()
@@ -328,11 +334,11 @@ class ChatRoomServiceTest {
 
         @Test
         fun `성공 - 소유자가 나가고 관리자가 없어 일반 멤버가 새 소유자가 된다`() {
-            every { userChatRoomService.getUserChatRoomRelationship(owner.id!!, chatRoom.id!!) } returns Mono.just(ownerRelationship)
+            every { userChatRoomService.findUserChatRoomRelationship(owner.id!!, chatRoom.id!!) } returns Mono.just(ownerRelationship)
             every { userChatRoomService.getChatRoomAdmins(chatRoom.id!!) } returns Flux.empty()
             every { userChatRoomService.getChatRoomActiveParticipants(chatRoom.id!!) } returns Flux.just(ownerRelationship, memberRelationship)
             every { userChatRoomService.changeUserRole(owner.id!!, member.id!!, chatRoom.id!!, ChatRoomRole.OWNER) } returns Mono.just(memberRelationship.changeRole(ChatRoomRole.OWNER))
-            every { userChatRoomService.leaveChatRoom(owner.id!!, chatRoom.id!!) } returns Mono.empty()
+            every { userChatRoomService.leaveChatRoomWithRelationship(ownerRelationship) } returns Mono.empty()
             // 혼자 있는 경우에 대한 백업 mock (switchIfEmpty에서 호출될 수 있음)
             every { userChatRoomService.deleteAllByChatRoomId(chatRoom.id!!) } returns Mono.empty()
             every { chatRoomRepository.deleteById(chatRoom.id!!) } returns Mono.empty()
@@ -345,10 +351,10 @@ class ChatRoomServiceTest {
 
         @Test
         fun `성공 - 마지막 참여자인 소유자가 나가면 채팅방이 삭제된다`() {
-            every { userChatRoomService.getUserChatRoomRelationship(owner.id!!, chatRoom.id!!) } returns Mono.just(ownerRelationship)
+            every { userChatRoomService.findUserChatRoomRelationship(owner.id!!, chatRoom.id!!) } returns Mono.just(ownerRelationship)
             every { userChatRoomService.getChatRoomAdmins(chatRoom.id!!) } returns Flux.empty()
             every { userChatRoomService.getChatRoomActiveParticipants(chatRoom.id!!) } returns Flux.just(ownerRelationship)
-            every { userChatRoomService.leaveChatRoom(owner.id!!, chatRoom.id!!) } returns Mono.empty()
+            every { userChatRoomService.leaveChatRoomWithRelationship(ownerRelationship) } returns Mono.empty()
             every { userChatRoomService.deleteAllByChatRoomId(chatRoom.id!!) } returns Mono.empty()
             every { chatRoomRepository.deleteById(chatRoom.id!!) } returns Mono.empty()
 
@@ -390,7 +396,7 @@ class ChatRoomServiceTest {
             every { chatRoomRepository.findById(chatRoom.id!!) } returns Mono.just(chatRoom)
             every { userChatRoomService.countActiveParticipants(chatRoom.id!!) } returns Mono.just(2L)
             every { userChatRoomService.getChatRoomActiveParticipants(chatRoom.id!!) } returns Flux.fromIterable(participants)
-            every { userChatRoomService.getUserChatRoomRelationship(member.id!!, chatRoom.id!!) } returns Mono.just(memberRelationship)
+            every { userChatRoomService.findUserChatRoomRelationship(member.id!!, chatRoom.id!!) } returns Mono.just(memberRelationship)
 
             StepVerifier.create(chatRoomService.getChatRoomDetails(chatRoom.id!!, member.id!!))
                 .expectNextMatches { details ->
@@ -409,7 +415,7 @@ class ChatRoomServiceTest {
             every { chatRoomRepository.findById(chatRoom.id!!) } returns Mono.just(chatRoom)
             every { userChatRoomService.countActiveParticipants(chatRoom.id!!) } returns Mono.just(1L)
             every { userChatRoomService.getChatRoomActiveParticipants(chatRoom.id!!) } returns Flux.fromIterable(participants)
-            every { userChatRoomService.getUserChatRoomRelationship(nonMember.id!!, chatRoom.id!!) } returns Mono.empty()
+            every { userChatRoomService.findUserChatRoomRelationship(nonMember.id!!, chatRoom.id!!) } returns Mono.empty()
 
             StepVerifier.create(chatRoomService.getChatRoomDetails(chatRoom.id!!, nonMember.id!!))
                 .expectNextMatches { details ->

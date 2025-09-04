@@ -10,6 +10,7 @@ import com.simplechat.domain.exception.InsufficientPermissionException
 import com.simplechat.domain.exception.UserNotFoundException
 import com.simplechat.domain.repository.ChatRoomRepository
 import com.simplechat.domain.repository.UserRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.reactive.TransactionalOperator
 import reactor.core.publisher.Flux
@@ -29,6 +30,8 @@ class ChatRoomService(
     private val userChatRoomService: UserChatRoomService,
     private val transactionalOperator: TransactionalOperator
 ) {
+    
+    private val logger = LoggerFactory.getLogger(ChatRoomService::class.java)
 
     /**
      * 새로운 채팅방을 생성합니다.
@@ -99,25 +102,32 @@ class ChatRoomService(
         roomId: Long,
         invitedBy: Long? = null
     ): Mono<UserChatRoom> {
-        return validateRoomJoinEligibility(userId, roomId)
-            .flatMap { room ->
-                val roleValidation = if (invitedBy != null) {
-                    // 초대받은 경우 초대자 권한 검증
-                    validateInvitePermission(invitedBy, roomId)
-                        .thenReturn(ChatRoomRole.MEMBER)
+        return userChatRoomService.findUserChatRoomRelationship(userId, roomId)
+            .flatMap<UserChatRoom> { existingRelationship ->
+                if (existingRelationship.isActive) {
+                    Mono.just(existingRelationship)
                 } else {
-                    // 자발적 참여
-                    if (room.isPrivateRoom()) {
-                        Mono.error(BusinessLogicException("비공개 채팅방은 초대를 통해서만 참여할 수 있습니다."))
-                    } else {
-                        Mono.just(ChatRoomRole.MEMBER)
-                    }
-                }
-                
-                roleValidation.flatMap { memberRole ->
-                    userChatRoomService.joinChatRoom(userId, roomId, memberRole, invitedBy)
+                    userChatRoomService.rejoinChatRoom(userId, roomId)
                 }
             }
+            .switchIfEmpty(
+                validateRoomJoinEligibility(userId, roomId)
+                    .flatMap { room ->
+                        val roleValidation = if (invitedBy != null) {
+                            validateInvitePermission(invitedBy, roomId)
+                                .thenReturn(ChatRoomRole.MEMBER)
+                        } else {
+                            if (room.isPrivateRoom()) {
+                                Mono.error(BusinessLogicException("비공개 채팅방은 초대를 통해서만 참여할 수 있습니다."))
+                            } else {
+                                Mono.just(ChatRoomRole.MEMBER)
+                            }
+                        }
+                        roleValidation.flatMap { memberRole ->
+                            userChatRoomService.joinChatRoom(userId, roomId, memberRole, invitedBy)
+                        }
+                    }
+            )
             .`as`(transactionalOperator::transactional)
     }
 
@@ -125,14 +135,32 @@ class ChatRoomService(
      * 사용자가 채팅방을 떠납니다.
      */
     fun leaveChatRoom(userId: Long, roomId: Long): Mono<Void> {
-        return getUserChatRoomRelationship(userId, roomId)
-            .flatMap { relationship ->
-                if (relationship.role == ChatRoomRole.OWNER) {
-                    handleOwnerLeaving(userId, roomId)
-                } else {
-                    userChatRoomService.leaveChatRoom(userId, roomId)
+        logger.debug("Attempting to leave chat room - userId: $userId, roomId: $roomId")
+        return userChatRoomService.findUserChatRoomRelationship(userId, roomId)
+            .doOnNext { relationship ->
+                logger.debug("Found relationship - userId: $userId, roomId: $roomId, isActive: ${relationship.isActive}, leftAt: ${relationship.leftAt}, role: ${relationship.role}")
+            }
+            .flatMap { relationship ->                
+                when {
+                    !relationship.isActiveParticipant() -> {
+                        // 이미 나간 경우 성공으로 처리 (중복 나가기 허용)
+                        logger.info("User ${userId} already left room ${roomId}")
+                        Mono.empty()
+                    }
+                    relationship.role == ChatRoomRole.OWNER -> {
+                        logger.debug("User $userId is owner of room $roomId, handling owner leaving")
+                        handleOwnerLeaving(relationship)
+                    }
+                    else -> {
+                        logger.debug("User $userId is regular member of room $roomId, processing leave")
+                        userChatRoomService.leaveChatRoomWithRelationship(relationship)
+                    }
                 }
             }
+            .switchIfEmpty(Mono.defer {
+                logger.debug("No relationship found for userId: $userId, roomId: $roomId")
+                Mono.error(BusinessLogicException("참여하지 않은 채팅방입니다."))
+            })
             .`as`(transactionalOperator::transactional)
     }
 
@@ -148,7 +176,7 @@ class ChatRoomService(
                     .collectList()
                 
                 if (requesterId != null) {
-                    userChatRoomService.getUserChatRoomRelationship(requesterId, roomId)
+                    userChatRoomService.findUserChatRoomRelationship(requesterId, roomId)
                         .map { relationship ->
                             ChatRoomDetails(
                                 room = room,
@@ -307,7 +335,7 @@ class ChatRoomService(
      * 사용자 권한을 검증합니다.
      */
     fun validateUserPermission(userId: Long, roomId: Long, requiredRole: ChatRoomRole): Mono<UserChatRoom> {
-        return getUserChatRoomRelationship(userId, roomId)
+        return findUserChatRoomRelationship(userId, roomId)
             .flatMap { relationship ->
                 if (relationship.role.level >= requiredRole.level) {
                     Mono.just(relationship)
@@ -369,7 +397,7 @@ class ChatRoomService(
      */
     private fun validateRoomUpdatePermission(requesterId: Long, roomId: Long): Mono<ChatRoom> {
         return Mono.zip(
-            getUserChatRoomRelationship(requesterId, roomId),
+            findUserChatRoomRelationship(requesterId, roomId),
             chatRoomRepository.findById(roomId)
                 .switchIfEmpty(Mono.error(ChatRoomNotFoundException("채팅방을 찾을 수 없습니다.")))
         ).flatMap { tuple ->
@@ -402,7 +430,7 @@ class ChatRoomService(
      */
     private fun validateRoomDeletionPermission(requesterId: Long, roomId: Long): Mono<ChatRoom> {
         return Mono.zip(
-            getUserChatRoomRelationship(requesterId, roomId),
+            findUserChatRoomRelationship(requesterId, roomId),
             chatRoomRepository.findById(roomId)
                 .switchIfEmpty(Mono.error(ChatRoomNotFoundException("채팅방을 찾을 수 없습니다.")))
         ).flatMap { tuple ->
@@ -425,19 +453,14 @@ class ChatRoomService(
             validateUser(userId),
             chatRoomRepository.findById(roomId)
                 .switchIfEmpty(Mono.error(ChatRoomNotFoundException("채팅방을 찾을 수 없습니다."))),
-            userChatRoomService.isActiveParticipant(userId, roomId),
             userChatRoomService.countActiveParticipants(roomId)
         ).flatMap { tuple ->
             val room = tuple.t2
-            val isAlreadyParticipant = tuple.t3
-            val participantCount = tuple.t4
+            val participantCount = tuple.t3
 
-            if (isAlreadyParticipant) {
-                Mono.error(BusinessLogicException("이미 참여중인 채팅방입니다."))
-            } else if (room.maxParticipants > 0 && participantCount >= room.maxParticipants) {
+            if (room.maxParticipants > 0 && participantCount >= room.maxParticipants) {
                 Mono.error(BusinessLogicException("채팅방이 가득 찼습니다."))
-            }
-            else {
+            } else {
                 Mono.just(room)
             }
         }
@@ -447,7 +470,7 @@ class ChatRoomService(
      * 초대 권한을 검증합니다.
      */
     private fun validateInvitePermission(inviterId: Long, roomId: Long): Mono<Void> {
-        return getUserChatRoomRelationship(inviterId, roomId)
+        return findUserChatRoomRelationship(inviterId, roomId)
             .flatMap { relationship ->
                 if (relationship.hasAdminPrivileges()) {
                     Mono.empty()
@@ -461,14 +484,17 @@ class ChatRoomService(
      * 소유자가 채팅방을 떠나는 경우를 처리합니다.
      * 순환 참조를 방지하기 위해 직접 삭제 로직을 구현합니다.
      */
-    private fun handleOwnerLeaving(ownerId: Long, roomId: Long): Mono<Void> {
+    private fun handleOwnerLeaving(ownerRelationship: UserChatRoom): Mono<Void> {
+        val ownerId = ownerRelationship.userId
+        val roomId = ownerRelationship.chatRoomId
+        
         return userChatRoomService.getChatRoomAdmins(roomId)
             .filter { it.userId != ownerId && it.role == ChatRoomRole.ADMIN }
             .next()
             .flatMap { nextAdmin ->
                 // 다음 관리자를 소유자로 승격
                 userChatRoomService.changeUserRole(ownerId, nextAdmin.userId, roomId, ChatRoomRole.OWNER)
-                    .then(userChatRoomService.leaveChatRoom(ownerId, roomId))
+                    .then(userChatRoomService.leaveChatRoomWithRelationship(ownerRelationship))
             }
             .switchIfEmpty(
                 // 관리자가 없으면 일반 멤버 중 한 명을 소유자로 승격
@@ -477,11 +503,11 @@ class ChatRoomService(
                     .next()
                     .flatMap { nextMember ->
                         userChatRoomService.changeUserRole(ownerId, nextMember.userId, roomId, ChatRoomRole.OWNER)
-                            .then(userChatRoomService.leaveChatRoom(ownerId, roomId))
+                            .then(userChatRoomService.leaveChatRoomWithRelationship(ownerRelationship))
                     }
                     .switchIfEmpty(
                         // 혼자 있는 경우 직접 삭제 (순환 참조 방지)
-                        userChatRoomService.leaveChatRoom(ownerId, roomId)
+                        userChatRoomService.leaveChatRoomWithRelationship(ownerRelationship)
                             .then(userChatRoomService.deleteAllByChatRoomId(roomId))
                             .then(chatRoomRepository.deleteById(roomId))
                     )
@@ -491,8 +517,8 @@ class ChatRoomService(
     /**
      * 사용자-채팅방 관계를 조회합니다.
      */
-    private fun getUserChatRoomRelationship(userId: Long, roomId: Long): Mono<UserChatRoom> {
-        return userChatRoomService.getUserChatRoomRelationship(userId, roomId)
+    private fun findUserChatRoomRelationship(userId: Long, roomId: Long): Mono<UserChatRoom> {
+        return userChatRoomService.findUserChatRoomRelationship(userId, roomId)
     }
 
     // === 권한 검증 및 참여자 관리 기능 ===
@@ -549,7 +575,7 @@ class ChatRoomService(
      * 사용자가 채팅방에서 특정 작업을 수행할 권한이 있는지 확인합니다.
      */
     fun hasPermissionForAction(userId: Long, roomId: Long, requiredRole: ChatRoomRole): Mono<Boolean> {
-        return userChatRoomService.getUserChatRoomRelationship(userId, roomId)
+        return userChatRoomService.findUserChatRoomRelationship(userId, roomId)
             .map { relationship -> relationship.role.level >= requiredRole.level }
             .onErrorReturn(false)
     }

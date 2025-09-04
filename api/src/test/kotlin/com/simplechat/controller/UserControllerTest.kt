@@ -14,7 +14,6 @@ import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 /**
  * UserController 단위 테스트

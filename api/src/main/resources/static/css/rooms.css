@@ -344,6 +344,7 @@
     justify-content: center;
     padding: var(--spacing-xxl);
     color: var(--text-muted);
+    grid-column: 1 / -1; /* Span all columns to center within the grid */
 }
 
 .spinner {

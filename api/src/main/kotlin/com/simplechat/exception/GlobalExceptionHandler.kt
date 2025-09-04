@@ -9,7 +9,6 @@ import com.simplechat.domain.exception.ExternalServiceException
 import com.simplechat.domain.exception.ResourceNotFoundException
 import com.simplechat.domain.exception.SimpleChatException
 import com.simplechat.domain.exception.ValidationException
-import com.simplechat.dto.ApiError
 import com.simplechat.dto.ApiResponse
 import org.slf4j.LoggerFactory
 import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler
@@ -56,11 +55,23 @@ class GlobalExceptionHandler(
                 "VALIDATION_FAILED",
                 ex.message ?: "Validation failed"
             )
-            is BusinessLogicException -> Triple(
-                HttpStatus.UNPROCESSABLE_ENTITY,
-                "BUSINESS_LOGIC_ERROR",
-                ex.message ?: "Business logic error"
-            )
+            is BusinessLogicException -> {
+                // 특정 메시지에 대해 409 Conflict 반환
+                when {
+                    ex.message?.contains("참여하지 않은 채팅방") == true ||
+                    ex.message?.contains("이미 참여") == true ||
+                    ex.message?.contains("이미 존재") == true -> Triple(
+                        HttpStatus.CONFLICT,
+                        "CONFLICT",
+                        ex.message ?: "Conflict error"
+                    )
+                    else -> Triple(
+                        HttpStatus.UNPROCESSABLE_ENTITY,
+                        "BUSINESS_LOGIC_ERROR",
+                        ex.message ?: "Business logic error"
+                    )
+                }
+            }
             is ExternalServiceException -> Triple(
                 HttpStatus.SERVICE_UNAVAILABLE,
                 "EXTERNAL_SERVICE_UNAVAILABLE",

@@ -53,13 +53,15 @@ function setupLoginForm() {
                 email: formData.email,
                 password: formData.password
             });
+
+            console.log('Login Response:', response.data);
             
             // 토큰 저장
-            Storage.setToken(response.accessToken);
+            Storage.setToken(response.data.accessToken);
             
             // 사용자 정보 조회 및 저장
-            const userInfo = await Http.get('/api/auth/me');
-            Storage.setUser(userInfo);
+            const userInfo = await Http.get('/api/users/me');
+            Storage.setUser(userInfo.data);
             
             // 로그인 상태 유지 설정
             if (formData.rememberMe) {
@@ -282,7 +284,7 @@ window.SimpleChatServer.register = {
             
             try {
                 // 회원가입 API 호출
-                await Http.post('/api/auth/register', {
+                await Http.post('/api/auth/signup', {
                     name: formData.name,
                     email: formData.email,
                     password: formData.password

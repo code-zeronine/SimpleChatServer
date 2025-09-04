@@ -5,8 +5,10 @@ import com.simplechat.domain.entity.UserChatRoom
 import com.simplechat.domain.repository.UserChatRoomRepository
 import com.simplechat.infrastructure.entity.UserChatRoomEntity
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.slf4j.LoggerFactory
 import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
+import org.springframework.data.relational.core.query.Update
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -22,6 +24,8 @@ import java.time.LocalDateTime
 class UserChatRoomRepositoryImpl(
     private val template: R2dbcEntityTemplate
 ) : UserChatRoomRepository {
+
+    private val logger = LoggerFactory.getLogger(UserChatRoomRepositoryImpl::class.java)
 
     /**
      * 사용자-채팅방 관계를 저장합니다.
@@ -43,21 +47,47 @@ class UserChatRoomRepositoryImpl(
      * 사용자-채팅방 관계를 업데이트합니다.
      */
     override fun update(userChatRoom: UserChatRoom): Mono<UserChatRoom> {
-        val entity = UserChatRoomEntity.fromDomain(userChatRoom)
-        return template.update(entity).map { it.toDomain() }
+        val query = Query.query(
+            Criteria.where("user_id").`is`(userChatRoom.userId)
+                .and("chat_room_id").`is`(userChatRoom.chatRoomId)
+        )
+        
+        val update = Update.update("role", userChatRoom.role.name)
+            .set("is_active", userChatRoom.isActive)
+            .set("last_read_at", userChatRoom.lastReadAt)
+            .set("is_muted", userChatRoom.isMuted)
+            .set("is_pinned", userChatRoom.isPinned)
+            .set("left_at", userChatRoom.leftAt)
+            .set("updated_at", userChatRoom.updatedAt)
+        
+        return template.update(UserChatRoomEntity::class.java)
+            .matching(query)
+            .apply(update)
+            .then(Mono.just(userChatRoom))
     }
 
     /**
      * 사용자 ID와 채팅방 ID로 관계를 조회합니다.
      */
     override fun findByUserIdAndChatRoomId(userId: Long, chatRoomId: Long): Mono<UserChatRoom> {
+        logger.debug("Finding UserChatRoom relationship for userId: {}, chatRoomId: {}", userId, chatRoomId)
+        
         return template.selectOne(
             Query.query(
                 Criteria.where("user_id").`is`(userId)
                     .and("chat_room_id").`is`(chatRoomId)
             ),
             UserChatRoomEntity::class.java
-        ).map { it.toDomain() }
+        )
+        .doOnNext { entity ->
+            logger.debug("Found UserChatRoomEntity: userId={}, chatRoomId={}, isActive={}, leftAt={}",
+                entity.userId, entity.chatRoomId, entity.isActive, entity.leftAt)
+        }
+        .switchIfEmpty(Mono.defer {
+            logger.debug("UserChatRoom relationship not found for userId: {}, chatRoomId: {}", userId, chatRoomId)
+            Mono.empty<UserChatRoomEntity>()
+        })
+        .map { it.toDomain() }
     }
 
     /**

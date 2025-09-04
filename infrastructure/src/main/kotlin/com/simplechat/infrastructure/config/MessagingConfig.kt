@@ -1,8 +1,6 @@
 package com.simplechat.infrastructure.config
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.simplechat.domain.constants.RedisChannelConstants
 import com.simplechat.infrastructure.handler.ChatWebSocketHandler
 import com.simplechat.infrastructure.security.WebSocketAuthService
@@ -17,12 +15,11 @@ import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer
 import org.springframework.data.redis.serializer.RedisSerializationContext
 import org.springframework.data.redis.serializer.StringRedisSerializer
 import org.springframework.stereotype.Component
+import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.reactive.HandlerMapping
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping
 import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.server.support.WebSocketHandlerAdapter
-import org.springframework.web.cors.CorsConfiguration
-import org.springframework.web.reactive.socket.server.upgrade.ReactorNettyRequestUpgradeStrategy
 
 /**
  * 통합 메시징 설정
@@ -47,11 +44,10 @@ class MessagingConfig {
     }
 
     @Bean
-    fun reactiveRedisTemplate(factory: ReactiveRedisConnectionFactory): ReactiveRedisTemplate<String, Any> {
-        val objectMapper = ObjectMapper()
-            .registerModule(KotlinModule.Builder().build())
-            .registerModule(JavaTimeModule())
-
+    fun reactiveRedisTemplate(
+        factory: ReactiveRedisConnectionFactory,
+        objectMapper: ObjectMapper // Inject the primary ObjectMapper
+    ): ReactiveRedisTemplate<String, Any> {
         val stringSerializer = StringRedisSerializer.UTF_8
         val jackson2JsonRedisSerializer = Jackson2JsonRedisSerializer(objectMapper, Any::class.java)
 

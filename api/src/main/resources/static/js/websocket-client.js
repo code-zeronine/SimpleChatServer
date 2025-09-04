@@ -10,7 +10,6 @@
 class ChatClient {
     constructor(options = {}) {
         this.options = {
-            url: options.url || this.getWebSocketUrl(),
             reconnectInterval: options.reconnectInterval || 5000,
             maxReconnectAttempts: options.maxReconnectAttempts || 10,
             heartbeatInterval: options.heartbeatInterval || 30000,
@@ -57,7 +56,23 @@ class ChatClient {
      */
     getWebSocketUrl() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        return `${protocol}//${window.location.host}/ws/chat`;
+        const user = window.SimpleChatServer?.utils?.Storage?.getUser();
+        const token = window.SimpleChatServer?.utils?.Storage?.getToken();
+        const userId = user?.id;
+        
+        if (!userId) {
+            throw new Error('사용자 정보를 찾을 수 없습니다. 로그인이 필요합니다.');
+        }
+        
+        if (!token) {
+            throw new Error('인증 토큰을 찾을 수 없습니다. 로그인이 필요합니다.');
+        }
+        
+        if (!this.currentRoomId) {
+            throw new Error('채팅방 ID가 필요합니다. 연결 시 roomId를 제공해주세요.');
+        }
+        
+        return `${protocol}//${window.location.host}/ws/chat/${userId}?token=${encodeURIComponent(token)}&roomId=${encodeURIComponent(this.currentRoomId)}`;
     }
     
     /**
@@ -99,6 +114,14 @@ class ChatClient {
     }
     
     /**
+     * 현재 채팅방 ID 설정
+     */
+    setCurrentRoomId(roomId) {
+        this.currentRoomId = roomId;
+        this.log('Current room ID set', { roomId });
+    }
+    
+    /**
      * 메시지 타입별 핸들러 등록
      */
     onMessage(type, handler) {
@@ -118,14 +141,15 @@ class ChatClient {
             return Promise.resolve();
         }
         
-        this.currentUser = user;
+        this.currentUser = user || window.SimpleChatServer?.utils?.Storage?.getUser();
         this.currentRoomId = roomId;
         
         return new Promise((resolve, reject) => {
             try {
-                this.log('Connecting to WebSocket...', this.options.url);
+                const wsUrl = this.getWebSocketUrl();
+                this.log('Connecting to WebSocket...', wsUrl);
                 
-                this.websocket = new WebSocket(this.options.url);
+                this.websocket = new WebSocket(wsUrl);
                 this.setupWebSocketEvents();
                 
                 // 연결 성공 시 resolve
@@ -302,7 +326,7 @@ class ChatClient {
                 }
                 
                 // ping 전송
-                this.send({ type: 'ping', timestamp: Date.now() });
+                this.send({ type: 'HEARTBEAT', timestamp: Date.now() });
             }
         }, this.options.heartbeatInterval);
     }
@@ -365,10 +389,10 @@ class ChatClient {
      */
     joinRoom(roomId, user = null) {
         const joinMessage = {
-            type: 'join',
+            type: 'JOIN',
             roomId: roomId,
             userId: user?.id || this.currentUser?.id,
-            userName: user?.name || this.currentUser?.name,
+            userNickname: user?.nickname || this.currentUser?.nickname || this.currentUser?.email || 'Unknown User',
             timestamp: Date.now()
         };
         
@@ -390,9 +414,10 @@ class ChatClient {
         }
         
         const leaveMessage = {
-            type: 'leave',
+            type: 'LEAVE',
             roomId: targetRoomId,
             userId: this.currentUser?.id,
+            userNickname: this.currentUser?.nickname || this.currentUser?.email || 'Unknown User',
             timestamp: Date.now()
         };
         
@@ -416,11 +441,11 @@ class ChatClient {
         }
         
         const message = {
-            type: 'message',
+            type: 'CHAT',
             roomId: this.currentRoomId,
             content: content,
             userId: this.currentUser?.id,
-            userName: this.currentUser?.name,
+            userNickname: this.currentUser?.nickname || this.currentUser?.email || 'Unknown User',
             timestamp: Date.now(),
             tempId: options.tempId || `temp_${Date.now()}`,
             ...options
@@ -437,10 +462,11 @@ class ChatClient {
         if (!this.currentRoomId) return false;
         
         return this.send({
-            type: 'typing_start',
+            type: 'TYPING',
             roomId: this.currentRoomId,
             userId: this.currentUser?.id,
-            userName: this.currentUser?.name,
+            userNickname: this.currentUser?.nickname || this.currentUser?.email || 'Unknown User',
+            isTyping: true,
             timestamp: Date.now()
         });
     }
@@ -452,9 +478,11 @@ class ChatClient {
         if (!this.currentRoomId) return false;
         
         return this.send({
-            type: 'typing_stop',
+            type: 'TYPING',
             roomId: this.currentRoomId,
             userId: this.currentUser?.id,
+            userNickname: this.currentUser?.nickname || this.currentUser?.email || 'Unknown User',
+            isTyping: false,
             timestamp: Date.now()
         });
     }

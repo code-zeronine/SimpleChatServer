@@ -6,7 +6,6 @@ import com.simplechat.domain.entity.User
 import com.simplechat.domain.entity.UserChatRoom
 import com.simplechat.domain.exception.ChatRoomNotFoundException
 import com.simplechat.domain.exception.InsufficientPermissionException
-import com.simplechat.domain.exception.UserChatRoomAlreadyExistsException
 import com.simplechat.domain.exception.UserChatRoomNotFoundException
 import com.simplechat.domain.exception.UserNotFoundException
 import com.simplechat.domain.repository.ChatRoomRepository
@@ -42,17 +41,8 @@ class UserChatRoomService(
     ): Mono<UserChatRoom> {
         return validateUserAndChatRoom(userId, chatRoomId)
             .flatMap { (_, chatRoom) ->
-                // 이미 참여 중인지 확인
-                userChatRoomRepository.existsByUserIdAndChatRoomId(userId, chatRoomId)
-                    .flatMap { exists ->
-                        if (exists) {
-                            Mono.error(UserChatRoomAlreadyExistsException("사용자가 이미 채팅방에 참여하고 있습니다."))
-                        } else {
-                            // 채팅방 참여자 수 확인
-                            checkRoomCapacity(chatRoom)
-                                .then(createUserChatRoomRelationship(userId, chatRoomId, role, invitedBy))
-                        }
-                    }
+                checkRoomCapacity(chatRoom)
+                    .then(createUserChatRoomRelationship(userId, chatRoomId, role, invitedBy))
             }
             .`as`(transactionalOperator::transactional)
     }
@@ -68,6 +58,33 @@ class UserChatRoomService(
                 userChatRoomRepository.update(leftRelationship)
             }
             .then()
+            .`as`(transactionalOperator::transactional)
+    }
+
+    /**
+     * 이미 확인된 관계 정보를 사용하여 사용자가 채팅방을 떠납니다.
+     */
+    fun leaveChatRoomWithRelationship(relationship: UserChatRoom): Mono<Void> {
+        val leftRelationship = relationship.leave()
+        return userChatRoomRepository.update(leftRelationship)
+            .then()
+            .`as`(transactionalOperator::transactional)
+    }
+
+    /**
+     * 사용자가 채팅방에 다시 참여합니다. (비활성 상태에서 활성 상태로 변경)
+     */
+    fun rejoinChatRoom(userId: Long, chatRoomId: Long): Mono<UserChatRoom> {
+        return userChatRoomRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
+            .switchIfEmpty(Mono.error(UserChatRoomNotFoundException("사용자-채팅방 관계를 찾을 수 없습니다.")))
+            .flatMap { relationship ->
+                if (relationship.isActive) {
+                    Mono.just(relationship)
+                } else {
+                    val rejoinedRelationship = relationship.rejoin()
+                    userChatRoomRepository.update(rejoinedRelationship)
+                }
+            }
             .`as`(transactionalOperator::transactional)
     }
 
@@ -224,6 +241,13 @@ class UserChatRoomService(
     fun getUserChatRoomRelationship(userId: Long, chatRoomId: Long): Mono<UserChatRoom> {
         return userChatRoomRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
             .switchIfEmpty(Mono.error(UserChatRoomNotFoundException("사용자-채팅방 관계를 찾을 수 없습니다.")))
+    }
+
+    /**
+     * 사용자의 특정 채팅방에서의 관계 정보를 조회합니다. (관계가 없어도 예외를 던지지 않음)
+     */
+    fun findUserChatRoomRelationship(userId: Long, chatRoomId: Long): Mono<UserChatRoom> {
+        return userChatRoomRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
     }
 
     // === Private Helper Methods ===

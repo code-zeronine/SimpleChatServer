@@ -115,7 +115,8 @@ class MessageCacheService(
         
         return reactiveRedisTemplate.opsForValue()
             .get(cacheKey)
-            .cast(Long::class.java)
+            .map { it as Number }
+            .map { it.toLong() }
             .doOnNext { count ->
                 incrementCacheHit(roomId)
                 logger.debug("Cache hit for message count: roomId={}, count={}", roomId, count)
@@ -155,7 +156,7 @@ class MessageCacheService(
             .increment(cacheKey)
             .then(
                 reactiveRedisTemplate.expire(cacheKey, Duration.ofHours(MESSAGE_COUNT_TTL_HOURS))
-                    .then(reactiveRedisTemplate.opsForValue().get(cacheKey).cast(Long::class.java))
+                    .then(reactiveRedisTemplate.opsForValue().get(cacheKey).map { it as Number }.map { it.toLong() })
             )
             .doOnNext { newCount ->
                 logger.debug("Incremented message count: roomId={}, newCount={}", roomId, newCount)
@@ -190,8 +191,8 @@ class MessageCacheService(
         val missKey = createCacheStatsKey(roomId, "miss")
         
         return Mono.zip(
-            reactiveRedisTemplate.opsForValue().get(hitKey).cast(Long::class.java).defaultIfEmpty(0L),
-            reactiveRedisTemplate.opsForValue().get(missKey).cast(Long::class.java).defaultIfEmpty(0L)
+            reactiveRedisTemplate.opsForValue().get(hitKey).map { it as Number }.map { it.toLong() }.defaultIfEmpty(0L),
+            reactiveRedisTemplate.opsForValue().get(missKey).map { it as Number }.map { it.toLong() }.defaultIfEmpty(0L)
         ).map { tuple ->
             val hits = tuple.t1
             val misses = tuple.t2

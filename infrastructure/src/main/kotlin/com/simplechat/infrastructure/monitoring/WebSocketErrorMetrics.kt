@@ -4,7 +4,6 @@ import com.simplechat.domain.exception.WebSocketErrorCode
 import org.springframework.stereotype.Component
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.LongAdder
 
 /**

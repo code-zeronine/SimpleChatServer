@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 초기화
         init() {
             this.currentUser = Storage.getUser();
+            console.log("currentUser: {}", this.currentUser)
             this.currentRoomId = this.getRoomIdFromURL();
             
             if (!this.currentRoomId) {
@@ -43,7 +44,26 @@ document.addEventListener('DOMContentLoaded', function() {
         // URL에서 채팅방 ID 추출
         getRoomIdFromURL() {
             const params = new URLSearchParams(window.location.search);
-            return params.get('room');
+            return params.get('roomId');
+        },
+
+        // 타임스탬프를 Date 객체로 변환 (다양한 형식 지원)
+        parseTimestamp(timestamp) {
+            if (!timestamp) return null;
+            if (typeof timestamp === 'number') return new Date(timestamp);
+            if (typeof timestamp === 'string') {
+                if (timestamp.trim() === '') return null;
+                const date = new Date(timestamp);
+                if (isNaN(date.getTime())) return null;
+                return date;
+            }
+            if (typeof timestamp === 'object' && timestamp.epochSecond !== undefined && timestamp.nano !== undefined) {
+                return new Date(timestamp.epochSecond * 1000 + Math.floor(timestamp.nano / 1000000));
+            }
+            if (timestamp instanceof Date) return timestamp;
+            
+            console.warn('Unknown timestamp format:', timestamp);
+            return null;
         },
         
         // 이벤트 리스너 설정
@@ -75,9 +95,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const scrollDownBtn = DOM.select('#scrollDownBtn');
             DOM.on(scrollDownBtn, 'click', this.scrollToBottom.bind(this));
             
-            // 메시지 컨테이너 스크롤
-            const messagesContainer = DOM.select('#messagesContainer');
-            DOM.on(messagesContainer, 'scroll', this.handleScroll.bind(this));
+            // 메시지 리스트 스크롤
+            const messagesList = DOM.select('#messagesList');
+            DOM.on(messagesList, 'scroll', this.handleScroll.bind(this));
             
             // 모달 이벤트들
             this.setupModalEvents();
@@ -148,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 채팅방 정보 로드
         async loadChatRoom() {
             try {
-                const response = await Http.get(`/api/chatrooms/${this.currentRoomId}`);
+                const response = await Http.get(`/api/rooms/${this.currentRoomId}`);
                 if (response.success) {
                     this.updateRoomInfo(response.data);
                     await this.loadMessages();
@@ -168,11 +188,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const roomName = DOM.select('#roomName');
             const memberCount = DOM.select('#memberCount');
             
-            roomName.textContent = roomData.name || '채팅방';
-            memberCount.textContent = `참여자 ${roomData.memberCount || 0}명`;
+            // ChatRoomDetailsDto 구조: { room: ChatRoomDto, participants: [...], ... }
+            const room = roomData.room || roomData; // ChatRoomDetailsDto 또는 ChatRoomDto 대응
+            const participantCount = room.currentParticipants || roomData.participants?.length || 0;
+            
+            roomName.textContent = room.name || '채팅방';
+            memberCount.textContent = `참여자 ${participantCount}명`;
             
             // 페이지 제목 업데이트
-            document.title = `${roomData.name} - SimpleChatServer`;
+            document.title = `${room.name} - SimpleChatServer`;
         },
         
         // 메시지 로드
@@ -186,7 +210,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (response.success && response.data) {
                     this.messages = response.data.content || [];
                     this.renderMessages();
-                    this.scrollToBottom(false);
+                    setTimeout(() => this.scrollToBottom(false), 100);
                 } else {
                     console.warn('메시지 로드 실패:', response);
                 }
@@ -245,8 +269,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 시간 차이가 의미있는지 확인 (5분 이상)
         isTimeDifferenceSignificant(prevMessage, currentMessage) {
-            const prevTime = new Date(prevMessage.timestamp);
-            const currentTime = new Date(currentMessage.timestamp);
+            const prevTime = this.parseTimestamp(prevMessage.timestamp);
+            const currentTime = this.parseTimestamp(currentMessage.timestamp);
+            if (!prevTime || !currentTime) {
+                return false;
+            }
             return (currentTime - prevTime) > 5 * 60 * 1000; // 5분
         },
         
@@ -254,6 +281,14 @@ document.addEventListener('DOMContentLoaded', function() {
         createMessageGroup(group) {
             const groupEl = document.createElement('div');
             groupEl.className = 'message-group';
+            
+            // 다른 사용자의 메시지인 경우 사용자 이름 표시
+            if (!group.isOwn) {
+                const nameEl = document.createElement('div');
+                nameEl.className = 'message-sender';
+                nameEl.textContent = group.userName || 'Unknown User';
+                groupEl.appendChild(nameEl);
+            }
             
             group.messages.forEach((message, index) => {
                 const messageEl = this.createMessageElement(message, group.isOwn, index === group.messages.length - 1);
@@ -306,7 +341,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 메시지 시간 포맷
         formatMessageTime(timestamp) {
-            const date = new Date(timestamp);
+            const date = this.parseTimestamp(timestamp);
+            if (!date) {
+                return ''; // Or some other placeholder for invalid time
+            }
             const now = new Date();
             
             if (date.toDateString() === now.toDateString()) {
@@ -361,15 +399,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 키보드 입력 처리
         handleKeyDown(event) {
-            if (event.key === 'Enter') {
-                if (event.shiftKey) {
-                    // Shift+Enter: 줄바꿈 (기본 동작)
-                    return;
-                } else {
-                    // Enter: 메시지 전송
-                    event.preventDefault();
-                    this.sendMessage();
-                }
+            // IME(입력기) 조합 중인 경우 Enter 키 이벤트를 처리하지 않습니다.
+            // 이렇게 하면 한글 등 조합 언어 입력 시 마지막 글자가 중복 전송되는 문제를 방지할 수 있습니다.
+            if (event.isComposing || event.keyCode === 229) {
+                return;
+            }
+            
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                this.sendMessage();
             }
         },
         
@@ -406,7 +444,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 id: tempId,
                 content: content,
                 userId: this.currentUser.id,
-                userName: this.currentUser.name,
+                userName: this.currentUser.nickname,
                 timestamp: new Date().toISOString(),
                 status: 'sending'
             };
@@ -440,11 +478,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const messagesList = DOM.select('#messagesList');
             const messageEl = this.createMessageElement(message, isOwn, true);
             
+            // 메시지를 추가하기 전에 스크롤 위치 확인
+            const wasScrollAtBottom = this.isScrollAtBottom();
+            
             messagesList.appendChild(messageEl);
             
-            // 스크롤이 맨 아래에 있으면 자동 스크롤
-            if (this.isScrollAtBottom()) {
-                this.scrollToBottom();
+            // 자신이 보낸 메시지이거나 스크롤이 맨 아래에 있으면 자동 스크롤
+            if (isOwn || wasScrollAtBottom) {
+                setTimeout(() => this.scrollToBottom(), 10); // 약간의 딜레이로 DOM 업데이트 후 스크롤
             } else {
                 this.updateUnreadCount(1);
             }
@@ -476,13 +517,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 스크롤이 맨 아래인지 확인
         isScrollAtBottom() {
-            const container = DOM.select('#messagesContainer');
-            return container.scrollTop + container.clientHeight >= container.scrollHeight - 10;
+            const container = DOM.select('#messagesList');
+            return container.scrollTop + container.clientHeight >= container.scrollHeight - 50;
         },
         
         // 맨 아래로 스크롤
         scrollToBottom(smooth = true) {
-            const container = DOM.select('#messagesContainer');
+            const container = DOM.select('#messagesList');
             container.scrollTo({
                 top: container.scrollHeight,
                 behavior: smooth ? 'smooth' : 'auto'
@@ -508,16 +549,26 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // WebSocket 연결
         connectWebSocket() {
-            const { WebSocket } = window.SimpleChatServer.utils;
+            const { WebSocketUtil } = window.SimpleChatServer.utils;
             
             try {
-                this.websocket = WebSocket.getClient();
+                this.websocket = WebSocketUtil.getClient();
+                
+                // 현재 채팅방 ID를 WebSocket 클라이언트에 설정
+                if (this.currentRoomId) {
+                    this.websocket.setCurrentRoomId(this.currentRoomId);
+                } else {
+                    throw new Error('채팅방 ID가 설정되지 않았습니다.');
+                }
                 
                 // WebSocket 이벤트 리스너 설정
                 this.websocket.on('open', () => {
                     console.log('WebSocket 연결됨');
                     this.isConnected = true;
                     this.updateConnectionStatus('connected');
+                    
+                    // 연결 시 현재 참여자 수 다시 조회
+                    this.refreshParticipantCount();
                 });
                 
                 this.websocket.on('close', () => {
@@ -544,7 +595,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 // 메시지 타입별 핸들러 등록
+                this.websocket.onMessage('CHAT', (data) => {
+                    if (data.userId !== this.currentUser.id) {
+                        // 다른 사용자로부터 받은 메시지
+                        const parsedTimestamp = this.parseTimestamp(data.timestamp);
+                        const message = {
+                            id: data.messageId || Date.now(),
+                            content: data.content,
+                            userId: data.userId,
+                            userName: data.userNickname || 'Unknown User',
+                            timestamp: parsedTimestamp ? parsedTimestamp.toISOString() : new Date().toISOString(),
+                            status: 'received'
+                        };
+                        this.addMessage(message, false);
+                    } else {
+                        // 내가 보낸 메시지의 확인
+                        this.updateMessageStatus(data.tempId, 'sent');
+                    }
+                });
+                
+                // 레거시 지원을 위한 일반 메시지 핸들러
                 this.websocket.onMessage('message', (data) => {
+                    if (data.type === 'CHAT') {
+                        // CHAT 타입은 위에서 처리됨
+                        return;
+                    }
                     if (data.userId !== this.currentUser.id) {
                         this.addMessage(data, false);
                     } else {
@@ -552,15 +627,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
                 
-                this.websocket.onMessage('typing_start', (data) => {
+                this.websocket.onMessage('TYPING', (data) => {
                     if (data.userId !== this.currentUser.id) {
-                        this.showTypingIndicator(data.userName);
-                    }
-                });
-                
-                this.websocket.onMessage('typing_stop', (data) => {
-                    if (data.userId !== this.currentUser.id) {
-                        this.hideTypingIndicator();
+                        if (data.isTyping) {
+                            this.showTypingIndicator(data.userNickname || data.userName);
+                        } else {
+                            this.hideTypingIndicator();
+                        }
                     }
                 });
                 
@@ -630,6 +703,19 @@ document.addEventListener('DOMContentLoaded', function() {
         updateMemberCount(count) {
             const memberCount = DOM.select('#memberCount');
             memberCount.textContent = `참여자 ${count}명`;
+        },
+        
+        // 참여자 수 새로고침
+        async refreshParticipantCount() {
+            try {
+                const response = await Http.get(`/api/rooms/${this.currentRoomId}/participants`);
+                if (response.success) {
+                    const participantCount = response.data.length;
+                    this.updateMemberCount(participantCount);
+                }
+            } catch (error) {
+                console.error('참여자 수 조회 오류:', error);
+            }
         },
         
         // 파일 첨부 모달 표시
@@ -770,7 +856,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 참여자 목록 로드
         async loadMembers() {
             try {
-                const response = await Http.get(`/api/chatrooms/${this.currentRoomId}/members`);
+                const response = await Http.get(`/api/rooms/${this.currentRoomId}/participants`);
                 if (response.success) {
                     this.renderMembers(response.data);
                 }
@@ -797,18 +883,19 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const memberAvatar = document.createElement('div');
             memberAvatar.className = 'member-avatar';
-            memberAvatar.textContent = member.name.charAt(0).toUpperCase();
+            memberAvatar.textContent = (member.nickname || 'U').charAt(0).toUpperCase();
             
             const memberInfo = document.createElement('div');
             memberInfo.className = 'member-info';
             
             const memberName = document.createElement('div');
             memberName.className = 'member-name';
-            memberName.textContent = member.name;
+            memberName.textContent = member.nickname || 'Unknown User';
             
             const memberStatus = document.createElement('div');
-            memberStatus.className = `member-status ${member.online ? 'online' : 'offline'}`;
-            memberStatus.textContent = member.online ? '온라인' : '오프라인';
+            // Use the new isOnline field from the DTO
+            memberStatus.className = `member-status ${member.isOnline ? 'online' : 'offline'}`;
+            memberStatus.textContent = member.isOnline ? '온라인' : '오프라인';
             
             memberInfo.appendChild(memberName);
             memberInfo.appendChild(memberStatus);

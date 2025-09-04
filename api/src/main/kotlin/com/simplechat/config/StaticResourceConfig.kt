@@ -4,13 +4,13 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.MediaType
-import org.springframework.web.reactive.function.server.RequestPredicates.*
+import org.springframework.web.reactive.function.server.RequestPredicates.GET
+import org.springframework.web.reactive.function.server.RequestPredicates.path
 import org.springframework.web.reactive.function.server.RouterFunction
-import org.springframework.web.reactive.function.server.RouterFunctions.*
+import org.springframework.web.reactive.function.server.RouterFunctions.nest
+import org.springframework.web.reactive.function.server.RouterFunctions.resources
+import org.springframework.web.reactive.function.server.RouterFunctions.route
 import org.springframework.web.reactive.function.server.ServerResponse
-import org.springframework.web.reactive.resource.PathResourceResolver
-import org.springframework.web.reactive.resource.ResourceWebHandler
-import org.springframework.core.io.Resource
 import reactor.core.publisher.Mono
 
 /**
@@ -42,12 +42,16 @@ class StaticResourceConfig {
         ).and(
             route(GET("/register")) { registerHandler() }
         ).and(
+            // Chrome DevTools .well-known 경로 처리
+            route(GET("/.well-known/**")) { wellKnownHandler() }
+        ).and(
             // SPA 라우팅 (존재하지 않는 경로는 index.html로 리다이렉트)
-            // API 경로(/api/*, /health, /ping, /info)는 제외
+            // API 경로(/api/*, /health, /ping, /info, /.well-known/*)는 제외
             route(GET("/{path:[^\\.]*}").and(path("/api/**").negate())
                 .and(path("/health").negate())
                 .and(path("/ping").negate())
-                .and(path("/info").negate())) { spaHandler() }
+                .and(path("/info").negate())
+                .and(path("/.well-known/**").negate())) { spaHandler() }
         )
     }
 
@@ -103,6 +107,13 @@ class StaticResourceConfig {
         return ServerResponse.ok()
             .contentType(MediaType.TEXT_HTML)
             .bodyValue(getHtmlContent("index.html"))
+    }
+
+    /**
+     * .well-known 경로 핸들러 (Chrome DevTools 등의 요청 처리)
+     */
+    private fun wellKnownHandler(): Mono<ServerResponse> {
+        return ServerResponse.notFound().build()
     }
 
     /**

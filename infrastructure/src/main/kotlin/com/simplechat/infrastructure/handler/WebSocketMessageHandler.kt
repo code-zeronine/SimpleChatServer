@@ -1,16 +1,17 @@
 package com.simplechat.infrastructure.handler
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.simplechat.domain.entity.ChatMessage
 import com.simplechat.domain.message.ChatWebSocketMessage
 import com.simplechat.domain.message.JoinWebSocketMessage
 import com.simplechat.domain.message.LeaveWebSocketMessage
 import com.simplechat.domain.message.SystemWebSocketMessage
+import com.simplechat.domain.message.TypingWebSocketMessage
 import com.simplechat.domain.message.WebSocketMessage
 import com.simplechat.domain.message.WebSocketMessageType
-import com.simplechat.domain.message.TypingWebSocketMessage
-import com.simplechat.domain.message.HeartbeatWebSocketMessage
 import com.simplechat.domain.service.ChatMessageDomainService
 import com.simplechat.domain.service.MessageBrokerDomainService
+import com.simplechat.infrastructure.service.RedisMessageBrokerService
 import com.simplechat.infrastructure.service.WebSocketSessionManager
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -18,11 +19,11 @@ import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Mono
 import java.time.Instant
 import java.util.*
-import com.simplechat.domain.entity.ChatMessage
 
 @Component
 class WebSocketMessageHandler(
     private val messageBrokerService: MessageBrokerDomainService,
+    private val redisMessageBrokerService: RedisMessageBrokerService,
     private val chatMessageService: ChatMessageDomainService,
     private val objectMapper: ObjectMapper,
     private val sessionManager: WebSocketSessionManager,
@@ -36,12 +37,56 @@ class WebSocketMessageHandler(
         sessionManager.addSession(chatRoomId, session, userId)
         log.info("Session added for user {} in room {}: {}", userId, chatRoomId, session.id)
 
-        return session.receive()
+        // Redis 채널 구독 및 메시지를 WebSocket으로 전달
+        val subscriptionFlux = redisMessageBrokerService.subscribeToChatRoom(chatRoomId)
+            .filter { message ->
+                // 자신이 보낸 메시지는 제외 (메시지에 userId가 있는 경우)
+                when (message) {
+                    is ChatWebSocketMessage -> message.userId != userId
+                    is JoinWebSocketMessage -> message.userId != userId
+                    is LeaveWebSocketMessage -> message.userId != userId
+                    is TypingWebSocketMessage -> message.userId != userId
+                    else -> true // 시스템 메시지 등은 모두에게 전달
+                }
+            }
+            .flatMap { message ->
+                try {
+                    // 세션이 열려있는지 확인
+                    if (!session.isOpen) {
+                        log.debug("Session {} is closed, skipping message send", session.id)
+                        return@flatMap Mono.empty<Void>()
+                    }
+                    
+                    val messageJson = objectMapper.writeValueAsString(message)
+                    session.send(Mono.just(session.textMessage(messageJson)))
+                        .doOnSuccess { log.debug("Broadcasted message to session {}: {}", session.id, message.type) }
+                        .onErrorResume { error ->
+                            log.debug("Failed to send message to session {}: {}", session.id, error.message)
+                            // 연결이 닫힌 경우 세션 정리
+                            if (error.message?.contains("Connection has been closed") == true) {
+                                sessionManager.removeSession(session.id)
+                            }
+                            Mono.empty()
+                        }
+                } catch (e: Exception) {
+                    log.error("Failed to serialize message for session {}: {}", session.id, e.message)
+                    Mono.empty<Void>()
+                }
+            }
+            .doOnError { error -> log.error("Redis subscription error for room {}: {}", chatRoomId, error.message) }
+            .onErrorResume { Mono.empty<Void>().flux() }
+
+        // 클라이언트로부터 오는 메시지 처리
+        val receiveFlux = session.receive()
             .flatMap { webSocketMessage ->
                 handleIncomingMessage(session, webSocketMessage, chatRoomId)
             }
+
+        // 구독과 수신을 병렬로 처리
+        return subscriptionFlux.mergeWith(receiveFlux)
             .doFinally { signalType -> // Handle session disconnection
                 sessionManager.removeSession(session.id)
+                redisMessageBrokerService.unsubscribeFromChatRoom(chatRoomId).subscribe()
                 log.info("Session removed for user {} in room {}: {} (Signal: {})", userId, chatRoomId, session.id, signalType)
             }
             .then() // Complete the Mono<Void>
@@ -237,7 +282,23 @@ class WebSocketMessageHandler(
     ): Mono<Void> {
         log.debug("Heartbeat received from session: {}", session.id)
         sessionManager.handleHeartbeat(session.id)
-        return Mono.empty()
+
+        val pongMessage = mapOf(
+            "type" to "pong",
+            "timestamp" to Instant.now()
+        )
+
+        return Mono.fromCallable { objectMapper.writeValueAsString(pongMessage) }
+            .flatMap { messageJson ->
+                session.send(Mono.just(session.textMessage(messageJson)))
+            }
+            .doOnSuccess {
+                log.debug("Pong message sent to session {}", session.id)
+            }
+            .doOnError { error ->
+                log.warn("Failed to send pong message to session {}: {}", session.id, error.message)
+            }
+            .then()
     }
 
     // New methods for handling specific message types

@@ -36,7 +36,8 @@ object WebSocketMessageAdapter {
                 sessionId = sessionId,
                 content = data["content"] as String,
                 userId = (data["userId"] as Number).toLong(),
-                roomId = (data["roomId"] as Number).toLong()
+                roomId = (data["roomId"] as Number).toLong(),
+                userNickname = data["userNickname"] as String
             )
             "JOIN" -> JoinWebSocketMessage(
                 messageId = messageId,
@@ -82,7 +83,8 @@ object WebSocketMessageAdapter {
             is ChatWebSocketMessage -> baseMap.putAll(mapOf(
                 "content" to message.content,
                 "userId" to message.userId,
-                "roomId" to message.roomId
+                "roomId" to message.roomId,
+                "userNickname" to message.userNickname
             ))
             is JoinWebSocketMessage -> baseMap.putAll(mapOf(
                 "userId" to message.userId,

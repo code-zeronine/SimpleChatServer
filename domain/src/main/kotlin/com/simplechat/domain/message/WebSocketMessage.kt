@@ -63,7 +63,8 @@ data class ChatWebSocketMessage(
     override val sessionId: String?,
     val content: String,
     val userId: Long,
-    val roomId: Long
+    val roomId: Long,
+    val userNickname: String
 ) : WebSocketMessage()
 
 data class JoinWebSocketMessage(

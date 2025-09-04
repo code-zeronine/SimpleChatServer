@@ -16,64 +16,27 @@ window.SimpleChatServer = {
  * DOM 유틸리티
  */
 const DOM = {
-    /**
-     * 요소 선택
-     */
     select: (selector, parent = document) => parent.querySelector(selector),
     selectAll: (selector, parent = document) => parent.querySelectorAll(selector),
-    
-    /**
-     * 요소 생성
-     */
     create: (tag, attributes = {}, content = '') => {
         const element = document.createElement(tag);
-        
         Object.entries(attributes).forEach(([key, value]) => {
-            if (key === 'className') {
-                element.className = value;
-            } else if (key === 'dataset') {
-                Object.entries(value).forEach(([dataKey, dataValue]) => {
-                    element.dataset[dataKey] = dataValue;
-                });
-            } else {
-                element.setAttribute(key, value);
-            }
+            if (key === 'className') element.className = value;
+            else if (key === 'dataset') Object.entries(value).forEach(([dataKey, dataValue]) => element.dataset[dataKey] = dataValue);
+            else element.setAttribute(key, value);
         });
-        
-        if (content) {
-            element.innerHTML = content;
-        }
-        
+        if (content) element.innerHTML = content;
         return element;
     },
-    
-    /**
-     * 클래스 관리
-     */
     addClass: (element, className) => element?.classList.add(className),
     removeClass: (element, className) => element?.classList.remove(className),
     toggleClass: (element, className) => element?.classList.toggle(className),
     hasClass: (element, className) => element?.classList.contains(className),
-    
-    /**
-     * 이벤트 리스너
-     */
-    on: (element, event, handler, options = {}) => {
-        element?.addEventListener(event, handler, options);
-    },
-    
-    off: (element, event, handler) => {
-        element?.removeEventListener(event, handler);
-    },
-    
-    /**
-     * 스타일 설정
-     */
+    on: (element, event, handler, options = {}) => element?.addEventListener(event, handler, options),
+    off: (element, event, handler) => element?.removeEventListener(event, handler),
     setStyle: (element, styles) => {
         if (element && typeof styles === 'object') {
-            Object.entries(styles).forEach(([property, value]) => {
-                element.style[property] = value;
-            });
+            Object.entries(styles).forEach(([property, value]) => element.style[property] = value);
         }
     }
 };
@@ -82,90 +45,40 @@ const DOM = {
  * HTTP 요청 유틸리티
  */
 const Http = {
-    /**
-     * 기본 요청 함수
-     */
     request: async (url, options = {}) => {
         const token = Storage.getToken();
-        const defaultHeaders = {
-            'Content-Type': 'application/json'
-        };
-        
-        if (token) {
-            defaultHeaders['Authorization'] = `Bearer ${token}`;
-        }
-        
-        const config = {
-            headers: { ...defaultHeaders, ...options.headers },
-            ...options
-        };
-        
+        const defaultHeaders = { 'Content-Type': 'application/json' };
+        if (token) defaultHeaders['Authorization'] = `Bearer ${token}`;
+        const config = { headers: { ...defaultHeaders, ...options.headers }, ...options };
         try {
             const response = await fetch(url, config);
+            if (response.status === 204) return { success: true, data: null }; // No Content
             const data = await response.json();
-            
-            if (!response.ok) {
-                throw new HttpError(response.status, data.message || '요청 처리 중 오류가 발생했습니다.');
-            }
-            
+            if (!response.ok) throw new HttpError(response.status, data.message || '요청 처리 중 오류가 발생했습니다.', data.errors);
             return data;
         } catch (error) {
-            if (error instanceof HttpError) {
-                throw error;
-            }
+            if (error instanceof HttpError) throw error;
             throw new HttpError(500, '네트워크 오류가 발생했습니다.');
         }
     },
-    
-    /**
-     * GET 요청
-     */
     get: (url, params = {}) => {
         const urlObj = new URL(url, window.location.origin);
         Object.entries(params).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
-                urlObj.searchParams.append(key, value);
-            }
+            if (value !== null && value !== undefined) urlObj.searchParams.append(key, value);
         });
         return Http.request(urlObj.toString(), { method: 'GET' });
     },
-    
-    /**
-     * POST 요청
-     */
-    post: (url, data = {}) => {
-        return Http.request(url, {
-            method: 'POST',
-            body: JSON.stringify(data)
-        });
-    },
-    
-    /**
-     * PUT 요청
-     */
-    put: (url, data = {}) => {
-        return Http.request(url, {
-            method: 'PUT',
-            body: JSON.stringify(data)
-        });
-    },
-    
-    /**
-     * DELETE 요청
-     */
-    delete: (url) => {
-        return Http.request(url, { method: 'DELETE' });
-    }
+    post: (url, data = {}) => Http.request(url, { method: 'POST', body: JSON.stringify(data) }),
+    put: (url, data = {}) => Http.request(url, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (url) => Http.request(url, { method: 'DELETE' })
 };
 
-/**
- * HTTP 오류 클래스
- */
 class HttpError extends Error {
-    constructor(status, message) {
+    constructor(status, message, errors = null) {
         super(message);
         this.name = 'HttpError';
         this.status = status;
+        this.errors = errors;
     }
 }
 
@@ -173,262 +86,126 @@ class HttpError extends Error {
  * 스토리지 유틸리티
  */
 const Storage = {
-    /**
-     * JWT 토큰 관리
-     */
-    setToken: (token) => {
-        localStorage.setItem('auth_token', token);
-    },
-    
-    getToken: () => {
-        return localStorage.getItem('auth_token');
-    },
-    
-    removeToken: () => {
-        localStorage.removeItem('auth_token');
-    },
-    
-    /**
-     * 사용자 정보 관리
-     */
-    setUser: (user) => {
-        localStorage.setItem('user_info', JSON.stringify(user));
-    },
-    
+    setToken: (token) => localStorage.setItem('auth_token', token),
+    getToken: () => localStorage.getItem('auth_token'),
+    removeToken: () => localStorage.removeItem('auth_token'),
+    setUser: (user) => localStorage.setItem('user_info', JSON.stringify(user)),
     getUser: () => {
         const userInfo = localStorage.getItem('user_info');
         return userInfo ? JSON.parse(userInfo) : null;
     },
-    
-    removeUser: () => {
-        localStorage.removeItem('user_info');
-    },
-    
-    /**
-     * 일반 스토리지
-     */
-    set: (key, value) => {
-        localStorage.setItem(key, JSON.stringify(value));
-    },
-    
+    removeUser: () => localStorage.removeItem('user_info'),
+    set: (key, value) => localStorage.setItem(key, JSON.stringify(value)),
     get: (key, defaultValue = null) => {
         const item = localStorage.getItem(key);
-        return item ? JSON.parse(item) : defaultValue;
+        try {
+            return item ? JSON.parse(item) : defaultValue;
+        } catch (e) {
+            return defaultValue;
+        }
     },
-    
-    remove: (key) => {
-        localStorage.removeItem(key);
-    },
-    
-    /**
-     * 전체 정리
-     */
-    clear: () => {
-        localStorage.clear();
-    }
+    clear: () => localStorage.clear()
 };
 
 /**
  * 폼 유틸리티
  */
 const Form = {
-    /**
-     * 폼 데이터 수집
-     */
     getData: (formElement) => {
         const formData = new FormData(formElement);
         const data = {};
-        
         for (const [key, value] of formData.entries()) {
             data[key] = value;
         }
-        
         return data;
     },
-    
-    /**
-     * 폼 유효성 검사
-     */
     validate: (formElement) => {
-        const errors = {};
-        const inputs = formElement.querySelectorAll('input, textarea, select');
-        
+        // Basic validation, can be expanded
+        const inputs = formElement.querySelectorAll('[required]');
+        let isValid = true;
         inputs.forEach(input => {
-            const value = input.value.trim();
-            const name = input.name;
-            
-            // 필수 필드 검사
-            if (input.hasAttribute('required') && !value) {
-                errors[name] = '이 필드는 필수입니다.';
-                return;
-            }
-            
-            // 이메일 검사
-            if (input.type === 'email' && value) {
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(value)) {
-                    errors[name] = '올바른 이메일 형식이 아닙니다.';
-                }
-            }
-            
-            // 비밀번호 검사 (최소 6자)
-            if (input.type === 'password' && value && value.length < 6) {
-                errors[name] = '비밀번호는 최소 6자 이상이어야 합니다.';
-            }
+            if (!input.value.trim()) isValid = false;
         });
-        
-        return {
-            isValid: Object.keys(errors).length === 0,
-            errors
-        };
+        return { isValid, errors: {} }; // Simplified
     },
-    
-    /**
-     * 에러 표시
-     */
     showErrors: (formElement, errors) => {
-        // 기존 에러 메시지 제거
         Form.clearErrors(formElement);
-        
         Object.entries(errors).forEach(([field, message]) => {
-            const input = formElement.querySelector(`[name="${field}"]`);
-            const errorElement = formElement.querySelector(`#${field}Error`);
-            
-            if (input) {
-                DOM.addClass(input, 'error');
-            }
-            
+            const errorElement = DOM.select(`#${field}Error`, formElement);
             if (errorElement) {
                 errorElement.textContent = message;
-                DOM.addClass(errorElement, 'show');
+                errorElement.style.display = 'block';
             }
         });
     },
-    
-    /**
-     * 에러 메시지 제거
-     */
-    clearErrors: (formElement) => {
-        const inputs = formElement.querySelectorAll('input, textarea, select');
-        const errorElements = formElement.querySelectorAll('.form-error');
-        
-        inputs.forEach(input => DOM.removeClass(input, 'error'));
-        errorElements.forEach(element => {
-            element.textContent = '';
-            DOM.removeClass(element, 'show');
-        });
-    },
-    
-    /**
-     * 성공 메시지 표시
-     */
     showSuccess: (formElement, message) => {
-        const successElement = formElement.querySelector('.form-success');
+        const successElement = DOM.select('.form-success', formElement);
         if (successElement) {
             successElement.textContent = message;
-            DOM.addClass(successElement, 'show');
-            
+            successElement.style.display = 'block';
             setTimeout(() => {
-                DOM.removeClass(successElement, 'show');
+                successElement.style.display = 'none';
+                successElement.textContent = '';
             }, 5000);
         }
-    }
+    },
+    clearErrors: (formElement) => {
+        const errorElements = formElement.querySelectorAll('.form-error');
+        errorElements.forEach(el => el.style.display = 'none');
+    },
+    reset: (formElement) => formElement.reset()
 };
 
 /**
  * 로딩 상태 관리
  */
 const Loading = {
-    /**
-     * 버튼 로딩 상태
-     */
     showButton: (button) => {
-        DOM.addClass(button, 'loading');
-        button.disabled = true;
+        const btn = typeof button === 'string' ? DOM.select(button) : button;
+        if (!btn) return;
+        btn.disabled = true;
+        const textEl = btn.querySelector('.btn-text');
+        const loadingEl = btn.querySelector('.btn-loading');
+        if (textEl) textEl.style.display = 'none';
+        if (loadingEl) loadingEl.style.display = 'inline-flex';
     },
-    
     hideButton: (button) => {
-        DOM.removeClass(button, 'loading');
-        button.disabled = false;
-    },
-    
-    /**
-     * 전역 로딩 상태
-     */
-    show: (message = '로딩 중...') => {
-        let loader = DOM.select('#global-loader');
-        
-        if (!loader) {
-            loader = DOM.create('div', {
-                id: 'global-loader',
-                className: 'global-loader'
-            }, `
-                <div class="loader-backdrop">
-                    <div class="loader-content">
-                        <div class="loading-spinner"></div>
-                        <div class="loader-message">${message}</div>
-                    </div>
-                </div>
-            `);
-            document.body.appendChild(loader);
-        }
-        
-        loader.style.display = 'flex';
-    },
-    
-    hide: () => {
-        const loader = DOM.select('#global-loader');
-        if (loader) {
-            loader.style.display = 'none';
-        }
+        const btn = typeof button === 'string' ? DOM.select(button) : button;
+        if (!btn) return;
+        btn.disabled = false;
+        const textEl = btn.querySelector('.btn-text');
+        const loadingEl = btn.querySelector('.btn-loading');
+        if (textEl) textEl.style.display = 'inline-block';
+        if (loadingEl) loadingEl.style.display = 'none';
     }
 };
 
 /**
- * 알림 메시지
+ * 토스트 알림
  */
 const Toast = {
-    /**
-     * 토스트 메시지 표시
-     */
     show: (message, type = 'info', duration = 3000) => {
-        const toast = DOM.create('div', {
-            className: `toast toast-${type}`
-        }, `
-            <div class="toast-content">
-                <span class="toast-message">${message}</span>
-                <button class="toast-close">&times;</button>
-            </div>
-        `);
-        
-        // 토스트 컨테이너 생성 (없으면)
-        let container = DOM.select('#toast-container');
+        let container = DOM.select('.toast-container');
         if (!container) {
-            container = DOM.create('div', { id: 'toast-container', className: 'toast-container' });
+            container = DOM.create('div', { className: 'toast-container' });
             document.body.appendChild(container);
         }
-        
-        container.appendChild(toast);
-        
-        // 닫기 버튼 이벤트
-        const closeBtn = toast.querySelector('.toast-close');
-        DOM.on(closeBtn, 'click', () => toast.remove());
-        
-        // 자동 제거
-        if (duration > 0) {
-            setTimeout(() => {
-                if (toast.parentNode) {
-                    toast.remove();
-                }
-            }, duration);
-        }
-        
-        return toast;
+        const iconMap = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+        const toast = DOM.create('div', { className: `toast toast-${type}` }, `
+            <div class="toast-content">
+                <span class="toast-icon">${iconMap[type]}</span>
+                <span class="toast-message">${message}</span>
+            </div>
+            <button class="toast-close">&times;</button>
+        `);
+        container.prepend(toast);
+        const close = () => {
+            toast.classList.add('fade-out');
+            toast.addEventListener('animationend', () => toast.remove());
+        };
+        DOM.on(toast.querySelector('.toast-close'), 'click', close);
+        if (duration > 0) setTimeout(close, duration);
     },
-    
-    /**
-     * 타입별 편의 메소드
-     */
     success: (message, duration) => Toast.show(message, 'success', duration),
     error: (message, duration) => Toast.show(message, 'error', duration),
     warning: (message, duration) => Toast.show(message, 'warning', duration),
@@ -436,12 +213,9 @@ const Toast = {
 };
 
 /**
- * 유틸리티 함수들
+ * 기타 유틸리티
  */
 const Utils = {
-    /**
-     * 디바운스 함수
-     */
     debounce: (func, wait) => {
         let timeout;
         return function executedFunction(...args) {
@@ -453,31 +227,6 @@ const Utils = {
             timeout = setTimeout(later, wait);
         };
     },
-    
-    /**
-     * 스로틀 함수
-     */
-    throttle: (func, limit) => {
-        let inThrottle;
-        return function(...args) {
-            if (!inThrottle) {
-                func.apply(this, args);
-                inThrottle = true;
-                setTimeout(() => inThrottle = false, limit);
-            }
-        };
-    },
-    
-    /**
-     * 랜덤 ID 생성
-     */
-    generateId: () => {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
-    },
-    
-    /**
-     * 날짜 포맷팅
-     */
     formatDate: (date, format = 'YYYY-MM-DD HH:mm') => {
         const d = new Date(date);
         const year = d.getFullYear();
@@ -493,10 +242,6 @@ const Utils = {
             .replace('HH', hours)
             .replace('mm', minutes);
     },
-    
-    /**
-     * 상대 시간 표시
-     */
     formatRelativeTime: (date) => {
         const now = new Date();
         const diff = now - new Date(date);
@@ -504,92 +249,93 @@ const Utils = {
         const minutes = Math.floor(seconds / 60);
         const hours = Math.floor(minutes / 60);
         const days = Math.floor(hours / 24);
-        
         if (days > 0) return `${days}일 전`;
         if (hours > 0) return `${hours}시간 전`;
         if (minutes > 0) return `${minutes}분 전`;
         return '방금 전';
     },
-    
-    /**
-     * URL 파라미터 파싱
-     */
-    parseUrlParams: () => {
-        const params = {};
-        const urlParams = new URLSearchParams(window.location.search);
-        for (const [key, value] of urlParams) {
-            params[key] = value;
-        }
-        return params;
-    }
+    escapeHtml: (str) => {
+        return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    },
+    parseUrlParams: () => Object.fromEntries(new URLSearchParams(window.location.search))
 };
 
 /**
  * 페이지 라우팅
  */
 const Router = {
-    /**
-     * 페이지 이동
-     */
-    navigate: (path) => {
-        window.location.href = path;
+    navigate: (path) => { window.location.href = path; },
+    back: () => { window.history.back(); }
+};
+
+/**
+ * 테마 관리
+ */
+const ThemeManager = {
+    init() {
+        this.themeToggleBtn = DOM.select('#themeToggleBtn');
+        this.currentTheme = Storage.get('theme') || this.getSystemTheme();
+        this.applyTheme(this.currentTheme);
+        if (this.themeToggleBtn) {
+            DOM.on(this.themeToggleBtn, 'click', () => {
+                const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+                this.applyTheme(newTheme);
+                Storage.set('theme', newTheme);
+            });
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            if (!Storage.get('theme')) {
+                this.applyTheme(e.matches ? 'dark' : 'light');
+            }
+        });
     },
-    
-    /**
-     * 새 탭에서 열기
-     */
-    openNewTab: (url) => {
-        window.open(url, '_blank');
+    applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        this.currentTheme = theme;
+        if (this.themeToggleBtn) {
+            const icon = this.themeToggleBtn.querySelector('.theme-icon');
+            if(icon) icon.textContent = theme === 'light' ? '🌙' : '☀️';
+        }
     },
-    
-    /**
-     * 뒤로가기
-     */
-    back: () => {
-        window.history.back();
-    },
-    
-    /**
-     * 현재 경로 확인
-     */
-    getCurrentPath: () => {
-        return window.location.pathname;
-    }
+    getSystemTheme: () => window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 };
 
 /**
  * 인증 관련 유틸리티
  */
 const Auth = {
-    /**
-     * 로그인 상태 확인
-     */
-    isAuthenticated: () => {
-        return !!Storage.getToken();
-    },
-    
-    /**
-     * 로그아웃
-     */
+    isAuthenticated: () => !!Storage.getToken(),
     logout: () => {
-        Storage.removeToken();
-        Storage.removeUser();
-        Router.navigate('/login');
+        Storage.clear();
+        Router.navigate('/login?logout=success');
     },
-    
-    /**
-     * 인증이 필요한 페이지 접근 제어
-     */
     requireAuth: () => {
         if (!Auth.isAuthenticated()) {
-            Router.navigate('/login');
+            Router.navigate('/login?auth=required');
             return false;
         }
         return true;
     }
 };
 
-// 전역 객체로 노출
+/**
+ * WebSocket 클라이언트 유틸리티
+ */
+const WebSocketUtil = {
+    getClient: (options = {}) => {
+        if (typeof window.WebSocketClient !== 'undefined') {
+            return window.WebSocketClient.getGlobalClient({ debug: window.location.hostname === 'localhost', ...options });
+        }
+        return null;
+    }
+};
+
+// 전역 유틸리티 객체 노출
 window.SimpleChatServer.utils = {
     DOM,
     Http,
@@ -599,161 +345,13 @@ window.SimpleChatServer.utils = {
     Toast,
     Utils,
     Router,
-    Auth
-};
-
-// DOM 로드 완료 후 실행할 함수들
-document.addEventListener('DOMContentLoaded', function() {
-    // 전역 스타일 추가
-    const globalStyles = `
-        .global-loader {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            z-index: 9999;
-            display: none;
-        }
-        .loader-backdrop {
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%; height: 100%;
-        }
-        .loader-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            text-align: center;
-        }
-        .loader-message {
-            margin-top: 1rem;
-        }
-        .toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-        }
-        .toast {
-            background: white;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            margin-bottom: 10px;
-            overflow: hidden;
-            animation: slideIn 0.3s ease;
-        }
-        .toast-success { border-left: 4px solid #28a745; }
-        .toast-error { border-left: 4px solid #dc3545; }
-        .toast-warning { border-left: 4px solid #ffc107; }
-        .toast-info { border-left: 4px solid #17a2b8; }
-        .toast-content {
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .toast-close {
-            background: none;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            margin-left: 10px;
-        }
-        @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-        }
-    `;
-    
-    const styleEl = document.createElement('style');
-    styleEl.textContent = globalStyles;
-    document.head.appendChild(styleEl);
-});
-
-/**
- * WebSocket 클라이언트 유틸리티
- */
-const WebSocket = {
-    /**
-     * 글로벌 클라이언트 인스턴스 가져오기
-     */
-    getClient: (options = {}) => {
-        if (typeof window.WebSocketClient !== 'undefined') {
-            return window.WebSocketClient.getGlobalClient({
-                debug: window.location.hostname === 'localhost',
-                ...options
-            });
-        }
-        return null;
-    },
-    
-    /**
-     * 새 클라이언트 생성
-     */
-    createClient: (options = {}) => {
-        if (typeof window.ChatClient !== 'undefined') {
-            return new window.ChatClient({
-                debug: window.location.hostname === 'localhost',
-                ...options
-            });
-        }
-        return null;
-    },
-    
-    /**
-     * 연결 상태 확인
-     */
-    isConnected: () => {
-        const client = WebSocket.getClient();
-        return client ? client.isConnectionOpen() : false;
-    },
-    
-    /**
-     * 연결 상태 정보
-     */
-    getConnectionState: () => {
-        const client = WebSocket.getClient();
-        return client ? client.getConnectionState() : null;
-    },
-    
-    /**
-     * 간편 메시지 전송
-     */
-    sendMessage: (content, options = {}) => {
-        const client = WebSocket.getClient();
-        return client ? client.sendChatMessage(content, options) : false;
-    },
-    
-    /**
-     * 채팅방 입장
-     */
-    joinRoom: (roomId, user = null) => {
-        const client = WebSocket.getClient();
-        return client ? client.joinRoom(roomId, user) : false;
-    },
-    
-    /**
-     * 채팅방 퇴장
-     */
-    leaveRoom: (roomId = null) => {
-        const client = WebSocket.getClient();
-        return client ? client.leaveRoom(roomId) : false;
-    }
-};
-
-/**
- * 유틸리티 모듈 통합
- * 전역 네임스페이스에 등록
- */
-window.SimpleChatServer.utils = {
-    DOM,
-    Http,
-    Storage,
+    ThemeManager,
     Auth,
-    Form,
-    Toast,
-    Utils,
-    WebSocket
+    WebSocketUtil
 };
 
-console.log('SimpleChatServer main.js loaded successfully');
+// DOM 로드 완료 후 실행
+document.addEventListener('DOMContentLoaded', () => {
+    ThemeManager.init();
+    console.log('SimpleChatServer main.js loaded and initialized.');
+});

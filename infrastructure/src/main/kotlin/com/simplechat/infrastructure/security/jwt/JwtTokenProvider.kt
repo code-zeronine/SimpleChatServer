@@ -69,6 +69,25 @@ class JwtTokenProvider(
             .signWith(key)
             .compact()
     }
+    
+    /**
+     * 리프레시 토큰 생성 (userId 포함)
+     */
+    fun generateRefreshToken(email: String, userId: Long, roles: List<String> = emptyList()): String {
+        val now = Date()
+        val expiryDate = Date(now.time + jwtProperties.refreshExpiration)
+
+        return Jwts.builder()
+            .subject(email)
+            .issuer(jwtProperties.issuer)
+            .issuedAt(now)
+            .expiration(expiryDate)
+            .claim("userId", userId)
+            .claim("roles", roles)
+            .claim("type", "refresh")
+            .signWith(key)
+            .compact()
+    }
 
     /**
      * 토큰에서 사용자명 추출
@@ -89,15 +108,37 @@ class JwtTokenProvider(
         return try {
             val claims = parseToken(token)
             val userId = claims["userId"]
-            when (userId) {
+            
+            // JWT 라이브러리에서 숫자는 기본적으로 Integer로 저장됨
+            val extractedUserId = when (userId) {
+                is Int -> userId.toLong()
+                is Long -> userId
                 is Number -> userId.toLong()
-                is String -> userId.toLong()
-                else -> throw JwtAuthenticationException("Invalid userId format in token", ErrorCode.JWT_AUTHENTICATION_FAILED)
+                is String -> {
+                    try {
+                        userId.toLong()
+                    } catch (e: NumberFormatException) {
+                        throw JwtAuthenticationException("Invalid userId string format in token: '$userId'", ErrorCode.JWT_AUTHENTICATION_FAILED, e)
+                    }
+                }
+                null -> throw JwtAuthenticationException("UserId claim is missing in token", ErrorCode.JWT_AUTHENTICATION_FAILED)
+                else -> {
+                    // 디버깅 정보 포함
+                    throw JwtAuthenticationException("Unexpected userId type in token: ${userId.javaClass.simpleName}, value: $userId", ErrorCode.JWT_AUTHENTICATION_FAILED)
+                }
             }
-        } catch (e: NumberFormatException) {
-            throw JwtAuthenticationException("Invalid userId format in token", ErrorCode.JWT_AUTHENTICATION_FAILED, e)
+            
+            // 0은 유효하지 않은 사용자 ID (호환성 메소드에서 사용됨)
+            if (extractedUserId == 0L) {
+                throw JwtAuthenticationException("Invalid userId in token (userId is 0). Token may have been generated without proper userId.", ErrorCode.JWT_AUTHENTICATION_FAILED)
+            }
+            
+            extractedUserId
+        } catch (e: JwtAuthenticationException) {
+            // 이미 적절한 메시지를 가진 예외는 다시 던짐
+            throw e
         } catch (e: Exception) {
-            throw JwtAuthenticationException("Invalid token: Unable to extract userId", ErrorCode.JWT_AUTHENTICATION_FAILED, e)
+            throw JwtAuthenticationException("Failed to extract userId from token: ${e.message}", ErrorCode.JWT_AUTHENTICATION_FAILED, e)
         }
     }
 
@@ -236,11 +277,120 @@ class JwtTokenProvider(
      * 토큰 갱신 (리프레시 토큰으로 새 액세스 토큰 생성)
      */
     fun refreshAccessToken(refreshToken: String): String? {
-        return if (validateToken(refreshToken) && isRefreshToken(refreshToken)) {
-            val username = getEmailFromToken(refreshToken)
-            generateAccessToken(username)
-        } else {
+        return try {
+            // 리프레시 토큰 유효성 검증
+            if (!validateToken(refreshToken)) {
+                return null
+            }
+            
+            // 리프레시 토큰인지 확인
+            if (!isRefreshToken(refreshToken)) {
+                return null
+            }
+            
+            // 토큰이 만료되었는지 확인
+            if (isTokenExpired(refreshToken)) {
+                return null
+            }
+            
+            val claims = parseToken(refreshToken)
+            val email = claims.subject
+            
+            // 리프레시 토큰에서 사용자 정보 추출
+            val userId = try {
+                val userIdClaim = claims["userId"]
+                when (userIdClaim) {
+                    is Int -> userIdClaim.toLong()
+                    is Long -> userIdClaim
+                    is Number -> userIdClaim.toLong()
+                    is String -> userIdClaim.toLong()
+                    null -> 0L // 호환성: 기존 리프레시 토큰은 userId가 없을 수 있음
+                    else -> 0L
+                }
+            } catch (e: Exception) {
+                0L // 기본값
+            }
+            
+            val roles = try {
+                val rolesClaim = claims["roles"] as? List<*>
+                rolesClaim?.filterIsInstance<String>() ?: listOf("USER")
+            } catch (e: Exception) {
+                listOf("USER") // 기본 역할
+            }
+            
+            // userId가 유효한 경우 포함해서 토큰 생성
+            if (userId > 0) {
+                generateAccessToken(email, userId, roles)
+            } else {
+                // 기존 호환성: userId 없이 토큰 생성
+                generateAccessTokenFromRefresh(email, roles)
+            }
+            
+        } catch (e: Exception) {
             null
+        }
+    }
+    
+    /**
+     * 리프레시 토큰에서 새로운 액세스 토큰 생성 (완전한 버전)
+     */
+    fun refreshAccessToken(refreshToken: String, userId: Long, roles: List<String> = listOf("USER")): String? {
+        return try {
+            // 리프레시 토큰 유효성 검증
+            if (!validateToken(refreshToken)) {
+                return null
+            }
+            
+            // 리프레시 토큰인지 확인
+            if (!isRefreshToken(refreshToken)) {
+                return null
+            }
+            
+            // 토큰이 만료되었는지 확인
+            if (isTokenExpired(refreshToken)) {
+                return null
+            }
+            
+            val email = getEmailFromToken(refreshToken)
+            
+            // userId와 roles를 포함한 새로운 액세스 토큰 생성
+            generateAccessToken(email, userId, roles)
+            
+        } catch (e: Exception) {
+            null
+        }
+    }
+    
+    /**
+     * 리프레시 토큰에서 액세스 토큰 생성 (내부 메서드) - 호환성용
+     */
+    private fun generateAccessTokenFromRefresh(email: String, roles: List<String>): String {
+        val now = Date()
+        val expiryDate = Date(now.time + jwtProperties.expiration)
+
+        return Jwts.builder()
+            .subject(email)
+            .issuer(jwtProperties.issuer)
+            .issuedAt(now)
+            .expiration(expiryDate)
+            .claim("userId", 0L) // 호환성: 기본값 설정 (실제로는 사용되면 안됨)
+            .claim("roles", roles)
+            .claim("type", "access")
+            .claim("refreshed", true) // 리프레시된 토큰임을 표시
+            .claim("legacy", true) // 레거시 토큰임을 표시
+            .signWith(key)
+            .compact()
+    }
+    
+    /**
+     * 리프레시 토큰이 최신 버전인지 확인 (userId 포함 여부)
+     */
+    fun isModernRefreshToken(refreshToken: String): Boolean {
+        return try {
+            val claims = parseToken(refreshToken)
+            claims["userId"] != null
+        } catch (e: Exception) {
+            false
         }
     }
 }

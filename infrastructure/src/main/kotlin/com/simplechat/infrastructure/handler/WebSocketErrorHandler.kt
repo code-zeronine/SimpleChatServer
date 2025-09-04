@@ -5,11 +5,10 @@ import com.simplechat.domain.exception.WebSocketErrorCode
 import com.simplechat.domain.exception.WebSocketException
 import com.simplechat.domain.message.ErrorWebSocketMessage
 import com.simplechat.domain.message.WebSocketMessageType
-import com.simplechat.infrastructure.monitoring.WebSocketErrorMetrics
 import com.simplechat.infrastructure.monitoring.ErrorSeverity
+import com.simplechat.infrastructure.monitoring.WebSocketErrorMetrics
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import org.springframework.web.reactive.socket.WebSocketMessage
 import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Mono
 import java.time.Instant

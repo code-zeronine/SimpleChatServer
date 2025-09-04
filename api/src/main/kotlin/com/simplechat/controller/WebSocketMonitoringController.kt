@@ -1,6 +1,5 @@
 package com.simplechat.controller
 
-import com.simplechat.dto.ApiError
 import com.simplechat.dto.ApiResponse
 import com.simplechat.infrastructure.security.WebSocketAuthService
 import com.simplechat.infrastructure.service.WebSocketSessionManager

@@ -1,11 +1,11 @@
 package com.simplechat.service
 
-import com.simplechat.dto.MessageDto
-import com.simplechat.dto.PagedApiResponse
-import com.simplechat.dto.PaginationInfo
 import com.simplechat.domain.entity.ChatMessage
 import com.simplechat.domain.entity.MessageType
 import com.simplechat.domain.repository.ChatMessageRepository
+import com.simplechat.dto.MessageDto
+import com.simplechat.dto.PagedApiResponse
+import com.simplechat.dto.PaginationInfo
 import com.simplechat.infrastructure.service.MessageCacheService
 import com.simplechat.util.SearchHighlighter
 import org.slf4j.LoggerFactory
@@ -23,15 +23,14 @@ class MessageService(
     
     private val logger = LoggerFactory.getLogger(MessageService::class.java)
 
-    fun getMessagesByRoom(roomId: String, page: Int, size: Int): Mono<PagedApiResponse<MessageDto>> {
-        val roomIdLong = roomId.toLong()
+    fun getMessagesByRoom(roomId: Long, page: Int, size: Int): Mono<PagedApiResponse<MessageDto>> {
         
         // 첫 페이지이고 기본 사이즈인 경우 캐시 먼저 확인
         val messagesFlux = if (page == 0 && size <= 50) {
-            messageCacheService.getRecentMessages(roomIdLong, size)
+            messageCacheService.getRecentMessages(roomId, size)
                 .map { it.toDto() }
                 .switchIfEmpty(
-                    chatMessageRepository.findByRoomIdOrderByTimestampDesc(roomIdLong, page, size)
+                    chatMessageRepository.findByRoomIdOrderByTimestampDesc(roomId, page, size)
                         .map { it.toDto() }
                         .collectList()
                         .flatMapMany { messages ->
@@ -46,22 +45,22 @@ class MessageService(
                                     timestamp = java.time.LocalDateTime.ofInstant(dto.timestamp, ZoneOffset.UTC)
                                 )
                             }
-                            messageCacheService.cacheRecentMessages(roomIdLong, domainMessages)
+                            messageCacheService.cacheRecentMessages(roomId, domainMessages)
                                 .thenMany(Flux.fromIterable(messages))
                         }
                 )
         } else {
             // 페이지네이션이 있는 경우는 직접 DB 조회
-            chatMessageRepository.findByRoomIdOrderByTimestampDesc(roomIdLong, page, size)
+            chatMessageRepository.findByRoomIdOrderByTimestampDesc(roomId, page, size)
                 .map { it.toDto() }
         }
         
         // 메시지 개수는 캐시에서 먼저 확인
-        val totalMessagesMono = messageCacheService.getCachedMessageCount(roomIdLong)
+        val totalMessagesMono = messageCacheService.getCachedMessageCount(roomId)
             .switchIfEmpty(
-                chatMessageRepository.countByRoomId(roomIdLong)
+                chatMessageRepository.countByRoomId(roomId)
                     .flatMap { count ->
-                        messageCacheService.cacheMessageCount(roomIdLong, count)
+                        messageCacheService.cacheMessageCount(roomId, count)
                             .thenReturn(count)
                     }
             )
@@ -86,13 +85,12 @@ class MessageService(
             }
     }
 
-    fun getRecentMessages(roomId: String, size: Int): Flux<MessageDto> {
-        val roomIdLong = roomId.toLong()
+    fun getRecentMessages(roomId: Long, size: Int): Flux<MessageDto> {
         
-        return messageCacheService.getRecentMessages(roomIdLong, size)
+        return messageCacheService.getRecentMessages(roomId, size)
             .map { it.toDto() }
             .switchIfEmpty(
-                chatMessageRepository.findRecentByRoomId(roomIdLong, size)
+                chatMessageRepository.findRecentByRoomId(roomId, size)
                     .map { it.toDto() }
                     .collectList()
                     .flatMapMany { messages ->
@@ -107,7 +105,7 @@ class MessageService(
                                 timestamp = java.time.LocalDateTime.ofInstant(dto.timestamp, ZoneOffset.UTC)
                             )
                         }
-                        messageCacheService.cacheRecentMessages(roomIdLong, domainMessages)
+                        messageCacheService.cacheRecentMessages(roomId, domainMessages)
                             .thenMany(Flux.fromIterable(messages))
                     }
             )
@@ -116,14 +114,13 @@ class MessageService(
             }
     }
 
-    fun countMessages(roomId: String): Mono<Long> {
-        val roomIdLong = roomId.toLong()
+    fun countMessages(roomId: Long): Mono<Long> {
         
-        return messageCacheService.getCachedMessageCount(roomIdLong)
+        return messageCacheService.getCachedMessageCount(roomId)
             .switchIfEmpty(
-                chatMessageRepository.countByRoomId(roomIdLong)
+                chatMessageRepository.countByRoomId(roomId)
                     .flatMap { count ->
-                        messageCacheService.cacheMessageCount(roomIdLong, count)
+                        messageCacheService.cacheMessageCount(roomId, count)
                             .thenReturn(count)
                     }
             )
@@ -133,9 +130,9 @@ class MessageService(
     }
 
     fun searchMessages(
-        roomId: String?,
+        roomId: Long?,
         keyword: String?,
-        userId: String?,
+        userId: Long?,
         messageType: String?,
         startDate: String?,
         endDate: String?,
@@ -147,9 +144,9 @@ class MessageService(
         val endDateTime = endDate?.let { java.time.LocalDateTime.parse(it) }
 
         val messagesFlux = chatMessageRepository.searchMessages(
-            roomId = roomId?.toLong(),
+            roomId = roomId,
             keyword = keyword,
-            userId = userId?.toLong(),
+            userId = userId,
             messageType = messageTypeEnum,
             startDate = startDateTime,
             endDate = endDateTime,
@@ -158,9 +155,9 @@ class MessageService(
         ).map { it.toDto(keyword) }
 
         val totalCountMono = chatMessageRepository.countSearchResults(
-            roomId = roomId?.toLong(),
+            roomId = roomId,
             keyword = keyword,
-            userId = userId?.toLong(),
+            userId = userId,
             messageType = messageTypeEnum,
             startDate = startDateTime,
             endDate = endDateTime
@@ -199,8 +196,8 @@ class MessageService(
     /**
      * 캐시 무효화
      */
-    fun invalidateRoomCache(roomId: String): Mono<Void> {
-        return messageCacheService.invalidateRoomCache(roomId.toLong())
+    fun invalidateRoomCache(roomId: Long): Mono<Void> {
+        return messageCacheService.invalidateRoomCache(roomId)
             .doOnSuccess {
                 logger.debug("Invalidated cache for room: {}", roomId)
             }
@@ -209,8 +206,8 @@ class MessageService(
     /**
      * 캐시 통계 조회
      */
-    fun getCacheStats(roomId: String): Mono<MessageCacheService.CacheStats> {
-        return messageCacheService.getCacheStats(roomId.toLong())
+    fun getCacheStats(roomId: Long): Mono<MessageCacheService.CacheStats> {
+        return messageCacheService.getCacheStats(roomId)
     }
 
     private fun ChatMessage.toDto(searchKeyword: String? = null): MessageDto {
@@ -224,4 +221,5 @@ class MessageService(
             messageType = this.messageType.name
         )
     }
+
 }

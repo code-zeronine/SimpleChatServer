@@ -39,12 +39,13 @@ data class ChatRoomDto(
     val maxParticipants: Int,
     val currentParticipants: Int,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val isJoined: Boolean
 ) {
     companion object {
         private val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
         
-        fun from(chatRoom: ChatRoom, currentParticipants: Int = 0): ChatRoomDto {
+        fun from(chatRoom: ChatRoom, currentParticipants: Int = 0, isJoined: Boolean = false): ChatRoomDto {
             return ChatRoomDto(
                 id = chatRoom.id,
                 name = chatRoom.name,
@@ -54,7 +55,8 @@ data class ChatRoomDto(
                 maxParticipants = chatRoom.maxParticipants,
                 currentParticipants = currentParticipants,
                 createdAt = chatRoom.createdAt.format(formatter),
-                updatedAt = chatRoom.updatedAt.format(formatter)
+                updatedAt = chatRoom.updatedAt.format(formatter),
+                isJoined = isJoined
             )
         }
     }
@@ -81,12 +83,13 @@ data class ParticipantDto(
     val lastReadAt: String?,
     val isActive: Boolean,
     val isMuted: Boolean,
-    val isPinned: Boolean
+    val isPinned: Boolean,
+    val isOnline: Boolean
 ) {
     companion object {
         private val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
         
-        fun from(userChatRoom: UserChatRoom, userNickname: String): ParticipantDto {
+        fun from(userChatRoom: UserChatRoom, userNickname: String, isOnline: Boolean): ParticipantDto {
             return ParticipantDto(
                 userId = userChatRoom.userId,
                 nickname = userNickname,
@@ -95,7 +98,8 @@ data class ParticipantDto(
                 lastReadAt = userChatRoom.lastReadAt?.format(formatter),
                 isActive = userChatRoom.isActive,
                 isMuted = userChatRoom.isMuted,
-                isPinned = userChatRoom.isPinned
+                isPinned = userChatRoom.isPinned,
+                isOnline = isOnline
             )
         }
     }

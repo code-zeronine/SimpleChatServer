@@ -1,6 +1,7 @@
 package com.simplechat.controller
 
 import com.simplechat.domain.entity.ChatRoomRole
+import com.simplechat.domain.repository.ChatRoomRepository
 import com.simplechat.domain.repository.UserRepository
 import com.simplechat.dto.ApiResponse
 import com.simplechat.dto.ChangeParticipantRoleRequest
@@ -11,6 +12,7 @@ import com.simplechat.dto.CreateChatRoomRequest
 import com.simplechat.dto.KickParticipantRequest
 import com.simplechat.dto.ParticipantDto
 import com.simplechat.dto.UpdateChatRoomRequest
+import com.simplechat.infrastructure.service.WebSocketSessionManager
 import com.simplechat.security.JwtAuthenticationHelper
 import com.simplechat.service.ChatRoomService
 import com.simplechat.service.UserChatRoomService
@@ -50,7 +52,9 @@ class ChatRoomController(
     private val chatRoomService: ChatRoomService,
     private val userChatRoomService: UserChatRoomService,
     private val jwtAuthenticationHelper: JwtAuthenticationHelper,
-    private val userRepository: UserRepository // ParticipantDto 변환을 위해 추가
+    private val userRepository: UserRepository,
+    private val webSocketSessionManager: WebSocketSessionManager,
+    private val chatRoomRepository: ChatRoomRepository // Inject repository for counting
 ) {
 
     /**
@@ -85,10 +89,10 @@ class ChatRoomController(
                 )
             }
             .flatMap { chatRoom ->
-                // 생성 후 참여자 수를 다시 조회하여 정확한 DTO 생성
                 userChatRoomService.countActiveParticipants(chatRoom.id!!)
                     .map { participantCount ->
-                        ChatRoomDto.from(chatRoom, participantCount.toInt())
+                        // Creator is always joined
+                        ChatRoomDto.from(chatRoom, participantCount.toInt(), true)
                     }
             }
             .map { chatRoomDto ->
@@ -99,12 +103,12 @@ class ChatRoomController(
     }
 
     /**
-     * 사용자가 참여한 채팅방 목록을 조회합니다.
+     * 채팅방 목록을 조회합니다.
      */
     @GetMapping
     @Operation(
-        summary = "참여한 채팅방 목록 조회",
-        description = "현재 사용자가 참여한 활성 채팅방 목록을 페이지네이션으로 조회합니다."
+        summary = "채팅방 목록 조회",
+        description = "채팅방 목록을 페이지네이션으로 조회합니다. 필터(all, joined)를 사용할 수 있습니다."
     )
     @ApiResponses(
         value = [
@@ -112,26 +116,41 @@ class ChatRoomController(
             SwaggerApiResponse(responseCode = "401", description = "인증 실패")
         ]
     )
-    fun getUserChatRooms(
+    fun getChatRooms(
         @Parameter(description = "JWT 인증 토큰", required = true)
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
         @Parameter(description = "페이지 번호 (0부터 시작)", example = "0")
         @RequestParam(defaultValue = "0") page: Int,
         @Parameter(description = "페이지 크기", example = "20")
-        @RequestParam(defaultValue = "20") size: Int
+        @RequestParam(defaultValue = "20") size: Int,
+        @Parameter(description = "필터 (all, joined)", example = "all")
+        @RequestParam(defaultValue = "all") filter: String
     ): Mono<ResponseEntity<ApiResponse<ChatRoomListResponse>>> {
         return extractUserIdFromToken(authHeader)
             .flatMap { userId ->
-                val roomsFlux = userChatRoomService.getUserActiveRooms(userId)
-                    .flatMap { userChatRoom ->
-                        val roomMono = chatRoomService.findChatRoomById(userChatRoom.chatRoomId)
-                        val countMono = userChatRoomService.countActiveParticipants(userChatRoom.chatRoomId)
-                        Mono.zip(roomMono, countMono)
-                    }
-                    .map { tuple -> ChatRoomDto.from(tuple.t1, tuple.t2.toInt()) }
+                val roomsFlux = when (filter) {
+                    "joined" -> userChatRoomService.getUserActiveRooms(userId)
+                        .flatMap { userChatRoom -> chatRoomService.findChatRoomById(userChatRoom.chatRoomId) }
+                    else -> chatRoomService.getPublicRooms(size * (page + 1)) // Fetch all public rooms with pagination
+                }
 
-                val roomsMono = roomsFlux.skip((page * size).toLong()).take(size.toLong()).collectList()
-                val totalCountMono = userChatRoomService.countUserActiveRooms(userId)
+                val roomsWithDetailsFlux = roomsFlux.flatMap { room ->
+                    val countMono = userChatRoomService.countActiveParticipants(room.id!!)
+                    val isJoinedMono = userChatRoomService.isActiveParticipant(userId, room.id!!)
+                    Mono.zip(countMono, isJoinedMono)
+                        .map { tuple ->
+                            val count = tuple.t1
+                            val isJoined = tuple.t2
+                            ChatRoomDto.from(room, count.toInt(), isJoined)
+                        }
+                }
+
+                val roomsMono = roomsWithDetailsFlux.skip((page * size).toLong()).take(size.toLong()).collectList()
+                
+                val totalCountMono = when (filter) {
+                    "joined" -> userChatRoomService.countUserActiveRooms(userId)
+                    else -> chatRoomRepository.count() // Note: This should ideally be countPublicRooms()
+                }
 
                 Mono.zip(roomsMono, totalCountMono)
             }
@@ -176,20 +195,25 @@ class ChatRoomController(
             .flatMap { userId ->
                 chatRoomService.getChatRoomDetails(roomId, userId)
                     .flatMap { details ->
-                        val roomDto = ChatRoomDto.from(details.room, details.participantCount)
+                        val isJoined = details.userRelationship != null && details.userRelationship.isActive
+                        val roomDto = ChatRoomDto.from(details.room, details.participantCount, isJoined)
 
                         val participantsFlux = Flux.fromIterable(details.participants)
                             .flatMap { ucr ->
-                                userRepository.findById(ucr.userId)
-                                    .map { user -> ParticipantDto.from(ucr, user.nickname) }
+                                val userMono = userRepository.findById(ucr.userId)
+                                val isOnlineMono = Mono.fromCallable { webSocketSessionManager.getUserActiveSessionCount(ucr.userId) > 0 }
+                                Mono.zip(userMono, isOnlineMono)
+                                    .map { tuple -> ParticipantDto.from(ucr, tuple.t1.nickname, tuple.t2) }
                             }
 
                         val ownerMono = userRepository.findById(details.room.createdBy)
-                            .map { user ->
+                            .flatMap { user ->
                                 val ownerRelationship = details.participants.find { it.userId == user.id }
-                                // 소유자 관계 정보가 없을 경우를 대비한 기본값 처리
                                 val defaultRelationship = details.userRelationship ?: ownerRelationship!!
-                                ParticipantDto.from(ownerRelationship ?: defaultRelationship, user.nickname)
+                                val isOnlineMono = Mono.fromCallable { webSocketSessionManager.getUserActiveSessionCount(user.id!!) > 0 }
+                                isOnlineMono.map { isOnline ->
+                                    ParticipantDto.from(ownerRelationship ?: defaultRelationship, user.nickname, isOnline)
+                                }
                             }
 
                         Mono.zip(
@@ -296,8 +320,17 @@ class ChatRoomController(
             .flatMapMany { userId ->
                 chatRoomService.getRoomParticipants(roomId, userId)
                     .flatMap { userChatRoom ->
-                        userRepository.findById(userChatRoom.userId)
-                            .map { user -> ParticipantDto.from(userChatRoom, user.nickname) }
+                        val userMono = userRepository.findById(userChatRoom.userId)
+                        val isOnlineMono = Mono.fromCallable { 
+                            webSocketSessionManager.getUserActiveSessionCount(userChatRoom.userId) > 0
+                        }
+                        
+                        Mono.zip(userMono, isOnlineMono)
+                            .map { tuple -> 
+                                val user = tuple.t1
+                                val isOnline = tuple.t2
+                                ParticipantDto.from(userChatRoom, user.nickname, isOnline)
+                            }
                     }
             }
             .collectList()
@@ -421,7 +454,10 @@ class ChatRoomController(
             }
             .flatMap { updatedRoom ->
                 userChatRoomService.countActiveParticipants(updatedRoom.id!!)
-                    .map { count -> ChatRoomDto.from(updatedRoom, count.toInt()) }
+                    .map { count -> 
+                        // Assume requester is joined
+                        ChatRoomDto.from(updatedRoom, count.toInt(), true) 
+                    }
             }
             .map { updatedRoomDto ->
                 ResponseEntity.ok(ApiResponse.success(updatedRoomDto, "채팅방 정보가 성공적으로 업데이트되었습니다."))

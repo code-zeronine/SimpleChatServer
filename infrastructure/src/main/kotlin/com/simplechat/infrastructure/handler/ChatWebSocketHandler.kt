@@ -4,14 +4,14 @@ import com.simplechat.domain.exception.WebSocketAuthenticationException
 import com.simplechat.domain.exception.WebSocketConnectionException
 import com.simplechat.domain.exception.WebSocketErrorCode
 import com.simplechat.infrastructure.security.WebSocketAuthService
+import com.simplechat.infrastructure.security.jwt.JwtUserDetails
 import org.slf4j.LoggerFactory
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Mono
-import org.springframework.security.core.context.ReactiveSecurityContextHolder
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
-import com.simplechat.infrastructure.security.jwt.JwtUserDetails
 
 /**
  * 채팅 WebSocket 핸들러
@@ -55,11 +55,19 @@ class ChatWebSocketHandler(
                     logger.info("WebSocket connection established for user {} (ID: {}) from {}", 
                         userDetails.username, authenticatedUserId, session.handshakeInfo.remoteAddress)
                     
-                    val derivedChatRoomId = "room-${authenticatedUserId}"
+                    // URL에서 채팅방 ID 추출 (쿼리 파라미터에서)
+                    val actualRoomId = extractRoomIdFromSession(validatedSession) ?: run {
+                        logger.warn("No roomId found in WebSocket URL for user {}", authenticatedUserId)
+                        return@flatMap errorHandler.handleAuthenticationError(
+                            validatedSession, 
+                            "채팅방 ID가 필요합니다"
+                        )
+                    }
+                    
                     val derivedUsername = "user-${authenticatedUserId}"
                     
                     // 메시지 핸들링 시작
-                    messageHandler.handleSession(validatedSession, derivedChatRoomId, derivedUsername, authenticatedUserId)
+                    messageHandler.handleSession(validatedSession, actualRoomId, derivedUsername, authenticatedUserId)
                 }
                 .onErrorResume { error ->
                     logger.warn("Authentication or user details extraction failed: {}", error.message)
@@ -104,6 +112,34 @@ class ChatWebSocketHandler(
             
             // 추가적인 연결 제한 검사는 AuthService에서 처리
             session
+        }
+    }
+    
+    /**
+     * WebSocket 세션에서 채팅방 ID를 추출합니다.
+     * 
+     * @param session WebSocket 세션
+     * @return 채팅방 ID (추출 실패 시 null)
+     */
+    private fun extractRoomIdFromSession(session: WebSocketSession): String? {
+        return try {
+            // 쿼리 파라미터에서 roomId 추출
+            session.handshakeInfo.uri.query?.let { query ->
+                val params = query.split("&")
+                params.forEach { param ->
+                    val keyValue = param.split("=")
+                    if (keyValue.size == 2 && keyValue[0] == "roomId") {
+                        logger.debug("Extracted roomId from query param: {}", keyValue[1])
+                        return keyValue[1]
+                    }
+                }
+            }
+            
+            logger.warn("Unable to extract roomId from WebSocket URL: {}", session.handshakeInfo.uri)
+            null
+        } catch (e: Exception) {
+            logger.error("Error extracting roomId from WebSocket URL: {}", e.message, e)
+            null
         }
     }
     

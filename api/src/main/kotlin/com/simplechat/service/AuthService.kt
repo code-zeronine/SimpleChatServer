@@ -1,6 +1,5 @@
 package com.simplechat.service
 
-import com.simplechat.controller.WebSocketMonitoringController
 import com.simplechat.domain.entity.User
 import com.simplechat.domain.exception.AuthenticationException
 import com.simplechat.domain.exception.DatabaseException
@@ -75,21 +74,19 @@ class AuthService(
      */
     fun refreshToken(request: RefreshTokenRequest): Mono<RefreshTokenResponse> {
         return Mono.fromCallable {
-            if (!jwtTokenProvider.validateToken(request.refreshToken)) {
-                throw JwtAuthenticationException("유효하지 않은 리프레시 토큰입니다.", ErrorCode.JWT_AUTHENTICATION_FAILED)
-            }
-            
-            if (!jwtTokenProvider.isRefreshToken(request.refreshToken)) {
-                throw JwtAuthenticationException("리프레시 토큰이 아닙니다.", ErrorCode.JWT_AUTHENTICATION_FAILED)
-            }
-            
-            val email = jwtTokenProvider.getEmailFromToken(request.refreshToken)
-            val newAccessToken = jwtTokenProvider.generateAccessToken(email, listOf("USER"))
+            // JwtTokenProvider의 refreshAccessToken 메서드 사용
+            val newAccessToken = jwtTokenProvider.refreshAccessToken(request.refreshToken)
+                ?: throw JwtAuthenticationException("토큰 갱신에 실패했습니다. 유효하지 않거나 만료된 리프레시 토큰입니다.", ErrorCode.JWT_AUTHENTICATION_FAILED)
             
             RefreshTokenResponse(
                 accessToken = newAccessToken,
                 expiresIn = jwtProperties.expiration
             )
+        }.onErrorMap { error ->
+            when (error) {
+                is JwtAuthenticationException -> error
+                else -> JwtAuthenticationException("토큰 갱신 중 오류가 발생했습니다.", ErrorCode.JWT_AUTHENTICATION_FAILED, error)
+            }
         }
     }
 
@@ -177,8 +174,8 @@ class AuthService(
      */
     private fun generateAuthResponse(user: User): Mono<AuthResponse> {
         return Mono.fromCallable {
-            val accessToken = jwtTokenProvider.generateAccessToken(user.email, listOf("USER"))
-            val refreshToken = jwtTokenProvider.generateRefreshToken(user.email)
+            val accessToken = jwtTokenProvider.generateAccessToken(user.email, user.id!!, listOf("USER"))
+            val refreshToken = jwtTokenProvider.generateRefreshToken(user.email, user.id!!, listOf("USER"))
             
             AuthResponse(
                 accessToken = accessToken,

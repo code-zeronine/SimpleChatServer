@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 페이지 초기화
     initializePage();
     setupEventListeners();
-    loadChatRooms();
+    loadChatRooms('all');
 });
 
 let currentRooms = [];
@@ -155,12 +155,11 @@ function setupCreateRoomForm() {
         
         try {
             // 채팅방 생성 API 호출
-            const response = await Http.post('/api/chat-rooms', {
+            const response = await Http.post('/api/rooms', {
                 name: formData.roomName.trim(),
                 description: formData.roomDescription?.trim() || '',
-                isPublic: formData.isPublic || false,
-                allowSearch: formData.allowSearch || false,
-                maxMembers: parseInt(formData.maxMembers) || 100
+                isPrivate: !(formData.isPublic || false),
+                maxParticipants: parseInt(formData.maxMembers) || 100
             });
             
             Toast.success('채팅방이 생성되었습니다!');
@@ -230,23 +229,25 @@ function validateCreateRoomForm(data) {
 /**
  * 채팅방 목록 로드
  */
-async function loadChatRooms() {
+async function loadChatRooms(filter = 'all') {
     const { Http, DOM, Toast } = window.SimpleChatServer.utils;
     
     const loadingSpinner = DOM.select('#loadingSpinner');
-    const roomsGrid = DOM.select('#roomsGrid');
     const emptyState = DOM.select('#emptyState');
-    
+    const roomsGrid = DOM.select('#roomsGrid');
+
     try {
-        // 로딩 상태 표시
-        loadingSpinner.style.display = 'flex';
-        emptyState.style.display = 'none';
-        
+        // Show spinner, hide empty state, and clear old cards
+        if (loadingSpinner) loadingSpinner.style.display = 'flex';
+        if (emptyState) emptyState.style.display = 'none';
+        const existingCards = roomsGrid.querySelectorAll('.room-card');
+        existingCards.forEach(card => card.remove());
+
         // API 호출
-        const response = await Http.get('/api/chat-rooms');
-        currentRooms = response.rooms || [];
+        const response = await Http.get(`/api/rooms?filter=${filter}`);
+        currentRooms = response.data?.rooms || [];
         
-        // 초기 필터링 및 정렬
+        // 필터링 및 정렬 적용
         applyFiltersAndSort();
         
         // UI 업데이트
@@ -257,13 +258,13 @@ async function loadChatRooms() {
         console.error('Failed to load chat rooms:', error);
         Toast.error('채팅방 목록을 불러오는데 실패했습니다.');
         
-        // 빈 상태 표시
         currentRooms = [];
         filteredRooms = [];
         updateRoomsDisplay();
         
     } finally {
-        loadingSpinner.style.display = 'none';
+        // Hide spinner at the end
+        if (loadingSpinner) loadingSpinner.style.display = 'none';
     }
 }
 
@@ -275,20 +276,19 @@ function updateRoomsDisplay() {
     
     const roomsGrid = DOM.select('#roomsGrid');
     const emptyState = DOM.select('#emptyState');
-    const loadingSpinner = DOM.select('#loadingSpinner');
     
-    // 로딩 스피너 제거
-    const existingSpinner = roomsGrid.querySelector('.loading-spinner');
-    if (existingSpinner) {
-        existingSpinner.remove();
-    }
-    
-    // 기존 카드들 제거
+    // Clear only the room cards, leaving the spinner element alone
     const existingCards = roomsGrid.querySelectorAll('.room-card');
     existingCards.forEach(card => card.remove());
     
     if (filteredRooms.length === 0) {
-        emptyState.style.display = 'flex';
+        // Don't show empty state if the spinner is active
+        const loadingSpinner = DOM.select('#loadingSpinner');
+        if (loadingSpinner && loadingSpinner.style.display !== 'none') {
+            emptyState.style.display = 'none';
+        } else {
+            emptyState.style.display = 'flex';
+        }
         return;
     }
     
@@ -308,8 +308,8 @@ function createRoomCard(room) {
     const { DOM, Utils } = window.SimpleChatServer.utils;
     
     const isJoined = room.isJoined || false;
-    const memberCount = room.memberCount || 0;
-    const maxMembers = room.maxMembers || 100;
+    const memberCount = room.currentParticipants || 0;
+    const maxMembers = room.maxParticipants || 100;
     const lastMessage = room.lastMessage || '';
     const lastActivity = room.lastActivity ? Utils.formatRelativeTime(room.lastActivity) : '방금 전';
     
@@ -325,8 +325,8 @@ function createRoomCard(room) {
                 ${room.description ? `<p class="room-description">${Utils.escapeHtml(room.description)}</p>` : ''}
             </div>
             <div class="room-status">
-                <div class="room-type-badge ${room.isPublic ? 'public' : 'private'}">
-                    ${room.isPublic ? 'PUBLIC' : 'PRIVATE'}
+                <div class="room-type-badge ${!room.isPrivate ? 'public' : 'private'}">
+                    ${!room.isPrivate ? 'PUBLIC' : 'PRIVATE'}
                 </div>
                 <div class="room-online-indicator"></div>
             </div>
@@ -419,9 +419,9 @@ function applyFiltersAndSort() {
             case 'joined':
                 return room.isJoined;
             case 'public':
-                return room.isPublic;
+                return !room.isPrivate;
             case 'private':
-                return !room.isPublic;
+                return room.isPrivate;
             case 'all':
             default:
                 return true;
@@ -484,9 +484,8 @@ function handleFilterChange(filter) {
         }
     });
     
-    applyFiltersAndSort();
-    updateRoomsDisplay();
-    updateRoomsCount();
+    // Re-fetch data from server based on the new filter
+    loadChatRooms(currentFilter);
 }
 
 function handleSortChange(sort) {
@@ -499,7 +498,8 @@ async function handleJoinRoom(roomId) {
     const { Http, Toast } = window.SimpleChatServer.utils;
     
     try {
-        await Http.post(`/api/chat-rooms/${roomId}/join`);
+        const response = await Http.post(`/api/rooms/${roomId}/join`);
+        console.log('Join room response:', response);
         Toast.success('채팅방에 참여했습니다!');
         
         // 채팅방 목록 새로고침
@@ -511,6 +511,7 @@ async function handleJoinRoom(roomId) {
         }, 1000);
         
     } catch (error) {
+        console.error('Join room error:', error);
         let errorMessage = '채팅방 참여에 실패했습니다.';
         
         if (error.status === 404) {
@@ -533,7 +534,7 @@ async function handleLeaveRoom(roomId) {
     }
     
     try {
-        await Http.delete(`/api/chat-rooms/${roomId}/leave`);
+        await Http.delete(`/api/rooms/${roomId}/leave`);
         Toast.success('채팅방에서 나갔습니다.');
         
         // 채팅방 목록 새로고침
@@ -595,8 +596,8 @@ function showRoomDetail(room) {
     
     titleEl.textContent = room.name;
     
-    const memberCount = room.memberCount || 0;
-    const maxMembers = room.maxMembers || 100;
+    const memberCount = room.currentParticipants || 0;
+    const maxMembers = room.maxParticipants || 100;
     const createdAt = room.createdAt ? Utils.formatDate(room.createdAt) : '알 수 없음';
     const lastActivity = room.lastActivity ? Utils.formatRelativeTime(room.lastActivity) : '방금 전';
     
@@ -616,7 +617,7 @@ function showRoomDetail(room) {
                 <div class="stat-label">최대 인원</div>
             </div>
             <div class="stat-item">
-                <span class="stat-value">${room.isPublic ? '공개' : '비공개'}</span>
+                <span class="stat-value">${!room.isPrivate ? '공개' : '비공개'}</span>
                 <div class="stat-label">타입</div>
             </div>
             <div class="stat-item">

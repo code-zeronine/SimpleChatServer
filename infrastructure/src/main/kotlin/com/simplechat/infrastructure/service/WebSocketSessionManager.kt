@@ -170,6 +170,33 @@ class WebSocketSessionManager {
     fun getAllActiveSessions(): List<WebSocketSession> {
         return sessions.values.filter { it.isOpen }
     }
+    
+    /**
+     * 채팅방의 모든 활성 세션 조회 (닫힌 세션은 즉시 제거)
+     */
+    fun getActiveChatRoomSessions(chatRoomId: String): List<WebSocketSession> {
+        val roomSessions = chatRoomSessions[chatRoomId] ?: return emptyList()
+        val activeSessions = mutableListOf<WebSocketSession>()
+        val closedSessionIds = mutableListOf<String>()
+        
+        for (sessionId in roomSessions) {
+            val session = sessions[sessionId]
+            if (session != null && session.isOpen) {
+                activeSessions.add(session)
+            } else {
+                // 닫힌 세션은 정리 대상으로 표시
+                closedSessionIds.add(sessionId)
+            }
+        }
+        
+        // 닫힌 세션들 즉시 정리
+        closedSessionIds.forEach { sessionId ->
+            logger.debug("Removing closed session {} from room {}", sessionId, chatRoomId)
+            removeSession(sessionId)
+        }
+        
+        return activeSessions
+    }
 
     /**
      * 세션 ID로 채팅방 ID 조회

@@ -4,7 +4,10 @@ import com.simplechat.dto.ApiResponse
 import com.simplechat.infrastructure.handler.WebSocketErrorHandler
 import com.simplechat.infrastructure.monitoring.ErrorStatistics
 import com.simplechat.infrastructure.monitoring.SessionErrorInfo
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
 
 /**
  * WebSocket 에러 처리 및 모니터링을 위한 REST API 컨트롤러

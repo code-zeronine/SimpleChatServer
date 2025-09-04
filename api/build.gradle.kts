@@ -21,6 +21,10 @@ dependencies {
     
     // API Documentation
     implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.3.0")
+
+    // MacOS DNS 네이티브 라이브러리 (MacOS에서 DNS 해결 최적화)
+    implementation("io.netty:netty-resolver-dns-native-macos:4.1.123.Final:osx-aarch_64")
+    implementation("io.netty:netty-resolver-dns-native-macos:4.1.123.Final:osx-x86_64")
     
     // Test dependencies
     testImplementation("org.springframework.boot:spring-boot-starter-test")
