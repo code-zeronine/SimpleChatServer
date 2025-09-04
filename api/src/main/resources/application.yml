@@ -39,6 +39,11 @@ spring:
       max-size: 20
       max-idle-time: 30m
       validation-query: SELECT 1
+  
+  # SQL Initialization Configuration
+  sql:
+    init:
+      mode: never
 
 # Logging Configuration
 logging:

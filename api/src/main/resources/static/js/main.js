@@ -2,6 +2,9 @@
  * SimpleChatServer - Main JavaScript
  * 
  * 공통 유틸리티 함수와 전역 기능을 제공합니다.
+ *
+ * Note: The handleLeaveRoom function and its related response processing are located in rooms.js,
+ * not in this file (main.js).
  */
 
 // 전역 설정
@@ -52,12 +55,32 @@ const Http = {
         const config = { headers: { ...defaultHeaders, ...options.headers }, ...options };
         try {
             const response = await fetch(url, config);
+
             if (response.status === 204) return { success: true, data: null }; // No Content
-            const data = await response.json();
+            
+            // Check if response has content and is JSON
+            const contentType = response.headers.get('Content-Type') || '';
+            const hasJsonContent = contentType.includes('application/json');
+            
+            let data = null;
+            if (hasJsonContent) {
+                try {
+                    const text = await response.text();
+                    data = text ? JSON.parse(text) : { success: true };
+                } catch (jsonError) {
+                    console.warn('Failed to parse JSON response:', jsonError);
+                    data = { success: response.ok };
+                }
+            } else {
+                // Non-JSON response, assume success if status is ok
+                data = { success: response.ok };
+            }
+            
             if (!response.ok) throw new HttpError(response.status, data.message || '요청 처리 중 오류가 발생했습니다.', data.errors);
             return data;
         } catch (error) {
             if (error instanceof HttpError) throw error;
+            console.error('Network error details:', error);
             throw new HttpError(500, '네트워크 오류가 발생했습니다.');
         }
     },

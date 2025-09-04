@@ -1,39 +1,112 @@
--- SimpleChatServer Database Schema
--- PostgreSQL용 사용자 테이블 및 관련 스키마 정의
+-- SimpleChatServer PostgreSQL Database Schema
+-- 기존 테이블 삭제 (외래 키 종속성 순서 고려)
 
--- 기존 테이블이 있다면 삭제 (개발환경용)
+-- 1. 연결 테이블 먼저 삭제
+DROP TABLE IF EXISTS user_chat_rooms CASCADE;
+
+-- 2. 종속 테이블 삭제
+DROP TABLE IF EXISTS chat_rooms CASCADE;
+
+-- 3. 기본 테이블 삭제
 DROP TABLE IF EXISTS users CASCADE;
 
--- Users 테이블 생성
+-- ============================================================
+-- 테이블 생성
+-- ============================================================
+
+-- 사용자 테이블
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    nickname VARCHAR(50) NOT NULL UNIQUE,
+    nickname VARCHAR(100) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- 인덱스 생성 (성능 최적화)
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_nickname ON users(nickname);
-CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
+-- 채팅방 테이블
+CREATE TABLE chat_rooms (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_by BIGINT NOT NULL,
+    is_private BOOLEAN NOT NULL DEFAULT FALSE,
+    max_participants INTEGER NOT NULL DEFAULT 100,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_chat_rooms_created_by FOREIGN KEY (created_by) REFERENCES users(id)
+);
 
--- 제약조건 추가 설명을 위한 코멘트
-COMMENT ON TABLE users IS '사용자 정보를 저장하는 테이블';
-COMMENT ON COLUMN users.id IS '사용자 고유 식별자 (자동증가)';
-COMMENT ON COLUMN users.email IS '사용자 이메일 주소 (로그인 ID로 사용, 중복 불허)';
-COMMENT ON COLUMN users.password_hash IS '암호화된 비밀번호 해시';
-COMMENT ON COLUMN users.nickname IS '사용자 닉네임 (채팅에서 표시되는 이름, 중복 불허)';
-COMMENT ON COLUMN users.created_at IS '계정 생성 일시';
+-- 사용자-채팅방 관계 테이블
+CREATE TABLE user_chat_rooms (
+    user_id BIGINT NOT NULL,
+    chat_room_id BIGINT NOT NULL,
+    role VARCHAR(50) NOT NULL DEFAULT 'MEMBER',
+    joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    last_read_at TIMESTAMP,
+    is_muted BOOLEAN NOT NULL DEFAULT FALSE,
+    is_pinned BOOLEAN NOT NULL DEFAULT FALSE,
+    left_at TIMESTAMP,
+    invited_by BIGINT,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, chat_room_id),
+    CONSTRAINT fk_user_chat_rooms_user_id FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT fk_user_chat_rooms_chat_room_id FOREIGN KEY (chat_room_id) REFERENCES chat_rooms(id),
+    CONSTRAINT fk_user_chat_rooms_invited_by FOREIGN KEY (invited_by) REFERENCES users(id)
+);
 
--- 이메일 형식 검증을 위한 CHECK 제약조건 추가
+-- ============================================================
+-- 인덱스 생성
+-- ============================================================
+
+-- users 테이블 인덱스
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_nickname ON users(nickname);
+CREATE INDEX idx_users_created_at ON users(created_at);
+
+-- chat_rooms 테이블 인덱스
+CREATE INDEX idx_chat_rooms_created_by ON chat_rooms(created_by);
+CREATE INDEX idx_chat_rooms_name ON chat_rooms(name);
+CREATE INDEX idx_chat_rooms_is_private ON chat_rooms(is_private);
+CREATE INDEX idx_chat_rooms_created_at ON chat_rooms(created_at);
+
+-- user_chat_rooms 테이블 인덱스
+CREATE INDEX idx_user_chat_rooms_user_id ON user_chat_rooms(user_id);
+CREATE INDEX idx_user_chat_rooms_chat_room_id ON user_chat_rooms(chat_room_id);
+CREATE INDEX idx_user_chat_rooms_is_active ON user_chat_rooms(is_active);
+CREATE INDEX idx_user_chat_rooms_joined_at ON user_chat_rooms(joined_at);
+CREATE INDEX idx_user_chat_rooms_role ON user_chat_rooms(role);
+
+-- 복합 인덱스
+CREATE INDEX idx_user_chat_rooms_user_active ON user_chat_rooms(user_id, is_active);
+CREATE INDEX idx_user_chat_rooms_room_active ON user_chat_rooms(chat_room_id, is_active);
+
+-- ============================================================
+-- 제약 조건 및 체크
+-- ============================================================
+
+-- role 값 제약
+ALTER TABLE user_chat_rooms ADD CONSTRAINT chk_user_chat_rooms_role 
+    CHECK (role IN ('OWNER', 'ADMIN', 'MEMBER'));
+
+-- max_participants 최소값 체크
+ALTER TABLE chat_rooms ADD CONSTRAINT chk_chat_rooms_max_participants 
+    CHECK (max_participants > 0);
+
+-- 이메일 형식 체크 (간단한 형식)
 ALTER TABLE users ADD CONSTRAINT chk_users_email_format 
     CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
 
--- 닉네임 길이 제약조건 추가 (User 엔티티의 @Size 어노테이션과 일치)
+-- 닉네임 길이 체크
 ALTER TABLE users ADD CONSTRAINT chk_users_nickname_length 
-    CHECK (LENGTH(nickname) >= 2 AND LENGTH(nickname) <= 50);
+    CHECK (LENGTH(nickname) >= 2 AND LENGTH(nickname) <= 100);
 
--- 비밀번호 해시 길이 제약조건 (최소한의 해시 길이 보장)
-ALTER TABLE users ADD CONSTRAINT chk_users_password_hash_not_empty 
-    CHECK (LENGTH(password_hash) > 0);
+-- 채팅방 이름 길이 체크
+ALTER TABLE chat_rooms ADD CONSTRAINT chk_chat_rooms_name_length 
+    CHECK (LENGTH(name) >= 1 AND LENGTH(name) <= 255);
+
+-- ============================================================
+-- 참고: updated_at 필드는 애플리케이션 레벨에서 관리됩니다
+-- R2DBC는 PostgreSQL 트리거 함수의 달러 인용 구문을 파싱하지 못하므로
+-- Spring Data R2DBC의 @LastModifiedDate 어노테이션을 사용하여 처리합니다
+-- ============================================================

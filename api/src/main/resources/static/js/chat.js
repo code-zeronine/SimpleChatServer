@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.isTimeDifferenceSignificant(currentGroup.messages[currentGroup.messages.length - 1], message)) {
                     currentGroup = {
                         userId: message.userId,
-                        userName: message.userName,
+                        userName: message.userNickname || message.userName,
                         isOwn: message.userId === this.currentUser?.id,
                         messages: [message]
                     };
@@ -475,13 +475,11 @@ document.addEventListener('DOMContentLoaded', function() {
         addMessage(message, isOwn = false) {
             this.messages.push(message);
             
-            const messagesList = DOM.select('#messagesList');
-            const messageEl = this.createMessageElement(message, isOwn, true);
-            
-            // 메시지를 추가하기 전에 스크롤 위치 확인
+            // 스크롤 위치 확인
             const wasScrollAtBottom = this.isScrollAtBottom();
             
-            messagesList.appendChild(messageEl);
+            // 전체 메시지 다시 렌더링하여 그룹화 적용
+            this.renderMessages();
             
             // 자신이 보낸 메시지이거나 스크롤이 맨 아래에 있으면 자동 스크롤
             if (isOwn || wasScrollAtBottom) {

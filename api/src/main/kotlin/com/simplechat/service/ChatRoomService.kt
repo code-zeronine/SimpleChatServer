@@ -136,11 +136,15 @@ class ChatRoomService(
      */
     fun leaveChatRoom(userId: Long, roomId: Long): Mono<Void> {
         logger.debug("Attempting to leave chat room - userId: $userId, roomId: $roomId")
-        return userChatRoomService.findUserChatRoomRelationship(userId, roomId)
+        return userChatRoomService.getUserChatRoomRelationship(userId, roomId)
             .doOnNext { relationship ->
                 logger.debug("Found relationship - userId: $userId, roomId: $roomId, isActive: ${relationship.isActive}, leftAt: ${relationship.leftAt}, role: ${relationship.role}")
             }
-            .flatMap { relationship ->                
+            .switchIfEmpty(Mono.defer {
+                logger.debug("No relationship found for userId: $userId, roomId: $roomId")
+                Mono.error(BusinessLogicException("참여하지 않은 채팅방입니다."))
+            })
+            .flatMap { relationship ->
                 when {
                     !relationship.isActiveParticipant() -> {
                         // 이미 나간 경우 성공으로 처리 (중복 나가기 허용)
@@ -157,10 +161,6 @@ class ChatRoomService(
                     }
                 }
             }
-            .switchIfEmpty(Mono.defer {
-                logger.debug("No relationship found for userId: $userId, roomId: $roomId")
-                Mono.error(BusinessLogicException("참여하지 않은 채팅방입니다."))
-            })
             .`as`(transactionalOperator::transactional)
     }
 
@@ -335,7 +335,7 @@ class ChatRoomService(
      * 사용자 권한을 검증합니다.
      */
     fun validateUserPermission(userId: Long, roomId: Long, requiredRole: ChatRoomRole): Mono<UserChatRoom> {
-        return findUserChatRoomRelationship(userId, roomId)
+        return getUserChatRoomRelationship(userId, roomId)
             .flatMap { relationship ->
                 if (relationship.role.level >= requiredRole.level) {
                     Mono.just(relationship)
@@ -397,7 +397,7 @@ class ChatRoomService(
      */
     private fun validateRoomUpdatePermission(requesterId: Long, roomId: Long): Mono<ChatRoom> {
         return Mono.zip(
-            findUserChatRoomRelationship(requesterId, roomId),
+            getUserChatRoomRelationship(requesterId, roomId),
             chatRoomRepository.findById(roomId)
                 .switchIfEmpty(Mono.error(ChatRoomNotFoundException("채팅방을 찾을 수 없습니다.")))
         ).flatMap { tuple ->
@@ -430,7 +430,7 @@ class ChatRoomService(
      */
     private fun validateRoomDeletionPermission(requesterId: Long, roomId: Long): Mono<ChatRoom> {
         return Mono.zip(
-            findUserChatRoomRelationship(requesterId, roomId),
+            getUserChatRoomRelationship(requesterId, roomId),
             chatRoomRepository.findById(roomId)
                 .switchIfEmpty(Mono.error(ChatRoomNotFoundException("채팅방을 찾을 수 없습니다.")))
         ).flatMap { tuple ->
@@ -470,7 +470,7 @@ class ChatRoomService(
      * 초대 권한을 검증합니다.
      */
     private fun validateInvitePermission(inviterId: Long, roomId: Long): Mono<Void> {
-        return findUserChatRoomRelationship(inviterId, roomId)
+        return getUserChatRoomRelationship(inviterId, roomId)
             .flatMap { relationship ->
                 if (relationship.hasAdminPrivileges()) {
                     Mono.empty()
@@ -517,8 +517,8 @@ class ChatRoomService(
     /**
      * 사용자-채팅방 관계를 조회합니다.
      */
-    private fun findUserChatRoomRelationship(userId: Long, roomId: Long): Mono<UserChatRoom> {
-        return userChatRoomService.findUserChatRoomRelationship(userId, roomId)
+    private fun getUserChatRoomRelationship(userId: Long, roomId: Long): Mono<UserChatRoom> {
+        return userChatRoomService.getUserChatRoomRelationship(userId, roomId)
     }
 
     // === 권한 검증 및 참여자 관리 기능 ===
@@ -575,7 +575,7 @@ class ChatRoomService(
      * 사용자가 채팅방에서 특정 작업을 수행할 권한이 있는지 확인합니다.
      */
     fun hasPermissionForAction(userId: Long, roomId: Long, requiredRole: ChatRoomRole): Mono<Boolean> {
-        return userChatRoomService.findUserChatRoomRelationship(userId, roomId)
+        return userChatRoomService.getUserChatRoomRelationship(userId, roomId)
             .map { relationship -> relationship.role.level >= requiredRole.level }
             .onErrorReturn(false)
     }

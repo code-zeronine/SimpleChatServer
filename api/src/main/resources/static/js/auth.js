@@ -53,8 +53,6 @@ function setupLoginForm() {
                 email: formData.email,
                 password: formData.password
             });
-
-            console.log('Login Response:', response.data);
             
             // 토큰 저장
             Storage.setToken(response.data.accessToken);

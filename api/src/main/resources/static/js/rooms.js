@@ -499,7 +499,6 @@ async function handleJoinRoom(roomId) {
     
     try {
         const response = await Http.post(`/api/rooms/${roomId}/join`);
-        console.log('Join room response:', response);
         Toast.success('채팅방에 참여했습니다!');
         
         // 채팅방 목록 새로고침
@@ -536,19 +535,25 @@ async function handleLeaveRoom(roomId) {
     try {
         await Http.delete(`/api/rooms/${roomId}/leave`);
         Toast.success('채팅방에서 나갔습니다.');
-        
         // 채팅방 목록 새로고침
         await loadChatRooms();
-        
     } catch (error) {
         let errorMessage = '채팅방 나가기에 실패했습니다.';
-        
-        if (error.status === 404) {
-            errorMessage = '존재하지 않는 채팅방입니다.';
-        } else if (error.status === 409) {
-            errorMessage = '참여하지 않은 채팅방입니다.';
+        console.error('Error leaving room:', error); // Add more detailed logging
+
+        if (error.status) { // Check if status exists
+            if (error.status === 404) {
+                errorMessage = '존재하지 않는 채팅방입니다.';
+            } else if (error.status === 409) {
+                errorMessage = '참여하지 않은 채팅방입니다.';
+            } else {
+                errorMessage = `채팅방 나가기에 실패했습니다. (오류 코드: ${error.status})`;
+            }
+        } else {
+            // This block will catch network errors, SyntaxErrors from response.json(), etc.
+            errorMessage = '채팅방 나가기 중 알 수 없는 오류가 발생했습니다.';
         }
-        
+
         Toast.error(errorMessage);
     }
 }

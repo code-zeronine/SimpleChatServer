@@ -12,6 +12,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
     <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="/static/css/auth.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div id="app">
@@ -19,7 +20,7 @@
             <div class="auth-card">
                 <div class="auth-header">
                     <div class="logo">
-                        <span class="logo-icon">💬</span>
+                        <i class="fas fa-comments logo-icon"></i>
                         <span class="logo-text">SimpleChatServer</span>
                     </div>
                     <h1 class="auth-title">로그인</h1>
@@ -94,12 +95,28 @@
                     <strong>관리자 계정</strong>
                     <p>이메일: admin@simplechat.com</p>
                     <p>비밀번호: password123</p>
+                    <p class="account-desc">모든 채팅방 관리 권한</p>
                     <button class="btn btn-secondary btn-small demo-login">사용하기</button>
                 </div>
-                <div class="demo-account" data-email="alice@example.com" data-password="password123">
-                    <strong>사용자 계정</strong>
-                    <p>이메일: alice@example.com</p>
+                <div class="demo-account" data-email="alice@simplechat.com" data-password="password123">
+                    <strong>Alice 계정</strong>
+                    <p>이메일: alice@simplechat.com</p>
                     <p>비밀번호: password123</p>
+                    <p class="account-desc">일반 사용자, 여러 채팅방 참여</p>
+                    <button class="btn btn-secondary btn-small demo-login">사용하기</button>
+                </div>
+                <div class="demo-account" data-email="bob@simplechat.com" data-password="password123">
+                    <strong>Bob 계정</strong>
+                    <p>이메일: bob@simplechat.com</p>
+                    <p>비밀번호: password123</p>
+                    <p class="account-desc">스터디 그룹 소유자</p>
+                    <button class="btn btn-secondary btn-small demo-login">사용하기</button>
+                </div>
+                <div class="demo-account" data-email="charlie@simplechat.com" data-password="password123">
+                    <strong>Charlie 계정</strong>
+                    <p>이메일: charlie@simplechat.com</p>
+                    <p>비밀번호: password123</p>
+                    <p class="account-desc">자유 수다방 소유자</p>
                     <button class="btn btn-secondary btn-small demo-login">사용하기</button>
                 </div>
             </div>

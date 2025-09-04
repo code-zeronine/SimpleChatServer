@@ -24,6 +24,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -268,7 +269,7 @@ class ChatRoomController(
     /**
      * 채팅방에서 퇴장합니다.
      */
-    @DeleteMapping("/{roomId}/leave")
+    @DeleteMapping("/{roomId}/leave", produces = [MediaType.APPLICATION_JSON_VALUE])
     @Operation(
         summary = "채팅방 퇴장",
         description = "현재 참여한 채팅방에서 퇴장합니다. 소유자는 퇴장할 수 없습니다."
