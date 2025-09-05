@@ -376,7 +376,7 @@ function setupPasswordToggle() {
             type: 'button',
             className: 'password-toggle',
             style: 'position: absolute; right: 10px; top: 50%; transform: translateY(-50%); border: none; background: none; cursor: pointer;'
-        }, '👁️');
+        }, '<i class="fas fa-eye"></i>');
         
         // 상대 위치를 위한 wrapper 추가
         const wrapper = DOM.create('div', { style: 'position: relative;' });
@@ -387,10 +387,10 @@ function setupPasswordToggle() {
         DOM.on(toggleBtn, 'click', function() {
             if (input.type === 'password') {
                 input.type = 'text';
-                this.textContent = '🙈';
+                this.innerHTML = '<i class="fas fa-eye-slash"></i>';
             } else {
                 input.type = 'password';
-                this.textContent = '👁️';
+                this.innerHTML = '<i class="fas fa-eye"></i>';
             }
         });
     });

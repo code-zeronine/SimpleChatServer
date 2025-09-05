@@ -827,7 +827,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const removeBtn = document.createElement('button');
             removeBtn.className = 'remove-file-btn';
-            removeBtn.textContent = '×';
+            removeBtn.innerHTML = '<i class="fas fa-times"></i>';
             removeBtn.title = '파일 제거';
             
             DOM.on(removeBtn, 'click', () => {
@@ -850,13 +850,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 파일 타입별 아이콘
         getFileIcon(mimeType) {
-            if (mimeType.startsWith('image/')) return '🖼️';
-            if (mimeType.startsWith('video/')) return '🎥';
-            if (mimeType.startsWith('audio/')) return '🎵';
-            if (mimeType.includes('pdf')) return '📄';
-            if (mimeType.includes('document') || mimeType.includes('word')) return '📝';
-            if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return '📊';
-            return '📁';
+            if (mimeType.startsWith('image/')) return '<i class="fas fa-file-image"></i>';
+            if (mimeType.startsWith('video/')) return '<i class="fas fa-file-video"></i>';
+            if (mimeType.startsWith('audio/')) return '<i class="fas fa-file-audio"></i>';
+            if (mimeType.includes('pdf')) return '<i class="fas fa-file-pdf"></i>';
+            if (mimeType.includes('document') || mimeType.includes('word')) return '<i class="fas fa-file-word"></i>';
+            if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return '<i class="fas fa-file-excel"></i>';
+            return '<i class="fas fa-file"></i>';
         },
         
         // 파일 크기 포맷

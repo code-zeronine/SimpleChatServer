@@ -5,11 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="SimpleChatServer 실시간 채팅">
     <title>채팅 - SimpleChatServer</title>
-    <link rel="icon" href="/static/img/favicon-light.svg" media="(prefers-color-scheme: light)">
-    <link rel="icon" href="/static/img/favicon-dark.svg" media="(prefers-color-scheme: dark)">
-    <link rel="apple-touch-icon" href="/static/img/favicon-180.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+    <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3e%3cpath fill='currentColor' d='M256 32C114.6 32 0 125.1 0 240c0 49.6 21.4 95 57 130.7C44.5 421.1 2.7 466 2.2 466.5c-2.2 2.3-2.8 5.7-1.5 8.7S4.8 480 8 480c66.3 0 116-31.8 146.3-74.9c28.8 12.1 60.9 18.9 94.7 18.9c141.4 0 256-93.1 256-208S397.4 32 256 32z'/%3e%3c/svg%3e">
     <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="/static/css/chat.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -21,7 +17,7 @@
             <div class="container">
                 <div class="header-left">
                     <button class="back-btn" id="backBtn" title="채팅방 목록으로">
-                        <span class="back-icon">←</span>
+                        <i class="fas fa-arrow-left"></i>
                     </button>
                     <h1 class="logo">
                         <i class="fas fa-comments logo-icon"></i>
@@ -35,10 +31,10 @@
                     </div>
                     <div class="header-actions">
                         <button class="btn btn-secondary btn-small" id="roomSettingsBtn" title="채팅방 설정">
-                            ⚙️
+                            <i class="fas fa-cog"></i>
                         </button>
                         <button class="btn btn-secondary btn-small" id="memberListBtn" title="참여자 목록">
-                            👥
+                            <i class="fas fa-users"></i>
                         </button>
                     </div>
                 </div>
@@ -52,7 +48,7 @@
                     <!-- 환영 메시지 -->
                     <div class="system-message">
                         <div class="system-message-content">
-                            <span class="welcome-icon">👋</span>
+                            <span class="welcome-icon"><i class="fas fa-hand-sparkles"></i></span>
                             <p>채팅방에 오신 것을 환영합니다!</p>
                             <small>메시지를 입력하여 대화를 시작하세요.</small>
                         </div>
@@ -71,7 +67,7 @@
 
                 <!-- 스크롤 다운 버튼 -->
                 <button class="scroll-down-btn" id="scrollDownBtn" style="display: none;">
-                    <span class="scroll-icon">↓</span>
+                    <span class="scroll-icon"><i class="fas fa-arrow-down"></i></span>
                     <span class="unread-count" id="unreadCount">0</span>
                 </button>
             </div>
@@ -83,7 +79,7 @@
                 <div class="input-wrapper">
                     <!-- 파일 첨부 버튼 -->
                     <button class="attachment-btn" id="attachmentBtn" title="파일 첨부">
-                        <span class="attachment-icon">📎</span>
+                        <i class="fas fa-paperclip"></i>
                     </button>
 
                     <!-- 메시지 입력창 -->
@@ -97,14 +93,14 @@
                         ></textarea>
                         <div class="input-actions">
                             <button class="emoji-btn" id="emojiBtn" title="이모지">
-                                <span class="emoji-icon">😊</span>
+                                <i class="far fa-smile"></i>
                             </button>
                         </div>
                     </div>
 
                     <!-- 전송 버튼 -->
                     <button class="send-btn" id="sendBtn" title="전송" disabled>
-                        <span class="send-icon">📤</span>
+                        <i class="fas fa-paper-plane"></i>
                     </button>
                 </div>
 
@@ -131,11 +127,11 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h3>파일 첨부</h3>
-                    <button class="modal-close" id="closeAttachmentModal">×</button>
+                    <button class="modal-close" id="closeAttachmentModal"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
                     <div class="file-drop-area" id="fileDropArea">
-                        <div class="drop-icon">📁</div>
+                        <div class="drop-icon"><i class="fas fa-folder-open"></i></div>
                         <p>파일을 여기로 드래그하거나 클릭하여 선택하세요</p>
                         <input type="file" id="fileInput" multiple accept="image/*,application/pdf,.txt,.doc,.docx">
                         <button class="btn btn-secondary" id="selectFileBtn">파일 선택</button>
@@ -159,7 +155,7 @@
         <aside class="members-sidebar" id="membersSidebar">
             <div class="sidebar-header">
                 <h3>참여자 목록</h3>
-                <button class="sidebar-close" id="closeMembersSidebar">×</button>
+                <button class="sidebar-close" id="closeMembersSidebar"><i class="fas fa-times"></i></button>
             </div>
             <div class="sidebar-content">
                 <div class="members-list" id="membersList">

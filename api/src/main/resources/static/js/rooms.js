@@ -335,11 +335,11 @@ function createRoomCard(room) {
         <div class="room-card-body">
             <div class="room-stats">
                 <div class="room-stat">
-                    <span class="room-stat-icon">👥</span>
+                    <span class="room-stat-icon"><i class="fas fa-users"></i></span>
                     <span>${memberCount}/${maxMembers}</span>
                 </div>
                 <div class="room-stat">
-                    <span class="room-stat-icon">🕒</span>
+                    <span class="room-stat-icon"><i class="fas fa-clock"></i></span>
                     <span>${lastActivity}</span>
                 </div>
             </div>

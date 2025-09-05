@@ -373,7 +373,7 @@ function createScrollTopButton() {
             transition: all 0.3s ease;
             transform: translateY(20px);
         `
-    }, '↑');
+    }, '<i class="fas fa-arrow-up"></i>');
     
     document.body.appendChild(scrollTopBtn);
     

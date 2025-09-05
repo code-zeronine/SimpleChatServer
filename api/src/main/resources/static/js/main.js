@@ -213,13 +213,13 @@ const Toast = {
             container = DOM.create('div', { className: 'toast-container' });
             document.body.appendChild(container);
         }
-        const iconMap = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+        const iconMap = { success: '<i class="fas fa-check-circle"></i>', error: '<i class="fas fa-times-circle"></i>', warning: '<i class="fas fa-exclamation-triangle"></i>', info: '<i class="fas fa-info-circle"></i>' };
         const toast = DOM.create('div', { className: `toast toast-${type}` }, `
             <div class="toast-content">
                 <span class="toast-icon">${iconMap[type]}</span>
                 <span class="toast-message">${message}</span>
             </div>
-            <button class="toast-close">&times;</button>
+            <button class="toast-close"><i class="fas fa-times"></i></button>
         `);
         container.prepend(toast);
         const close = () => {
