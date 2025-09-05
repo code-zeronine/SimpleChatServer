@@ -279,21 +279,7 @@ body {
     display: block;
 }
 
-/* 로딩 스피너 */
-.loading-spinner {
-    display: inline-block;
-    width: 1rem;
-    height: 1rem;
-    border: 2px solid currentColor;
-    border-right-color: transparent;
-    border-radius: 50%;
-    animation: spin 0.75s linear infinite;
-    margin-right: var(--spacing-xs);
-}
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
 
 .btn-loading {
     display: none;
