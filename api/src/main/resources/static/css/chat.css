@@ -996,3 +996,36 @@
         max-width: calc(100vw - 2 * var(--spacing-md));
     }
 }
+
+/* 시스템 메시지 그룹 스타일링 */
+.message-group.system {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin: var(--spacing-xs) 0 !important;
+    width: 100% !important;
+    visibility: visible !important;
+}
+
+.message-group.system .system-message {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    background-color: rgba(108, 117, 125, 0.2) !important;
+    border-radius: var(--border-radius) !important;
+    padding: var(--spacing-xs) var(--spacing-sm) !important;
+    max-width: 80% !important;
+    border: 1px solid rgba(108, 117, 125, 0.4) !important;
+    visibility: visible !important;
+    margin: 0 !important;
+}
+
+.message-group.system .system-message-content {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: var(--font-size-sm) !important;
+    color: var(--text-secondary) !important;
+    text-align: center !important;
+}

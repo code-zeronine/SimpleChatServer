@@ -87,6 +87,23 @@ class WebSocketMessageHandler(
             .doFinally { signalType -> // Handle session disconnection
                 sessionManager.removeSession(session.id)
                 redisMessageBrokerService.unsubscribeFromChatRoom(chatRoomId).subscribe()
+                
+                // 연결 해제 시 자동으로 퇴장 시스템 메시지 전송
+                if (signalType != reactor.core.publisher.SignalType.ON_COMPLETE) {
+                    try {
+                        val leaveSystemMessage = SystemWebSocketMessage(
+                            messageId = UUID.randomUUID().toString(),
+                            timestamp = Instant.now(),
+                            sessionId = session.id,
+                            content = "$username 님이 퇴장했습니다."
+                        )
+                        messageBrokerService.broadcast(chatRoomId, leaveSystemMessage)
+                        log.debug("Auto-sent leave message for user {} in room {}", userId, chatRoomId)
+                    } catch (e: Exception) {
+                        log.warn("Failed to send auto-leave message for user {} in room {}: {}", userId, chatRoomId, e.message)
+                    }
+                }
+                
                 log.info("Session removed for user {} in room {}: {} (Signal: {})", userId, chatRoomId, session.id, signalType)
             }
             .then() // Complete the Mono<Void>
@@ -304,31 +321,43 @@ class WebSocketMessageHandler(
     // New methods for handling specific message types
     private fun handleJoinRoom(session: WebSocketSession, message: JoinWebSocketMessage): Mono<Void> {
         // Logic for handling join room message
-        // For now, just log and broadcast a system message
-        log.info("User {} joined room {}", message.userId, message.roomId)
+        log.info("User {} ({}) joined room {}", message.userId, message.userNickname, message.roomId)
+        
         val systemMessage = SystemWebSocketMessage(
             messageId = UUID.randomUUID().toString(),
             timestamp = Instant.now(),
             sessionId = session.id,
-            content = "${message.userNickname} 님이 입장했습니다."
+            content = "${message.userNickname ?: "사용자"} 님이 입장했습니다."
         )
-        return Mono.fromRunnable {
+        
+        return Mono.defer {
             messageBrokerService.broadcast(message.roomId.toString(), systemMessage)
+            Mono.empty<Void>()
+        }
+        .onErrorResume { error ->
+            log.error("Failed to broadcast join message: {}", error.message)
+            Mono.empty()
         }
     }
 
     private fun handleLeaveRoom(session: WebSocketSession, message: LeaveWebSocketMessage): Mono<Void> {
         // Logic for handling leave room message
-        // For now, just log and broadcast a system message
-        log.info("User {} left room {}", message.userId, message.roomId)
+        log.info("User {} ({}) left room {}", message.userId, message.userNickname, message.roomId)
+        
         val systemMessage = SystemWebSocketMessage(
             messageId = UUID.randomUUID().toString(),
             timestamp = Instant.now(),
             sessionId = session.id,
-            content = "${message.userNickname} 님이 퇴장했습니다."
+            content = "${message.userNickname ?: "사용자"} 님이 퇴장했습니다."
         )
-        return Mono.fromRunnable {
+        
+        return Mono.defer {
             messageBrokerService.broadcast(message.roomId.toString(), systemMessage)
+            Mono.empty<Void>()
+        }
+        .onErrorResume { error ->
+            log.error("Failed to broadcast leave message: {}", error.message)
+            Mono.empty()
         }
     }
 }

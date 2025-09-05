@@ -50,7 +50,7 @@ class ChatWebSocketHandler(
                 .cast(UsernamePasswordAuthenticationToken::class.java)
                 .map { it.principal }
                 .cast(JwtUserDetails::class.java)
-                .flatMap { userDetails ->
+                .flatMap userDetailsFlatMap@{ userDetails ->
                     val authenticatedUserId = userDetails.id
                     logger.info("WebSocket connection established for user {} (ID: {}) from {}", 
                         userDetails.username, authenticatedUserId, session.handshakeInfo.remoteAddress)
@@ -58,7 +58,7 @@ class ChatWebSocketHandler(
                     // URL에서 채팅방 ID 추출 (쿼리 파라미터에서)
                     val actualRoomId = extractRoomIdFromSession(validatedSession) ?: run {
                         logger.warn("No roomId found in WebSocket URL for user {}", authenticatedUserId)
-                        return@flatMap errorHandler.handleAuthenticationError(
+                        return@userDetailsFlatMap errorHandler.handleAuthenticationError(
                             validatedSession, 
                             "채팅방 ID가 필요합니다"
                         )

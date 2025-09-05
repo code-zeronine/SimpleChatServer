@@ -239,7 +239,20 @@ class ChatClient {
         };
         
         this.websocket.onclose = (event) => {
-            this.log('WebSocket closed', { code: event.code, reason: event.reason });
+            this.log('WebSocket closed', { code: event.code, reason: event.reason, wasClean: event.wasClean });
+            
+            // 연결이 정리되지 않은 상태에서 끊어진 경우 퇴장 처리
+            if (this.isConnected && this.currentRoomId) {
+                this.log('Connection closed unexpectedly, notifying leave...');
+                // 서버에서 연결 해제를 감지하고 자동으로 처리하겠지만,
+                // 클라이언트에서도 상태 정리를 위해 이벤트 발생
+                this.emit('userLeft', { 
+                    userId: this.currentUser?.id, 
+                    userNickname: this.currentUser?.nickname || this.currentUser?.email,
+                    roomId: this.currentRoomId 
+                });
+            }
+            
             this.isConnected = false;
             
             // 하트비트 정지

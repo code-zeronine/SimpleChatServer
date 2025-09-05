@@ -226,19 +226,21 @@ document.addEventListener('DOMContentLoaded', function() {
         // 메시지 렌더링
         renderMessages() {
             const messagesList = DOM.select('#messagesList');
-            const existingMessages = messagesList.querySelectorAll('.message');
             
-            // 기존 메시지 제거 (시스템 메시지와 로딩 제외)
-            existingMessages.forEach(msg => msg.remove());
+            // 모든 메시지 관련 요소 제거 (더 확실한 정리)
+            const messagesToRemove = messagesList.querySelectorAll('.message-group, .message, .message-sender');
+            messagesToRemove.forEach(element => element.remove());
+            
+            console.log('Cleared', messagesToRemove.length, 'message elements');
             
             if (this.messages.length === 0) {
                 return;
             }
             
-            // 메시지 그룹화
+            // 메시지 그룹화 및 렌더링
             const groupedMessages = this.groupMessages(this.messages);
             
-            groupedMessages.forEach(group => {
+            groupedMessages.forEach((group, index) => {
                 const groupEl = this.createMessageGroup(group);
                 messagesList.appendChild(groupEl);
             });
@@ -250,12 +252,24 @@ document.addEventListener('DOMContentLoaded', function() {
             let currentGroup = null;
             
             messages.forEach(message => {
+                // 시스템 메시지는 별도 그룹으로 처리
+                if (message.type === 'SYSTEM') {
+                    const systemGroup = {
+                        type: 'SYSTEM',
+                        messages: [message]
+                    };
+                    groups.push(systemGroup);
+                    currentGroup = null; // 시스템 메시지 후에는 새 그룹 시작
+                    return;
+                }
+                
                 if (!currentGroup || currentGroup.userId !== message.userId || 
                     this.isTimeDifferenceSignificant(currentGroup.messages[currentGroup.messages.length - 1], message)) {
+                    const isOwn = String(message.userId) === String(this.currentUser?.id);
                     currentGroup = {
                         userId: message.userId,
                         userName: message.userNickname || message.userName,
-                        isOwn: message.userId === this.currentUser?.id,
+                        isOwn: isOwn,
                         messages: [message]
                     };
                     groups.push(currentGroup);
@@ -264,6 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
+            console.log('Grouped messages result:', groups);
             return groups;
         },
         
@@ -279,15 +294,35 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 메시지 그룹 생성
         createMessageGroup(group) {
+            console.log('Creating message group:', {
+                type: group.type,
+                userId: group.userId,
+                userName: group.userName,
+                isOwn: group.isOwn,
+                messageCount: group.messages?.length
+            });
             const groupEl = document.createElement('div');
+            
+            // 시스템 메시지 처리
+            if (group.type === 'SYSTEM') {
+                console.log('Creating SYSTEM message group');
+                groupEl.className = 'message-group system';
+                const message = group.messages[0];
+                const systemMessageEl = this.createSystemMessage(message);
+                groupEl.appendChild(systemMessageEl);
+                return groupEl;
+            }
+            
             groupEl.className = 'message-group';
             
-            // 다른 사용자의 메시지인 경우 사용자 이름 표시
+            // 다른 사용자의 메시지인 경우 사용자 이름 표시 (한 번만)
             if (!group.isOwn) {
+                console.log('Adding sender name:', group.userName);
                 const nameEl = document.createElement('div');
                 nameEl.className = 'message-sender';
                 nameEl.textContent = group.userName || 'Unknown User';
                 groupEl.appendChild(nameEl);
+                console.log('Added sender element with text:', nameEl.textContent);
             }
             
             group.messages.forEach((message, index) => {
@@ -594,7 +629,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 메시지 타입별 핸들러 등록
                 this.websocket.onMessage('CHAT', (data) => {
-                    if (data.userId !== this.currentUser.id) {
+                    if (String(data.userId) !== String(this.currentUser.id)) {
                         // 다른 사용자로부터 받은 메시지
                         const parsedTimestamp = this.parseTimestamp(data.timestamp);
                         const message = {
@@ -614,11 +649,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 레거시 지원을 위한 일반 메시지 핸들러
                 this.websocket.onMessage('message', (data) => {
+                    console.log('Received WebSocket message:', data);
                     if (data.type === 'CHAT') {
                         // CHAT 타입은 위에서 처리됨
                         return;
                     }
-                    if (data.userId !== this.currentUser.id) {
+                    if (data.type === 'SYSTEM') {
+                        console.log('Processing SYSTEM message:', data);
+                        this.addMessage({
+                            type: 'SYSTEM',
+                            content: data.content,
+                            timestamp: data.timestamp || new Date().toISOString(),
+                            messageId: data.messageId || Date.now().toString()
+                        }, false);
+                        return;
+                    }
+                    if (String(data.userId) !== String(this.currentUser.id)) {
                         this.addMessage(data, false);
                     } else {
                         this.updateMessageStatus(data.tempId, 'sent');
@@ -626,7 +672,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 this.websocket.onMessage('TYPING', (data) => {
-                    if (data.userId !== this.currentUser.id) {
+                    if (String(data.userId) !== String(this.currentUser.id)) {
                         if (data.isTyping) {
                             this.showTypingIndicator(data.userNickname || data.userName);
                         } else {
@@ -902,6 +948,21 @@ document.addEventListener('DOMContentLoaded', function() {
             memberItem.appendChild(memberInfo);
             
             return memberItem;
+        },
+        
+        // 시스템 메시지 요소 생성
+        createSystemMessage(message) {
+            console.log('Creating system message element:', message);
+            const systemMessageEl = document.createElement('div');
+            systemMessageEl.className = 'system-message';
+            
+            const contentEl = document.createElement('div');
+            contentEl.className = 'system-message-content';
+            contentEl.textContent = message.content;
+            
+            systemMessageEl.appendChild(contentEl);
+            
+            return systemMessageEl;
         },
         
         // 정리
