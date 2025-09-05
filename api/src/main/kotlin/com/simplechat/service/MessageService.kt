@@ -3,6 +3,7 @@ package com.simplechat.service
 import com.simplechat.domain.entity.ChatMessage
 import com.simplechat.domain.entity.MessageType
 import com.simplechat.domain.repository.ChatMessageRepository
+import com.simplechat.domain.repository.UserRepository
 import com.simplechat.dto.MessageDto
 import com.simplechat.dto.PagedApiResponse
 import com.simplechat.dto.PaginationInfo
@@ -17,6 +18,7 @@ import java.time.ZoneOffset
 @Service
 class MessageService(
     private val chatMessageRepository: ChatMessageRepository,
+    private val userRepository: UserRepository,
     private val messageCacheService: MessageCacheService,
     private val searchHighlighter: SearchHighlighter
 ) {
@@ -210,11 +212,30 @@ class MessageService(
         return messageCacheService.getCacheStats(roomId)
     }
 
+    private fun ChatMessage.toDtoWithUser(searchKeyword: String? = null): Mono<MessageDto> {
+        return userRepository.findById(this.userId)
+            .map { user -> user.nickname }
+            .defaultIfEmpty("Unknown User")
+            .map { nickname ->
+                MessageDto(
+                    id = this.id,
+                    roomId = this.roomId.toString(),
+                    userId = this.userId,
+                    userNickname = nickname,
+                    content = this.content,
+                    timestamp = this.timestamp.toInstant(ZoneOffset.UTC),
+                    highlightedContent = searchHighlighter.highlightKeyword(this.content, searchKeyword),
+                    messageType = this.messageType.name
+                )
+            }
+    }
+    
     private fun ChatMessage.toDto(searchKeyword: String? = null): MessageDto {
         return MessageDto(
             id = this.id,
             roomId = this.roomId.toString(),
             userId = this.userId,
+            userNickname = null, // JavaScript에서 사용자 정보를 조회하도록 수정
             content = this.content,
             timestamp = this.timestamp.toInstant(ZoneOffset.UTC),
             highlightedContent = searchHighlighter.highlightKeyword(this.content, searchKeyword),

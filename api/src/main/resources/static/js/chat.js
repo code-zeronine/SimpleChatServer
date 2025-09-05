@@ -23,12 +23,16 @@ document.addEventListener('DOMContentLoaded', function() {
         isConnected: false,
         typingTimer: null,
         unreadCount: 0,
+        currentPage: 0, // Add this
+        isLoadingMessages: false, // Add this
+        userMappings: new Map(), // userId -> userNickname 매핑
         
         // 초기화
         init() {
             this.currentUser = Storage.getUser();
-            console.log("currentUser: {}", this.currentUser)
+            console.log("ChatManager.init: currentUser =", this.currentUser);
             this.currentRoomId = this.getRoomIdFromURL();
+            console.log("ChatManager.init: currentRoomId =", this.currentRoomId);
             
             if (!this.currentRoomId) {
                 Toast.error('잘못된 채팅방 접근입니다.');
@@ -167,12 +171,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 채팅방 정보 로드
         async loadChatRoom() {
+            console.log("loadChatRoom: Loading room info for roomId =", this.currentRoomId);
             try {
                 const response = await Http.get(`/api/rooms/${this.currentRoomId}`);
+                console.log("loadChatRoom: Room info response =", response);
                 if (response.success) {
                     this.updateRoomInfo(response.data);
-                    await this.loadMessages();
-                } else {
+                    await this.loadInitialData();
+                }
+                else {
                     Toast.error('채팅방 정보를 불러올 수 없습니다.');
                     window.location.href = '/rooms';
                 }
@@ -199,55 +206,137 @@ document.addEventListener('DOMContentLoaded', function() {
             document.title = `${room.name} - SimpleChatServer`;
         },
         
+        // 초기 데이터 로드 (참여자 정보와 메시지)
+        async loadInitialData() {
+            try {
+                // 참여자 정보를 먼저 로드하여 사용자 매핑 생성
+                const participantsResponse = await Http.get(`/api/rooms/${this.currentRoomId}/participants`);
+                if (participantsResponse.success) {
+                    this.updateUserMappings(participantsResponse.data);
+                }
+                
+                // 이후 메시지 로드
+                await this.loadMessages();
+            } catch (error) {
+                console.error('초기 데이터 로드 오류:', error);
+                // 참여자 정보 로드 실패 시에도 메시지는 로드
+                await this.loadMessages();
+            }
+        },
+        
         // 메시지 로드
-        async loadMessages() {
+        async loadMessages(loadMore = false) {
+            console.log(`loadMessages: Called with loadMore=${loadMore}, currentPage=${this.currentPage}, isLoadingMessages=${this.isLoadingMessages}`);
+            if (this.isLoadingMessages) {
+                console.log("loadMessages: Already loading, returning.");
+                return;
+            }
+            this.isLoadingMessages = true;
+
             try {
                 const loadingEl = DOM.select('#loadingMessages');
                 loadingEl.style.display = 'block';
-                
-                const response = await Http.get(`/api/messages/room/${this.currentRoomId}?limit=50`);
-                
-                if (response.success && response.data) {
-                    this.messages = response.data.content || [];
-                    this.renderMessages();
-                    setTimeout(() => this.scrollToBottom(false), 100);
-                } else {
-                    console.warn('메시지 로드 실패:', response);
+
+                const pageToLoad = loadMore ? this.currentPage + 1 : 0;
+                const limit = 50;
+                console.log(`loadMessages: Fetching messages for page=${pageToLoad}, size=${limit}`);
+
+                const response = await Http.get(`/api/messages/room/${this.currentRoomId}?page=${pageToLoad}&size=${limit}`);
+                console.log("loadMessages: RAW API response =", response); // This log is fine here
+
+                if (response.success && response.data) { // This 'if' needs to wrap the successful processing
+                    console.log("loadMessages: API response =", response); // This log is fine here
+                    const newMessages = Array.isArray(response.data) ? response.data : (response.data.content || []);
+                    console.log(`loadMessages: Fetched ${newMessages.length} new messages.`);
+                    
+                    if (newMessages.length > 0) { // Only process if there are new messages
+                        // 메시지에서 사용자 ID들을 추출하고 매핑되지 않은 사용자 정보 로드
+                        await this.loadMissingUserInfo(newMessages);
+                        
+                        if (loadMore) {
+                            this.messages = [...newMessages.reverse(), ...this.messages];
+                            this.prependMessages(newMessages);
+                            this.currentPage = pageToLoad;
+                            console.log(`loadMessages: Prepended messages. Total messages in array: ${this.messages.length}`);
+                        } else {
+                            this.messages = newMessages.reverse();
+                            this.renderMessages();
+                            setTimeout(() => this.scrollToBottom(false), 100);
+                            console.log(`loadMessages: Initial load. Total messages in array: ${this.messages.length}`);
+                        }
+                    } else {
+                        console.log("loadMessages: No new messages received from API.");
+                    }
+
+                    if (newMessages.length < limit) {
+                        console.log("loadMessages: Reached end of older messages.");
+                    }
+
+                } else { // This 'else' is correctly paired with the 'if (response.success && response.data)'
+                    console.warn('loadMessages: 메시지 로드 실패:', response);
                 }
             } catch (error) {
-                console.error('메시지 로드 오류:', error);
+                console.error('loadMessages: 메시지 로드 오류:', error);
                 Toast.error('메시지를 불러올 수 없습니다.');
             } finally {
                 const loadingEl = DOM.select('#loadingMessages');
                 loadingEl.style.display = 'none';
+                this.isLoadingMessages = false;
+                console.log("loadMessages: Loading finished.");
             }
         },
-        
-        // 메시지 렌더링
+
+        // 메시지 렌더링 (초기 로드 및 전체 재렌더링용)
         renderMessages() {
+            console.log(`renderMessages: Called. Messages to render: ${this.messages.length}`);
             const messagesList = DOM.select('#messagesList');
             
             // 모든 메시지 관련 요소 제거 (더 확실한 정리)
             const messagesToRemove = messagesList.querySelectorAll('.message-group, .message, .message-sender');
             messagesToRemove.forEach(element => element.remove());
             
-            console.log('Cleared', messagesToRemove.length, 'message elements');
+            console.log('renderMessages: Cleared', messagesToRemove.length, 'message elements from DOM');
             
             if (this.messages.length === 0) {
+                console.log("renderMessages: No messages to render.");
                 return;
             }
             
             // 메시지 그룹화 및 렌더링
             const groupedMessages = this.groupMessages(this.messages);
+            console.log(`renderMessages: Grouped messages into ${groupedMessages.length} groups.`);
             
             groupedMessages.forEach((group, index) => {
                 const groupEl = this.createMessageGroup(group);
                 messagesList.appendChild(groupEl);
             });
+            console.log("renderMessages: Messages appended to DOM.");
+        },
+
+        // 메시지 앞에 추가 (무한 스크롤용)
+        prependMessages(newMessages) {
+            const messagesList = DOM.select('#messagesList');
+            const oldScrollHeight = messagesList.scrollHeight;
+            const oldScrollTop = messagesList.scrollTop;
+
+            // Group and create elements for new messages
+            const groupedNewMessages = this.groupMessages(newMessages);
+            const fragment = document.createDocumentFragment();
+            groupedNewMessages.forEach(group => {
+                const groupEl = this.createMessageGroup(group);
+                fragment.appendChild(groupEl);
+            });
+
+            messagesList.prepend(fragment);
+
+            // Adjust scroll position to maintain view
+            const newScrollHeight = messagesList.scrollHeight;
+            messagesList.scrollTop = oldScrollTop + (newScrollHeight - oldScrollTop);
         },
         
         // 메시지 그룹화 (같은 사용자의 연속 메시지)
         groupMessages(messages) {
+            console.log(`groupMessages: Grouping ${messages.length} messages.`);
             const groups = [];
             let currentGroup = null;
             
@@ -266,9 +355,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!currentGroup || currentGroup.userId !== message.userId || 
                     this.isTimeDifferenceSignificant(currentGroup.messages[currentGroup.messages.length - 1], message)) {
                     const isOwn = String(message.userId) === String(this.currentUser?.id);
+                    const resolvedUserName = this.getUserNickname(message.userId) || message.userNickname || message.userName || 'Unknown User';
                     currentGroup = {
                         userId: message.userId,
-                        userName: message.userNickname || message.userName,
+                        userName: resolvedUserName,
                         isOwn: isOwn,
                         messages: [message]
                     };
@@ -278,7 +368,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            console.log('Grouped messages result:', groups);
+            console.log('groupMessages: Grouped messages result:', groups);
             return groups;
         },
         
@@ -294,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 메시지 그룹 생성
         createMessageGroup(group) {
-            console.log('Creating message group:', {
+            console.log('createMessageGroup: Creating message group:', {
                 type: group.type,
                 userId: group.userId,
                 userName: group.userName,
@@ -305,7 +395,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 시스템 메시지 처리
             if (group.type === 'SYSTEM') {
-                console.log('Creating SYSTEM message group');
+                console.log('createMessageGroup: Creating SYSTEM message group');
                 groupEl.className = 'message-group system';
                 const message = group.messages[0];
                 const systemMessageEl = this.createSystemMessage(message);
@@ -317,12 +407,12 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 다른 사용자의 메시지인 경우 사용자 이름 표시 (한 번만)
             if (!group.isOwn) {
-                console.log('Adding sender name:', group.userName);
+                console.log('createMessageGroup: Adding sender name:', group.userName);
                 const nameEl = document.createElement('div');
                 nameEl.className = 'message-sender';
                 nameEl.textContent = group.userName || 'Unknown User';
                 groupEl.appendChild(nameEl);
-                console.log('Added sender element with text:', nameEl.textContent);
+                console.log('createMessageGroup: Added sender element with text:', nameEl.textContent);
             }
             
             group.messages.forEach((message, index) => {
@@ -335,6 +425,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 메시지 요소 생성
         createMessageElement(message, isOwn, showMeta = true) {
+            console.log('createMessageElement: Creating message element for messageId:', message.id);
             const messageEl = document.createElement('div');
             messageEl.className = `message ${isOwn ? 'own' : 'other'}`;
             messageEl.dataset.messageId = message.id;
@@ -508,18 +599,27 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 메시지 추가
         addMessage(message, isOwn = false) {
+            // Add to the internal messages array
             this.messages.push(message);
-            
-            // 스크롤 위치 확인
+
+            // Check scroll position before adding to DOM
             const wasScrollAtBottom = this.isScrollAtBottom();
+
+            // Create and append the new message element to the DOM
+            const messagesList = DOM.select('#messagesList');
             
-            // 전체 메시지 다시 렌더링하여 그룹화 적용
-            this.renderMessages();
-            
-            // 자신이 보낸 메시지이거나 스크롤이 맨 아래에 있으면 자동 스크롤
+            // Create a new group for this single message
+            const groupedNewMessage = this.groupMessages([message]);
+            if (groupedNewMessage.length > 0) {
+                const groupEl = this.createMessageGroup(groupedNewMessage[0]);
+                messagesList.appendChild(groupEl);
+            }
+
+            // Auto-scroll if it was at the bottom or if it's an own message
             if (isOwn || wasScrollAtBottom) {
-                setTimeout(() => this.scrollToBottom(), 10); // 약간의 딜레이로 DOM 업데이트 후 스크롤
-            } else {
+                setTimeout(() => this.scrollToBottom(), 10);
+            }
+            else {
                 this.updateUnreadCount(1);
             }
         },
@@ -538,13 +638,21 @@ document.addEventListener('DOMContentLoaded', function() {
         // 스크롤 처리
         handleScroll() {
             const scrollDownBtn = DOM.select('#scrollDownBtn');
-            
+            const messagesList = DOM.select('#messagesList'); // Get messagesList here
+
+            // Logic for scrollDownBtn (existing)
             if (this.isScrollAtBottom()) {
                 scrollDownBtn.style.display = 'none';
                 this.unreadCount = 0;
                 this.updateUnreadCount(0);
             } else {
                 scrollDownBtn.style.display = 'flex';
+            }
+
+            // New logic for loading older messages
+            // Check if scrolled to top and not currently loading
+            if (messagesList.scrollTop < 50 && !this.isLoadingMessages && this.messages.length > 0) { // Threshold 50px from top
+                this.loadMessages(true); // Load more older messages
             }
         },
         
@@ -632,11 +740,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (String(data.userId) !== String(this.currentUser.id)) {
                         // 다른 사용자로부터 받은 메시지
                         const parsedTimestamp = this.parseTimestamp(data.timestamp);
+                        // 사용자 매핑 업데이트
+                        if (data.userNickname) {
+                            this.userMappings.set(String(data.userId), data.userNickname);
+                        }
+                        
                         const message = {
                             id: data.messageId || Date.now(),
                             content: data.content,
                             userId: data.userId,
-                            userName: data.userNickname || 'Unknown User',
+                            userName: data.userNickname || this.getUserNickname(data.userId) || 'Unknown User',
                             timestamp: parsedTimestamp ? parsedTimestamp.toISOString() : new Date().toISOString(),
                             status: 'received'
                         };
@@ -666,7 +779,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     if (String(data.userId) !== String(this.currentUser.id)) {
                         this.addMessage(data, false);
-                    } else {
+                    }
+                    else {
                         this.updateMessageStatus(data.tempId, 'sent');
                     }
                 });
@@ -675,7 +789,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (String(data.userId) !== String(this.currentUser.id)) {
                         if (data.isTyping) {
                             this.showTypingIndicator(data.userNickname || data.userName);
-                        } else {
+                        }
+                        else {
                             this.hideTypingIndicator();
                         }
                     }
@@ -877,7 +992,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (sidebar.classList.contains('open')) {
                 this.hideMembersSidebar();
-            } else {
+            }
+            else {
                 sidebar.classList.add('open');
                 overlay.classList.add('show');
                 document.body.style.overflow = 'hidden';
@@ -902,6 +1018,7 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const response = await Http.get(`/api/rooms/${this.currentRoomId}/participants`);
                 if (response.success) {
+                    this.updateUserMappings(response.data);
                     this.renderMembers(response.data);
                 }
             } catch (error) {
@@ -965,6 +1082,70 @@ document.addEventListener('DOMContentLoaded', function() {
             return systemMessageEl;
         },
         
+        // 사용자 닉네임 조회 헬퍼
+        getUserNickname(userId) {
+            const nickname = this.userMappings.get(String(userId));
+            return nickname || null;
+        },
+        
+        // 매핑되지 않은 사용자 정보 로드
+        async loadMissingUserInfo(messages) {
+            const missingUserIds = new Set();
+            
+            messages.forEach(message => {
+                const userId = String(message.userId);
+                if (!this.userMappings.has(userId)) {
+                    missingUserIds.add(userId);
+                }
+            });
+            
+            if (missingUserIds.size > 0) {
+                console.log('loadMissingUserInfo: Loading info for users:', Array.from(missingUserIds));
+                try {
+                    // 참여자 목록에서 사용자 정보 가져오기
+                    const participantsResponse = await Http.get(`/api/rooms/${this.currentRoomId}/participants`);
+                    if (participantsResponse.success && participantsResponse.data) {
+                        participantsResponse.data.forEach(participant => {
+                            const userId = String(participant.userId || participant.id || participant.user_id);
+                            if (missingUserIds.has(userId)) {
+                                console.log(`loadMissingUserInfo: Found user ${userId}: ${participant.nickname}`);
+                                this.userMappings.set(userId, participant.nickname);
+                                missingUserIds.delete(userId);
+                            }
+                        });
+                    }
+                    
+                    // 여전히 찾지 못한 사용자들을 Unknown User로 설정
+                    missingUserIds.forEach(userId => {
+                        console.warn(`loadMissingUserInfo: Could not find user ${userId}, setting as Unknown User`);
+                        this.userMappings.set(userId, 'Unknown User');
+                    });
+                } catch (error) {
+                    console.error('loadMissingUserInfo: Error loading user info:', error);
+                    // 오류 발생 시 모든 누락된 사용자를 Unknown User로 설정
+                    missingUserIds.forEach(userId => {
+                        this.userMappings.set(userId, 'Unknown User');
+                    });
+                }
+            }
+        },
+        
+        // 사용자 매핑 업데이트
+        updateUserMappings(members) {
+            if (Array.isArray(members)) {
+                console.log('updateUserMappings: Mapping', members.length, 'members');
+                members.forEach(member => {
+                    const userId = member.userId || member.id || member.user_id;
+                    const nickname = member.nickname || member.userName || member.user_name;
+                    if (userId && nickname) {
+                        console.log(`updateUserMappings: ${userId} -> ${nickname}`);
+                        this.userMappings.set(String(userId), nickname);
+                    }
+                });
+                console.log('updateUserMappings: Total mappings:', this.userMappings.size);
+            }
+        },
+        
         // 정리
         cleanup() {
             if (this.websocket) {
@@ -976,11 +1157,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     };
-    
-    // 페이지 언로드 시 정리
-    window.addEventListener('beforeunload', () => {
-        ChatManager.cleanup();
-    });
     
     // 채팅 매니저 초기화
     ChatManager.init();
