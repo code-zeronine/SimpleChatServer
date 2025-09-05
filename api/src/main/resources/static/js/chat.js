@@ -54,19 +54,30 @@ document.addEventListener('DOMContentLoaded', function() {
         // 타임스탬프를 Date 객체로 변환 (다양한 형식 지원)
         parseTimestamp(timestamp) {
             if (!timestamp) return null;
-            if (typeof timestamp === 'number') return new Date(timestamp);
+            
+            if (typeof timestamp === 'number') {
+                return new Date(timestamp);
+            }
+            
             if (typeof timestamp === 'string') {
                 if (timestamp.trim() === '') return null;
                 const date = new Date(timestamp);
-                if (isNaN(date.getTime())) return null;
+                if (isNaN(date.getTime())) {
+                    console.warn('parseTimestamp: Invalid string date:', timestamp);
+                    return null;
+                }
                 return date;
             }
+            
             if (typeof timestamp === 'object' && timestamp.epochSecond !== undefined && timestamp.nano !== undefined) {
                 return new Date(timestamp.epochSecond * 1000 + Math.floor(timestamp.nano / 1000000));
             }
-            if (timestamp instanceof Date) return timestamp;
             
-            console.warn('Unknown timestamp format:', timestamp);
+            if (timestamp instanceof Date) {
+                return timestamp;
+            }
+            
+            console.warn('parseTimestamp: Unknown timestamp format:', timestamp, 'Type:', typeof timestamp);
             return null;
         },
         
@@ -249,17 +260,48 @@ document.addEventListener('DOMContentLoaded', function() {
                     const newMessages = Array.isArray(response.data) ? response.data : (response.data.content || []);
                     console.log(`loadMessages: Fetched ${newMessages.length} new messages.`);
                     
+                    // 각 메시지의 타임스탬프 정보 로깅
+                    newMessages.forEach((msg, idx) => {
+                        console.log(`loadMessages: Message ${idx} timestamp info:`, {
+                            id: msg.id,
+                            timestamp: msg.timestamp,
+                            createdAt: msg.createdAt,
+                            sentAt: msg.sentAt,
+                            timestampType: typeof msg.timestamp,
+                            fullMessage: msg
+                        });
+                    });
+                    
                     if (newMessages.length > 0) { // Only process if there are new messages
+                        // 메시지 타임스탬프 표준화
+                        const normalizedMessages = newMessages.map(msg => {
+                            // 타임스탬프 필드 우선순위: timestamp > createdAt > sentAt
+                            const timestampValue = msg.timestamp || msg.createdAt || msg.sentAt || Date.now();
+                            
+                            return {
+                                ...msg,
+                                timestamp: timestampValue,
+                                // 사용자 이름 처리
+                                userName: msg.userName || msg.userNickname || msg.senderName || 'Unknown User'
+                            };
+                        });
+                        
+                        console.log('loadMessages: Normalized messages with timestamps:', normalizedMessages.map(msg => ({
+                            id: msg.id,
+                            timestamp: msg.timestamp,
+                            userName: msg.userName
+                        })));
+                        
                         // 메시지에서 사용자 ID들을 추출하고 매핑되지 않은 사용자 정보 로드
-                        await this.loadMissingUserInfo(newMessages);
+                        await this.loadMissingUserInfo(normalizedMessages);
                         
                         if (loadMore) {
-                            this.messages = [...newMessages.reverse(), ...this.messages];
-                            this.prependMessages(newMessages);
+                            this.messages = [...normalizedMessages.reverse(), ...this.messages];
+                            this.prependMessages(normalizedMessages);
                             this.currentPage = pageToLoad;
                             console.log(`loadMessages: Prepended messages. Total messages in array: ${this.messages.length}`);
                         } else {
-                            this.messages = newMessages.reverse();
+                            this.messages = normalizedMessages.reverse();
                             this.renderMessages();
                             setTimeout(() => this.scrollToBottom(false), 100);
                             console.log(`loadMessages: Initial load. Total messages in array: ${this.messages.length}`);
@@ -416,79 +458,85 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             group.messages.forEach((message, index) => {
-                const messageEl = this.createMessageElement(message, group.isOwn, index === group.messages.length - 1);
+                const messageEl = this.createMessageElement(message, group.isOwn, index === group.messages.length - 1, group.userName);
                 groupEl.appendChild(messageEl);
             });
             
             return groupEl;
         },
         
-        // 메시지 요소 생성
-        createMessageElement(message, isOwn, showMeta = true) {
-            console.log('createMessageElement: Creating message element for messageId:', message.id);
+        // 메시지 요소 생성 (index 페이지 스타일과 동일)
+        createMessageElement(message, isOwn, showMeta = true, userName = null) {
+            console.log('createMessageElement: Creating message element:', { 
+                messageId: message.id,
+                timestamp: message.timestamp,
+                content: message.content,
+                userName: userName,
+                isOwn: isOwn,
+                showMeta: showMeta
+            });
             const messageEl = document.createElement('div');
-            messageEl.className = `message ${isOwn ? 'own' : 'other'}`;
+            messageEl.className = `message ${isOwn ? 'mine' : ''}`;
             messageEl.dataset.messageId = message.id;
             
-            const bubbleEl = document.createElement('div');
-            bubbleEl.className = 'message-bubble';
-            
-            const contentEl = document.createElement('p');
-            contentEl.className = 'message-content';
-            contentEl.textContent = message.content;
-            bubbleEl.appendChild(contentEl);
-            
-            if (showMeta) {
-                const metaEl = document.createElement('div');
-                metaEl.className = 'message-meta';
-                
-                const timeEl = document.createElement('span');
-                timeEl.className = 'message-time';
-                timeEl.textContent = this.formatMessageTime(message.timestamp);
-                metaEl.appendChild(timeEl);
-                
-                if (isOwn) {
-                    const statusEl = document.createElement('div');
-                    statusEl.className = `message-status status-${message.status || 'sent'}`;
-                    
-                    const statusIcon = document.createElement('div');
-                    statusIcon.className = 'status-icon';
-                    statusEl.appendChild(statusIcon);
-                    
-                    metaEl.appendChild(statusEl);
-                }
-                
-                bubbleEl.appendChild(metaEl);
+            // 다른 사용자의 메시지인 경우만 작성자 표시
+            if (!isOwn && userName) {
+                const authorEl = document.createElement('span');
+                authorEl.className = 'message-author';
+                authorEl.textContent = userName;
+                messageEl.appendChild(authorEl);
             }
             
-            messageEl.appendChild(bubbleEl);
+            const contentEl = document.createElement('span');
+            contentEl.className = 'message-content';
+            contentEl.textContent = message.content;
+            messageEl.appendChild(contentEl);
+            
+            // 메시지 시간 표시
+            if (message.timestamp && showMeta) {
+                const timeEl = document.createElement('span');
+                timeEl.className = 'message-time';
+                const formattedTime = this.formatMessageTime(message.timestamp);
+                if (formattedTime) {
+                    timeEl.textContent = formattedTime;
+                    messageEl.appendChild(timeEl);
+                } else {
+                    console.warn('createMessageElement: Empty formatted time for timestamp:', message.timestamp);
+                }
+            }
+            
             return messageEl;
         },
         
         // 메시지 시간 포맷
         formatMessageTime(timestamp) {
             const date = this.parseTimestamp(timestamp);
+            
             if (!date) {
-                return ''; // Or some other placeholder for invalid time
+                console.warn('formatMessageTime: Invalid timestamp:', timestamp);
+                return '';
             }
+            
             const now = new Date();
             
             if (date.toDateString() === now.toDateString()) {
                 // 오늘: 시:분
-                return date.toLocaleTimeString('ko-KR', { 
+                const formatted = date.toLocaleTimeString('ko-KR', { 
                     hour: '2-digit', 
                     minute: '2-digit',
                     hour12: false
                 });
+                return formatted;
             } else {
                 // 다른 날: 월/일 시:분
-                return date.toLocaleString('ko-KR', { 
+                const formatted = date.toLocaleString('ko-KR', { 
                     month: 'numeric',
                     day: 'numeric',
                     hour: '2-digit', 
                     minute: '2-digit',
                     hour12: false
                 });
+                return formatted;
             }
         },
         
@@ -848,7 +896,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const typingIndicator = DOM.select('#typingIndicator');
             const typingText = DOM.select('#typingText');
             
-            typingText.textContent = `${userName}님이 입력 중...`;
+            if (userName) {
+                typingText.textContent = `${userName}님이 입력 중...`;
+            } else {
+                typingText.textContent = '누군가가 입력 중...';
+            }
+            
             typingIndicator.style.display = 'flex';
         },
         

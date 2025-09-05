@@ -204,40 +204,28 @@
 
 /* 채팅 메시지 */
 .message {
-    display: flex;
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
     animation: messageSlideIn 0.3s ease-out;
 }
 
-.message.own {
-    justify-content: flex-end;
+.message.mine {
+    background-color: var(--primary-color);
+    color: var(--text-white);
+    margin-left: auto;
+    max-width: 80%;
+    border-color: var(--primary-color);
 }
 
 .message.other {
-    justify-content: flex-start;
+    max-width: 80%;
 }
 
 .message-bubble {
-    max-width: 70%;
-    min-width: 100px;
-    padding: var(--spacing-md);
-    border-radius: var(--border-radius-lg);
-    position: relative;
     word-wrap: break-word;
-    box-shadow: var(--shadow-sm);
-}
-
-.message.own .message-bubble {
-    background: var(--primary-color);
-    color: var(--text-white);
-    border-bottom-right-radius: var(--border-radius-sm);
-}
-
-.message.other .message-bubble {
-    background: var(--card-bg);
-    color: var(--text-primary);
-    border-bottom-left-radius: var(--border-radius-sm);
-    border: 1px solid var(--border-color);
 }
 
 .message-content {
@@ -305,26 +293,42 @@
     color: var(--primary-color);
     margin-bottom: var(--spacing-sm);
     margin-left: var(--spacing-sm);
+    display: none; /* 개별 메시지에 작성자 표시하므로 그룹 레벨 표시 숨김 */
 }
 
 .message-group .message:not(:last-child) {
     margin-bottom: var(--spacing-xs);
 }
 
-.message-group .message:not(:last-child) .message-bubble {
-    border-radius: var(--border-radius-lg);
+/* 메시지 작성자 스타일 (index 페이지와 동일) */
+.message-author {
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    color: var(--primary-color);
+    margin-right: var(--spacing-xs);
 }
 
-.message-group .message.own:not(:last-child) .message-bubble {
-    border-bottom-right-radius: var(--border-radius-lg);
+.message.mine .message-author {
+    color: rgba(255, 255, 255, 0.9);
 }
 
-.message-group .message.other:not(:last-child) .message-bubble {
-    border-bottom-left-radius: var(--border-radius-lg);
+.message-content {
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+    display: block;
 }
 
-.message-group .message:not(:last-child) .message-meta {
-    display: none;
+/* 메시지 타임스탬프 (인라인으로 표시) */
+.message .message-time {
+    font-size: var(--font-size-xs);
+    opacity: 0.7;
+    margin-left: var(--spacing-xs);
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.message.mine .message-time {
+    color: rgba(255, 255, 255, 0.8);
 }
 
 /* 로딩 메시지 */
