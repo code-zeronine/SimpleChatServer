@@ -927,7 +927,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 });
-                
+
+                this.websocket.onMessage('JOIN', (data) => {
+                    Toast.info(`${data.userName}님이 입장했습니다.`);
+                    this.updateMemberCount(data.memberCount);
+                });
+
+                this.websocket.onMessage('LEAVE', (data) => {
+                    Toast.info(`${data.userName}님이 퇴장했습니다.`);
+                    this.updateMemberCount(data.memberCount);
+                });
+
                 // 연결 및 채팅방 입장
                 this.websocket.connect(this.currentUser, this.currentRoomId);
                 
