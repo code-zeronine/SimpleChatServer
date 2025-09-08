@@ -856,6 +856,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 메시지 타입별 핸들러 등록
                 this.websocket.onMessage('CHAT', (data) => {
                     if (String(data.userId) !== String(this.currentUser.id)) {
+                        // 다른 사용자로부터 메시지 수신 시 타이핑 인디케이터 즉시 숨김
+                        this.hideTypingIndicator();
+
                         // 다른 사용자로부터 받은 메시지
                         const parsedTimestamp = this.parseTimestamp(data.timestamp);
                         // 사용자 매핑 업데이트
@@ -961,24 +964,44 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
         
-        // 타이핑 인디케이터 표시
+        // 타이핑 인디케이터 처리
         showTypingIndicator(userName) {
-            const typingIndicator = DOM.select('#typingIndicator');
-            const typingText = DOM.select('#typingText');
-            
-            if (userName) {
-                typingText.textContent = `${userName}님이 입력 중...`;
+            const messagesList = DOM.select('#messagesList');
+            let typingIndicator = DOM.select('#typingIndicator');
+
+            if (!typingIndicator) {
+                typingIndicator = DOM.create('div', {
+                    id: 'typingIndicator',
+                    className: 'message typing-indicator',
+                }, `
+                    <span class="message-author">${userName}</span>
+                    <span class="message-content">
+                        <span class="typing-dots">
+                            <span></span><span></span><span></span>
+                        </span>
+                    </span>
+                `);
+                messagesList.appendChild(typingIndicator);
             } else {
-                typingText.textContent = '누군가가 입력 중...';
+                typingIndicator.querySelector('.message-author').textContent = userName;
             }
-            
-            typingIndicator.style.display = 'flex';
+
+            typingIndicator.classList.add('show');
+            this.scrollToBottom();
         },
-        
+
         // 타이핑 인디케이터 숨김
         hideTypingIndicator() {
             const typingIndicator = DOM.select('#typingIndicator');
-            typingIndicator.style.display = 'none';
+            if (typingIndicator) {
+                typingIndicator.classList.remove('show');
+                // Optionally remove the element after transition
+                setTimeout(() => {
+                    if (typingIndicator && !typingIndicator.classList.contains('show')) {
+                         typingIndicator.remove();
+                    }
+                }, 500); // Should match CSS transition time
+            }
         },
         
         // 멤버 수 업데이트

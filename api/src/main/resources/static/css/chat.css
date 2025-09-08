@@ -526,10 +526,50 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
-    margin-top: var(--spacing-sm);
-    padding: 0 var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.typing-indicator.show {
+    opacity: 1;
+}
+
+.typing-indicator .message-content {
+    background: #e9ecef;
+    color: #6c757d;
+    border-radius: 18px;
+    padding: 8px 12px;
+    display: inline-block;
+}
+
+.typing-dots {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #6c757d;
+    animation: typingDot 1.4s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typingDot {
+    0%, 60%, 100% { transform: scale(1); opacity: 0.5; }
+    30% { transform: scale(1.2); opacity: 1; }
 }
 
 .typing-animation {
@@ -561,6 +601,53 @@
     margin-top: var(--spacing-sm);
     padding: 0 var(--spacing-md);
 }
+
+/* 타이핑 인디케이터 (동적 생성) */
+.typing-indicator {
+    opacity: 0;
+    transition: all 0.3s ease;
+    margin-bottom: var(--spacing-sm);
+}
+
+.typing-indicator.show {
+    opacity: 1;
+}
+
+.typing-indicator .message-content {
+    background: #e9ecef;
+    color: #6c757d;
+    border-radius: 18px;
+    padding: 8px 12px;
+    display: inline-block;
+}
+
+.typing-dots {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #6c757d;
+    animation: typingDot 1.4s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typingDot {
+    0%, 60%, 100% { transform: scale(1); opacity: 0.5; }
+    30% { transform: scale(1.2); opacity: 1; }
+}
+
 
 .message-counter.warning {
     color: var(--warning-color);
