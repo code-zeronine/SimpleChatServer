@@ -28,7 +28,7 @@ data class ChatMessage(
     val content: String,
     
     @field:NotNull(message = "Timestamp cannot be null")
-    val timestamp: LocalDateTime = LocalDateTime.now(),
+    val timestamp: LocalDateTime = LocalDateTime.now(java.time.ZoneOffset.UTC),
     
     @field:NotNull(message = "Message type cannot be null")
     val messageType: MessageType = MessageType.TEXT

@@ -44,7 +44,7 @@ class MessageService(
                                     userId = dto.userId,
                                     content = dto.content,
                                     messageType = MessageType.valueOf(dto.messageType ?: "TEXT"),
-                                    timestamp = java.time.LocalDateTime.ofInstant(dto.timestamp, ZoneOffset.UTC)
+                                    timestamp = java.time.LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(dto.timestamp), ZoneOffset.UTC)
                                 )
                             }
                             messageCacheService.cacheRecentMessages(roomId, domainMessages)
@@ -104,7 +104,7 @@ class MessageService(
                                 userId = dto.userId,
                                 content = dto.content,
                                 messageType = MessageType.valueOf(dto.messageType ?: "TEXT"),
-                                timestamp = java.time.LocalDateTime.ofInstant(dto.timestamp, ZoneOffset.UTC)
+                                timestamp = java.time.LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(dto.timestamp), ZoneOffset.UTC)
                             )
                         }
                         messageCacheService.cacheRecentMessages(roomId, domainMessages)
@@ -223,7 +223,9 @@ class MessageService(
                     userId = this.userId,
                     userNickname = nickname,
                     content = this.content,
-                    timestamp = this.timestamp.toInstant(ZoneOffset.UTC),
+                    // CRITICAL FIX: LocalDateTime stored in DB should be interpreted as system timezone (KST)
+                    // then converted to UTC timestamp for consistent client handling
+                    timestamp = this.timestamp.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli(),
                     highlightedContent = searchHighlighter.highlightKeyword(this.content, searchKeyword),
                     messageType = this.messageType.name
                 )
@@ -237,7 +239,9 @@ class MessageService(
             userId = this.userId,
             userNickname = null, // JavaScript에서 사용자 정보를 조회하도록 수정
             content = this.content,
-            timestamp = this.timestamp.toInstant(ZoneOffset.UTC),
+            // CRITICAL FIX: LocalDateTime stored in DB should be interpreted as system timezone (KST)
+            // then converted to UTC timestamp for consistent frontend handling
+            timestamp = this.timestamp.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli(),
             highlightedContent = searchHighlighter.highlightKeyword(this.content, searchKeyword),
             messageType = this.messageType.name
         )

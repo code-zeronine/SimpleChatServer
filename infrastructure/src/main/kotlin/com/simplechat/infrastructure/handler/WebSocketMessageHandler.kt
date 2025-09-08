@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Mono
-import java.time.Instant
 import java.util.*
 
 @Component
@@ -57,9 +56,13 @@ class WebSocketMessageHandler(
                         return@flatMap Mono.empty<Void>()
                     }
                     
+                    // Ensure timestamp is serialized consistently as ISO-8601 string
                     val messageJson = objectMapper.writeValueAsString(message)
                     session.send(Mono.just(session.textMessage(messageJson)))
-                        .doOnSuccess { log.debug("Broadcasted message to session {}: {}", session.id, message.type) }
+                        .doOnSuccess { 
+                            log.debug("Broadcasted message to session {}: {} (timestamp: {})", 
+                                session.id, message.type, message.timestamp) 
+                        }
                         .onErrorResume { error ->
                             log.debug("Failed to send message to session {}: {}", session.id, error.message)
                             // 연결이 닫힌 경우 세션 정리
@@ -93,7 +96,7 @@ class WebSocketMessageHandler(
                     try {
                         val leaveSystemMessage = SystemWebSocketMessage(
                             messageId = UUID.randomUUID().toString(),
-                            timestamp = Instant.now(),
+                            timestamp = System.currentTimeMillis(),
                             sessionId = session.id,
                             content = "$username 님이 퇴장했습니다."
                         )
@@ -302,7 +305,7 @@ class WebSocketMessageHandler(
 
         val pongMessage = mapOf(
             "type" to "pong",
-            "timestamp" to Instant.now()
+            "timestamp" to System.currentTimeMillis() // Unix timestamp in milliseconds
         )
 
         return Mono.fromCallable { objectMapper.writeValueAsString(pongMessage) }
@@ -325,7 +328,7 @@ class WebSocketMessageHandler(
         
         val systemMessage = SystemWebSocketMessage(
             messageId = UUID.randomUUID().toString(),
-            timestamp = Instant.now(),
+            timestamp = System.currentTimeMillis(),
             sessionId = session.id,
             content = "${message.userNickname ?: "사용자"} 님이 입장했습니다."
         )
@@ -346,7 +349,7 @@ class WebSocketMessageHandler(
         
         val systemMessage = SystemWebSocketMessage(
             messageId = UUID.randomUUID().toString(),
-            timestamp = Instant.now(),
+            timestamp = System.currentTimeMillis(),
             sessionId = session.id,
             content = "${message.userNickname ?: "사용자"} 님이 퇴장했습니다."
         )

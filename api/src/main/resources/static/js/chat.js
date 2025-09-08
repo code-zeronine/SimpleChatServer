@@ -51,34 +51,57 @@ document.addEventListener('DOMContentLoaded', function() {
             return params.get('roomId');
         },
 
-        // 타임스탬프를 Date 객체로 변환 (다양한 형식 지원)
+        // 타임스탬프를 Date 객체로 변환 (Long 타임스탬프 최적화)
         parseTimestamp(timestamp) {
-            if (!timestamp) return null;
-            
-            if (typeof timestamp === 'number') {
-                return new Date(timestamp);
+            if (timestamp === null || timestamp === undefined) {
+                console.debug('parseTimestamp: No timestamp provided');
+                return null;
             }
             
-            if (typeof timestamp === 'string') {
-                if (timestamp.trim() === '') return null;
-                const date = new Date(timestamp);
-                if (isNaN(date.getTime())) {
-                    console.warn('parseTimestamp: Invalid string date:', timestamp);
-                    return null;
+            try {
+                // Date object (이미 파싱됨)
+                if (timestamp instanceof Date) {
+                    return isNaN(timestamp.getTime()) ? null : timestamp;
                 }
-                return date;
+                
+                // Number type (통일된 Long 타임스탬프 형태 - 밀리초)
+                if (typeof timestamp === 'number') {
+                    if (timestamp <= 0) {
+                        console.warn('parseTimestamp: Invalid numeric timestamp:', timestamp);
+                        return null;
+                    }
+                    
+                    // Unix timestamp in seconds (10자리 미만)
+                    if (timestamp < 10000000000) {
+                        return new Date(timestamp * 1000);
+                    }
+                    // Unix timestamp in milliseconds (기본)
+                    return new Date(timestamp);
+                }
+                
+                // String type (레거시 지원용)
+                if (typeof timestamp === 'string') {
+                    if (timestamp.trim() === '') {
+                        console.debug('parseTimestamp: Empty string timestamp');
+                        return null;
+                    }
+                    
+                    // ISO 문자열 또는 기타 날짜 문자열 파싱
+                    const date = new Date(timestamp);
+                    if (isNaN(date.getTime())) {
+                        console.warn('parseTimestamp: Invalid string date:', timestamp);
+                        return null;
+                    }
+                    return date;
+                }
+                
+                console.warn('parseTimestamp: Unexpected timestamp format (should be Long number):', timestamp, 'Type:', typeof timestamp);
+                return null;
+                
+            } catch (error) {
+                console.error('parseTimestamp: Error parsing timestamp:', error, 'timestamp:', timestamp);
+                return null;
             }
-            
-            if (typeof timestamp === 'object' && timestamp.epochSecond !== undefined && timestamp.nano !== undefined) {
-                return new Date(timestamp.epochSecond * 1000 + Math.floor(timestamp.nano / 1000000));
-            }
-            
-            if (timestamp instanceof Date) {
-                return timestamp;
-            }
-            
-            console.warn('parseTimestamp: Unknown timestamp format:', timestamp, 'Type:', typeof timestamp);
-            return null;
         },
         
         // 이벤트 리스너 설정
@@ -260,27 +283,63 @@ document.addEventListener('DOMContentLoaded', function() {
                     const newMessages = Array.isArray(response.data) ? response.data : (response.data.content || []);
                     console.log(`loadMessages: Fetched ${newMessages.length} new messages.`);
                     
-                    // 각 메시지의 타임스탬프 정보 로깅
+                    // 각 메시지의 타임스탬프 정보 로깅 (상세)
                     newMessages.forEach((msg, idx) => {
-                        console.log(`loadMessages: Message ${idx} timestamp info:`, {
+                        console.log(`loadMessages: Message ${idx} raw timestamp data:`, {
                             id: msg.id,
                             timestamp: msg.timestamp,
-                            createdAt: msg.createdAt,
-                            sentAt: msg.sentAt,
                             timestampType: typeof msg.timestamp,
-                            fullMessage: msg
+                            timestampValue: msg.timestamp,
+                            parsed: this.parseTimestamp(msg.timestamp),
+                            formatted: this.formatMessageTime(msg.timestamp)
                         });
                     });
                     
                     if (newMessages.length > 0) { // Only process if there are new messages
-                        // 메시지 타임스탬프 표준화
+                        // 메시지 타임스탬프 표준화 (Long 타임스탬프 처리)
                         const normalizedMessages = newMessages.map(msg => {
-                            // 타임스탬프 필드 우선순위: timestamp > createdAt > sentAt
-                            const timestampValue = msg.timestamp || msg.createdAt || msg.sentAt || Date.now();
+                            let timestampValue = msg.timestamp;
+                            
+                            // 모든 timestamp를 Long (Unix timestamp in milliseconds)으로 정규화
+                            if (timestampValue !== null && timestampValue !== undefined) {
+                                if (typeof timestampValue === 'number') {
+                                    // 이미 숫자인 경우 검증만 (밀리초 단위 확인)
+                                    if (timestampValue > 0) {
+                                        // Unix timestamp가 초 단위인지 밀리초 단위인지 확인
+                                        if (timestampValue < 10000000000) {
+                                            // 초 단위라면 밀리초로 변환
+                                            timestampValue = timestampValue * 1000;
+                                        }
+                                        // 유효한 숫자 타임스탬프 그대로 사용
+                                    } else {
+                                        console.warn('Invalid numeric timestamp:', timestampValue, 'using current time');
+                                        timestampValue = Date.now();
+                                    }
+                                } else if (typeof timestampValue === 'string') {
+                                    // 문자열인 경우 Date로 파싱 후 밀리초로 변환
+                                    try {
+                                        const parsedDate = new Date(timestampValue);
+                                        if (isNaN(parsedDate.getTime())) {
+                                            throw new Error('Invalid date string');
+                                        }
+                                        timestampValue = parsedDate.getTime();
+                                    } catch (e) {
+                                        console.warn('Invalid timestamp string:', timestampValue, 'using current time');
+                                        timestampValue = Date.now();
+                                    }
+                                } else {
+                                    // 기타 형식인 경우 현재 시간 사용
+                                    console.warn('Unexpected timestamp format:', timestampValue);
+                                    timestampValue = Date.now();
+                                }
+                            } else {
+                                // timestamp가 없는 경우 현재 시간 사용
+                                timestampValue = Date.now();
+                            }
                             
                             return {
                                 ...msg,
-                                timestamp: timestampValue,
+                                timestamp: timestampValue, // 항상 Long (밀리초) 형태로 저장
                                 // 사용자 이름 처리
                                 userName: msg.userName || msg.userNickname || msg.senderName || 'Unknown User'
                             };
@@ -512,31 +571,42 @@ document.addEventListener('DOMContentLoaded', function() {
         formatMessageTime(timestamp) {
             const date = this.parseTimestamp(timestamp);
             
-            if (!date) {
-                console.warn('formatMessageTime: Invalid timestamp:', timestamp);
-                return '';
+            if (!date || isNaN(date.getTime())) {
+                console.warn('formatMessageTime: Invalid timestamp:', timestamp, 'parsed as:', date);
+                // 대안으로 현재 시간을 사용
+                return new Date().toLocaleTimeString('ko-KR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false
+                });
             }
             
             const now = new Date();
             
-            if (date.toDateString() === now.toDateString()) {
-                // 오늘: 시:분
-                const formatted = date.toLocaleTimeString('ko-KR', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    hour12: false
-                });
-                return formatted;
-            } else {
-                // 다른 날: 월/일 시:분
-                const formatted = date.toLocaleString('ko-KR', { 
-                    month: 'numeric',
-                    day: 'numeric',
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    hour12: false
-                });
-                return formatted;
+            try {
+                if (date.toDateString() === now.toDateString()) {
+                    // 오늘: 시:분
+                    const formatted = date.toLocaleTimeString('ko-KR', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                    return formatted || '시간 불명';
+                } else {
+                    // 다른 날: 월/일 시:분
+                    const formatted = date.toLocaleString('ko-KR', { 
+                        month: 'numeric',
+                        day: 'numeric',
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                    return formatted || `${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+                }
+            } catch (error) {
+                console.error('formatMessageTime: Formatting error:', error, 'timestamp:', timestamp, 'date:', date);
+                // 백업 포맷팅
+                return `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
             }
         },
         
@@ -619,7 +689,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 content: content,
                 userId: this.currentUser.id,
                 userName: this.currentUser.nickname,
-                timestamp: new Date().toISOString(),
+                timestamp: Date.now(), // Unix timestamp in milliseconds
                 status: 'sending'
             };
             
@@ -798,7 +868,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             content: data.content,
                             userId: data.userId,
                             userName: data.userNickname || this.getUserNickname(data.userId) || 'Unknown User',
-                            timestamp: parsedTimestamp ? parsedTimestamp.toISOString() : new Date().toISOString(),
+                            timestamp: data.timestamp || Date.now(), // Long timestamp
                             status: 'received'
                         };
                         this.addMessage(message, false);
@@ -820,7 +890,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.addMessage({
                             type: 'SYSTEM',
                             content: data.content,
-                            timestamp: data.timestamp || new Date().toISOString(),
+                            timestamp: data.timestamp || Date.now(), // Long timestamp
                             messageId: data.messageId || Date.now().toString()
                         }, false);
                         return;

@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Mono
-import java.time.Instant
 
 /**
  * WebSocket 에러 처리를 담당하는 핸들러 클래스
@@ -111,7 +110,7 @@ class WebSocketErrorHandler(
         val errorMessage = ErrorWebSocketMessage(
             type = WebSocketMessageType.ERROR,
             messageId = java.util.UUID.randomUUID().toString(),
-            timestamp = Instant.now(),
+            timestamp = System.currentTimeMillis(),
             sessionId = session.id,
             errorCode = errorCode.code,
             errorMessage = errorCode.message,
@@ -173,7 +172,7 @@ class WebSocketErrorHandler(
         val errorMessage = ErrorWebSocketMessage(
             type = WebSocketMessageType.ERROR,
             messageId = java.util.UUID.randomUUID().toString(),
-            timestamp = Instant.now(),
+            timestamp = System.currentTimeMillis(),
             sessionId = session.id,
             errorCode = errorCode.code,
             errorMessage = errorCode.message,
@@ -202,7 +201,7 @@ class WebSocketErrorHandler(
         val errorMessage = ErrorWebSocketMessage(
             type = WebSocketMessageType.ERROR,
             messageId = java.util.UUID.randomUUID().toString(),
-            timestamp = Instant.now(),
+            timestamp = System.currentTimeMillis(),
             sessionId = session.id,
             errorCode = errorCode.code,
             errorMessage = errorCode.message,
@@ -234,7 +233,7 @@ class WebSocketErrorHandler(
         return ErrorWebSocketMessage(
             type = WebSocketMessageType.ERROR,
             messageId = java.util.UUID.randomUUID().toString(),
-            timestamp = Instant.now(),
+            timestamp = System.currentTimeMillis(),
             sessionId = sessionId,
             errorCode = errorCode.code,
             errorMessage = customMessage ?: errorCode.message,

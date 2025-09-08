@@ -36,7 +36,7 @@ data class ChatMessageEntity(
     
     @Field("timestamp")
     @Indexed
-    val timestamp: LocalDateTime = LocalDateTime.now(),
+    val timestamp: LocalDateTime = LocalDateTime.now(java.time.ZoneOffset.UTC),
     
     @Field("messageType")
     @Indexed

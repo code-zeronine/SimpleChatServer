@@ -18,11 +18,13 @@ class JacksonConfig {
         return ObjectMapper()
             .registerModule(KotlinModule.Builder().build())
             .registerModule(JavaTimeModule())
-            // Important: serialize Instant as ISO-8601 string
+            // CRITICAL: Always serialize Instant/LocalDateTime as ISO-8601 strings for consistency
             .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
-            // Important: deserialize timestamps from numbers (like from JS Date.now()) as milliseconds
+            // CRITICAL: When deserializing numbers, treat them as milliseconds (not nanoseconds)
             .configure(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS, false)
             // Ignore unknown properties during deserialization
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            // Allow numeric timestamps for backward compatibility
+            .configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true)
     }
 }

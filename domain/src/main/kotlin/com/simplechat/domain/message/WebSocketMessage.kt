@@ -2,7 +2,6 @@ package com.simplechat.domain.message
 
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
-import java.time.Instant
 
 /**
  * WebSocket 메시지 타입 열거형 (Domain)
@@ -41,7 +40,7 @@ enum class WebSocketMessageType {
 sealed class WebSocketMessage {
     abstract val type: WebSocketMessageType
     abstract val messageId: String?
-    abstract val timestamp: Instant
+    abstract val timestamp: Long // Unix timestamp in milliseconds
     abstract val sessionId: String?
 }
 
@@ -59,7 +58,7 @@ enum class MessageTargetType {
 data class ChatWebSocketMessage(
     override val type: WebSocketMessageType = WebSocketMessageType.CHAT,
     override val messageId: String?,
-    override val timestamp: Instant,
+    override val timestamp: Long, // Unix timestamp in milliseconds
     override val sessionId: String?,
     val content: String,
     val userId: Long,
@@ -70,7 +69,7 @@ data class ChatWebSocketMessage(
 data class JoinWebSocketMessage(
     override val type: WebSocketMessageType = WebSocketMessageType.JOIN,
     override val messageId: String?,
-    override val timestamp: Instant,
+    override val timestamp: Long, // Unix timestamp in milliseconds
     override val sessionId: String?,
     val userId: Long,
     val roomId: Long,
@@ -80,7 +79,7 @@ data class JoinWebSocketMessage(
 data class LeaveWebSocketMessage(
     override val type: WebSocketMessageType = WebSocketMessageType.LEAVE,
     override val messageId: String?,
-    override val timestamp: Instant,
+    override val timestamp: Long, // Unix timestamp in milliseconds
     override val sessionId: String?,
     val userId: Long,
     val roomId: Long,
@@ -90,7 +89,7 @@ data class LeaveWebSocketMessage(
 data class TypingWebSocketMessage(
     override val type: WebSocketMessageType = WebSocketMessageType.TYPING,
     override val messageId: String?,
-    override val timestamp: Instant,
+    override val timestamp: Long, // Unix timestamp in milliseconds
     override val sessionId: String?,
     val userId: Long,
     val roomId: Long,
@@ -101,14 +100,14 @@ data class TypingWebSocketMessage(
 data class HeartbeatWebSocketMessage(
     override val type: WebSocketMessageType = WebSocketMessageType.HEARTBEAT,
     override val messageId: String?,
-    override val timestamp: Instant,
+    override val timestamp: Long, // Unix timestamp in milliseconds
     override val sessionId: String?
 ) : WebSocketMessage()
 
 data class SystemWebSocketMessage(
     override val type: WebSocketMessageType = WebSocketMessageType.SYSTEM,
     override val messageId: String?,
-    override val timestamp: Instant,
+    override val timestamp: Long, // Unix timestamp in milliseconds
     override val sessionId: String?,
     val content: String,
     val level: String = "INFO"
@@ -117,7 +116,7 @@ data class SystemWebSocketMessage(
 data class ErrorWebSocketMessage(
     override val type: WebSocketMessageType = WebSocketMessageType.ERROR,
     override val messageId: String?,
-    override val timestamp: Instant,
+    override val timestamp: Long, // Unix timestamp in milliseconds
     override val sessionId: String?,
     val errorCode: String,
     val errorMessage: String,
@@ -128,7 +127,7 @@ data class ErrorWebSocketMessage(
 data class AckWebSocketMessage(
     override val type: WebSocketMessageType = WebSocketMessageType.ACK,
     override val messageId: String?,
-    override val timestamp: Instant,
+    override val timestamp: Long, // Unix timestamp in milliseconds
     override val sessionId: String?,
     val originalMessageId: String,
     val status: String = "OK"

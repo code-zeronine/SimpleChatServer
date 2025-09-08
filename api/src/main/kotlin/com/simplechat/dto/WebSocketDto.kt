@@ -12,7 +12,6 @@ import com.simplechat.domain.message.LeaveWebSocketMessage
 import com.simplechat.domain.message.SystemWebSocketMessage
 import com.simplechat.domain.message.TypingWebSocketMessage
 import com.simplechat.domain.message.WebSocketMessage
-import java.time.Instant
 
 /**
  * WebSocket 메시지를 위한 API 계층 어댑터
@@ -27,7 +26,7 @@ object WebSocketMessageAdapter {
         data: Map<String, Any>,
         sessionId: String?,
         messageId: String? = null,
-        timestamp: Instant = Instant.now()
+        timestamp: Long = System.currentTimeMillis()
     ): WebSocketMessage {
         return when (type) {
             "CHAT" -> ChatWebSocketMessage(
@@ -70,12 +69,13 @@ object WebSocketMessageAdapter {
     
     /**
      * 도메인 메시지를 API 응답으로 변환
+     * CRITICAL: timestamp는 Long (Unix timestamp in milliseconds)로 통일
      */
     fun toApiResponse(message: WebSocketMessage): Map<String, Any> {
         val baseMap = mutableMapOf<String, Any>(
             "type" to message.type.name,
             "messageId" to (message.messageId ?: ""),
-            "timestamp" to message.timestamp,
+            "timestamp" to message.timestamp, // Unix timestamp in milliseconds
             "sessionId" to (message.sessionId ?: "")
         )
         
