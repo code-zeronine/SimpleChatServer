@@ -717,6 +717,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 메시지 추가
         addMessage(message, isOwn = false) {
+            // 내용이 없는 메시지는 추가하지 않음
+            if (!message || !message.content || message.content.trim() === '') {
+                return;
+            }
+
             // Add to the internal messages array
             this.messages.push(message);
 
@@ -882,7 +887,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 // 레거시 지원을 위한 일반 메시지 핸들러
-                this.websocket.onMessage('message', (data) => {
+                this.websocket.on('message', (data) => {
                     console.log('Received WebSocket message:', data);
                     if (data.type === 'CHAT') {
                         // CHAT 타입은 위에서 처리됨
@@ -896,6 +901,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             timestamp: data.timestamp || Date.now(), // Long timestamp
                             messageId: data.messageId || Date.now().toString()
                         }, false);
+
+                        // 토스트 팝업 알림 표시
+                        Toast.info(data.content);
+
+                        // 참여자 수 새로고침
+                        this.refreshParticipantCount();
                         return;
                     }
                     if (String(data.userId) !== String(this.currentUser.id)) {
@@ -915,16 +926,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             this.hideTypingIndicator();
                         }
                     }
-                });
-                
-                this.websocket.onMessage('user_joined', (data) => {
-                    Toast.info(`${data.userName}님이 입장했습니다.`);
-                    this.updateMemberCount(data.memberCount);
-                });
-                
-                this.websocket.onMessage('user_left', (data) => {
-                    Toast.info(`${data.userName}님이 퇴장했습니다.`);
-                    this.updateMemberCount(data.memberCount);
                 });
                 
                 // 연결 및 채팅방 입장
