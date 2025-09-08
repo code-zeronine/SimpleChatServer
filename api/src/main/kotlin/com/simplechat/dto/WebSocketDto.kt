@@ -104,7 +104,9 @@ object WebSocketMessageAdapter {
             ))
             is SystemWebSocketMessage -> baseMap.putAll(mapOf(
                 "content" to message.content,
-                "level" to message.level
+                "level" to message.level,
+                "userId" to (message.userId ?: ""),
+                "userNickname" to (message.userNickname ?: "")
             ))
             is ErrorWebSocketMessage -> baseMap.putAll(mapOf(
                 "errorCode" to message.errorCode,

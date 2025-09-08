@@ -98,7 +98,9 @@ class WebSocketMessageHandler(
                             messageId = UUID.randomUUID().toString(),
                             timestamp = System.currentTimeMillis(),
                             sessionId = session.id,
-                            content = "$username 님이 퇴장했습니다."
+                            content = "$username 님이 퇴장했습니다.",
+                            userId = userId,
+                            userNickname = username
                         )
                         messageBrokerService.broadcast(chatRoomId, leaveSystemMessage)
                         log.debug("Auto-sent leave message for user {} in room {}", userId, chatRoomId)
@@ -330,7 +332,9 @@ class WebSocketMessageHandler(
             messageId = UUID.randomUUID().toString(),
             timestamp = System.currentTimeMillis(),
             sessionId = session.id,
-            content = "${message.userNickname ?: "사용자"} 님이 입장했습니다."
+            content = "${message.userNickname ?: "사용자"} 님이 입장했습니다.",
+            userId = message.userId,
+            userNickname = message.userNickname
         )
         
         return Mono.defer {
@@ -351,7 +355,9 @@ class WebSocketMessageHandler(
             messageId = UUID.randomUUID().toString(),
             timestamp = System.currentTimeMillis(),
             sessionId = session.id,
-            content = "${message.userNickname ?: "사용자"} 님이 퇴장했습니다."
+            content = "${message.userNickname ?: "사용자"} 님이 퇴장했습니다.",
+            userId = message.userId,
+            userNickname = message.userNickname
         )
         
         return Mono.defer {

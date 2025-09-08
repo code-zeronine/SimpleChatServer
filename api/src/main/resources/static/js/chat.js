@@ -902,8 +902,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             messageId: data.messageId || Date.now().toString()
                         }, false);
 
-                        // 토스트 팝업 알림 표시
-                        Toast.info(data.content);
+                        // 자신의 입장/퇴장 메시지인 경우 토스트를 띄우지 않음
+                        if (data.userId && String(data.userId) !== String(this.currentUser.id)) {
+                            Toast.info(data.content);
+                        }
 
                         // 참여자 수 새로고침
                         this.refreshParticipantCount();
