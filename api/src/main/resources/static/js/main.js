@@ -41,6 +41,15 @@ const DOM = {
         if (element && typeof styles === 'object') {
             Object.entries(styles).forEach(([property, value]) => element.style[property] = value);
         }
+    },
+    show: (element) => {
+        if (element) element.style.display = '';
+    },
+    hide: (element) => {
+        if (element) element.style.display = 'none';
+    },
+    isHidden: (element) => {
+        return !element || element.style.display === 'none';
     }
 };
 
@@ -200,6 +209,28 @@ const Loading = {
         const loadingEl = btn.querySelector('.btn-loading');
         if (textEl) textEl.style.display = 'inline-block';
         if (loadingEl) loadingEl.style.display = 'none';
+    },
+    show: (message = '로딩 중...') => {
+        let overlay = DOM.select('.loading-overlay');
+        if (!overlay) {
+            overlay = DOM.create('div', { className: 'loading-overlay' }, `
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <div class="loading-message">${message}</div>
+                </div>
+            `);
+            document.body.appendChild(overlay);
+        } else {
+            const messageEl = overlay.querySelector('.loading-message');
+            if (messageEl) messageEl.textContent = message;
+        }
+        overlay.style.display = 'flex';
+    },
+    hide: () => {
+        const overlay = DOM.select('.loading-overlay');
+        if (overlay) {
+            overlay.style.display = 'none';
+        }
     }
 };
 
@@ -301,7 +332,53 @@ const Utils = {
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
     },
-    parseUrlParams: () => Object.fromEntries(new URLSearchParams(window.location.search))
+    parseUrlParams: () => Object.fromEntries(new URLSearchParams(window.location.search)),
+    animate: (element, styles, duration = 300) => {
+        if (!element) return Promise.resolve();
+        
+        return new Promise((resolve) => {
+            const startTime = performance.now();
+            const startStyles = {};
+            const endStyles = {};
+            
+            // Get current computed styles
+            const computedStyle = getComputedStyle(element);
+            Object.keys(styles).forEach(prop => {
+                if (prop === 'opacity') {
+                    startStyles[prop] = parseFloat(computedStyle.opacity) || 0;
+                    endStyles[prop] = parseFloat(styles[prop]);
+                } else if (prop === 'transform') {
+                    startStyles[prop] = computedStyle.transform === 'none' ? '' : computedStyle.transform;
+                    endStyles[prop] = styles[prop];
+                }
+            });
+            
+            const animate = (currentTime) => {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeProgress = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+                
+                Object.keys(styles).forEach(prop => {
+                    if (prop === 'opacity') {
+                        const currentValue = startStyles[prop] + (endStyles[prop] - startStyles[prop]) * easeProgress;
+                        element.style[prop] = currentValue;
+                    } else if (prop === 'transform') {
+                        element.style[prop] = endStyles[prop];
+                    } else {
+                        element.style[prop] = styles[prop];
+                    }
+                });
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    resolve();
+                }
+            };
+            
+            requestAnimationFrame(animate);
+        });
+    }
 };
 
 /**

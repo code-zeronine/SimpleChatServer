@@ -230,22 +230,37 @@ function validateCreateRoomForm(data) {
  * 채팅방 목록 로드
  */
 async function loadChatRooms(filter = 'all') {
-    const { Http, DOM, Toast } = window.SimpleChatServer.utils;
+    const { Http, DOM, Toast, Loading } = window.SimpleChatServer.utils;
     
     const loadingSpinner = DOM.select('#loadingSpinner');
     const emptyState = DOM.select('#emptyState');
     const roomsGrid = DOM.select('#roomsGrid');
 
     try {
-        // Show spinner, hide empty state, and clear old cards
-        if (loadingSpinner) loadingSpinner.style.display = 'flex';
-        if (emptyState) emptyState.style.display = 'none';
+        // 로딩 상태 표시
+        Loading.show('채팅방 목록을 불러오는 중...');
+        if (loadingSpinner) DOM.show(loadingSpinner);
+        if (emptyState) DOM.hide(emptyState);
+        
+        // 기존 카드들 제거
         const existingCards = roomsGrid.querySelectorAll('.room-card');
         existingCards.forEach(card => card.remove());
 
-        // API 호출
+        // API 호출 - JWT 토큰은 자동으로 포함됨
         const response = await Http.get(`/api/rooms?filter=${filter}`);
-        currentRooms = response.data?.rooms || [];
+        
+        // 응답 데이터 검증 - ChatRoomListResponse 형식
+        if (!response.success || !response.data) {
+            throw new Error('Invalid response format');
+        }
+        
+        // ChatRoomListResponse에서 rooms 배열 추출
+        const chatRoomListResponse = response.data;
+        if (!Array.isArray(chatRoomListResponse.rooms)) {
+            throw new Error('Invalid rooms data format');
+        }
+        
+        currentRooms = chatRoomListResponse.rooms || [];
         
         // 필터링 및 정렬 적용
         applyFiltersAndSort();
@@ -256,15 +271,25 @@ async function loadChatRooms(filter = 'all') {
         
     } catch (error) {
         console.error('Failed to load chat rooms:', error);
-        Toast.error('채팅방 목록을 불러오는데 실패했습니다.');
         
+        let errorMessage = '채팅방 목록을 불러오는데 실패했습니다.';
+        if (error.status === 401) {
+            errorMessage = '로그인이 필요합니다.';
+            setTimeout(() => window.location.href = '/login', 1500);
+        } else if (error.status === 403) {
+            errorMessage = '채팅방 목록을 볼 권한이 없습니다.';
+        } else if (error.status >= 500) {
+            errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        }
+        
+        Toast.error(errorMessage);
         currentRooms = [];
         filteredRooms = [];
         updateRoomsDisplay();
         
     } finally {
-        // Hide spinner at the end
-        if (loadingSpinner) loadingSpinner.style.display = 'none';
+        Loading.hide();
+        if (loadingSpinner) DOM.hide(loadingSpinner);
     }
 }
 
@@ -272,32 +297,43 @@ async function loadChatRooms(filter = 'all') {
  * 채팅방 목록 표시 업데이트
  */
 function updateRoomsDisplay() {
-    const { DOM } = window.SimpleChatServer.utils;
+    const { DOM, Utils } = window.SimpleChatServer.utils;
     
     const roomsGrid = DOM.select('#roomsGrid');
     const emptyState = DOM.select('#emptyState');
     
-    // Clear only the room cards, leaving the spinner element alone
+    // 기존 카드들만 제거 (스피너는 유지)
     const existingCards = roomsGrid.querySelectorAll('.room-card');
     existingCards.forEach(card => card.remove());
     
     if (filteredRooms.length === 0) {
-        // Don't show empty state if the spinner is active
         const loadingSpinner = DOM.select('#loadingSpinner');
-        if (loadingSpinner && loadingSpinner.style.display !== 'none') {
-            emptyState.style.display = 'none';
+        if (loadingSpinner && !DOM.isHidden(loadingSpinner)) {
+            DOM.hide(emptyState);
         } else {
-            emptyState.style.display = 'flex';
+            DOM.show(emptyState);
         }
         return;
     }
     
-    emptyState.style.display = 'none';
+    DOM.hide(emptyState);
     
-    // 채팅방 카드 생성
-    filteredRooms.forEach(room => {
-        const card = createRoomCard(room);
-        roomsGrid.appendChild(card);
+    // 애니메이션을 위한 지연 로딩
+    filteredRooms.forEach((room, index) => {
+        setTimeout(() => {
+            const card = createRoomCard(room);
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            roomsGrid.appendChild(card);
+            
+            // 애니메이션 시작
+            requestAnimationFrame(() => {
+                Utils.animate(card, {
+                    opacity: 1,
+                    transform: 'translateY(0)'
+                }, 300);
+            });
+        }, index * 50); // 카드별 50ms 지연
     });
 }
 
@@ -332,41 +368,61 @@ function createRoomCard(room) {
     card.innerHTML = `
         <div class="room-card-header">
             <div class="room-info">
-                <h3 class="room-name">${Utils.escapeHtml(room.name)}</h3>
-                ${room.description ? `<p class="room-description">${Utils.escapeHtml(room.description)}</p>` : ''}
+                <h3 class="room-name" title="${Utils.escapeHtml(room.name)}">${Utils.escapeHtml(room.name)}</h3>
+                ${room.description ? `<p class="room-description" title="${Utils.escapeHtml(room.description)}">${Utils.escapeHtml(room.description)}</p>` : ''}
             </div>
             <div class="room-status">
-                <div class="room-type-badge ${!room.isPrivate ? 'public' : 'private'}">
-                    ${!room.isPrivate ? 'PUBLIC' : 'PRIVATE'}
+                <div class="room-type-badge ${!room.isPrivate ? 'public' : 'private'}" 
+                     title="${!room.isPrivate ? '누구나 참여할 수 있는 공개 채팅방' : '초대받은 사람만 참여할 수 있는 비공개 채팅방'}">
+                    <i class="fas ${!room.isPrivate ? 'fa-globe' : 'fa-lock'}"></i>
+                    ${!room.isPrivate ? '공개' : '비공개'}
                 </div>
-                <div class="room-online-indicator"></div>
+                <div class="room-online-indicator ${isJoined ? 'active' : ''}" 
+                     title="${isJoined ? '참여 중인 채팅방' : '참여하지 않은 채팅방'}"></div>
             </div>
         </div>
         
         <div class="room-card-body">
             <div class="room-stats">
-                <div class="room-stat">
+                <div class="room-stat" title="현재 참여자 수">
                     <span class="room-stat-icon"><i class="fas fa-users"></i></span>
-                    <span>${memberCount}/${maxMembers}</span>
+                    <span class="room-stat-value">${memberCount}</span>
+                    <span class="room-stat-max">/${maxMembers}</span>
                 </div>
-                <div class="room-stat">
+                <div class="room-stat" title="마지막 활동 시간">
                     <span class="room-stat-icon"><i class="fas fa-clock"></i></span>
-                    <span>${lastActivity}</span>
+                    <span class="room-stat-value">${lastActivity}</span>
                 </div>
+                ${room.unreadCount > 0 ? `
+                <div class="room-stat unread" title="읽지 않은 메시지">
+                    <span class="room-stat-icon"><i class="fas fa-envelope"></i></span>
+                    <span class="room-stat-value">${room.unreadCount}</span>
+                </div>
+                ` : ''}
             </div>
         </div>
         
         <div class="room-card-footer">
-            <div class="room-last-message">
-                ${lastMessageContent}
+            <div class="room-last-message" title="${lastMessageContent}">
+                <i class="fas fa-comment-alt room-message-icon"></i>
+                <span class="message-content">${lastMessageContent}</span>
             </div>
             <div class="room-actions">
-                <button class="room-action-btn info" data-action="info">
-                    정보
+                <button class="room-action-btn info" data-action="info" 
+                        title="채팅방 상세 정보 보기" aria-label="채팅방 정보">
+                    <i class="fas fa-info-circle"></i>
                 </button>
                 ${isJoined ? 
-                    `<button class="room-action-btn leave" data-action="leave">나가기</button>` :
-                    `<button class="room-action-btn join" data-action="join">참여</button>`
+                    `<button class="room-action-btn enter" data-action="enter" 
+                             title="채팅방으로 이동" aria-label="채팅방 입장">
+                        <i class="fas fa-sign-in-alt"></i>
+                        입장
+                    </button>` :
+                    `<button class="room-action-btn join" data-action="join" 
+                             title="채팅방에 참여하기" aria-label="채팅방 참여">
+                        <i class="fas fa-plus-circle"></i>
+                        참여
+                    </button>`
                 }
             </div>
         </div>
@@ -408,6 +464,9 @@ function setupRoomCardEvents(card, room) {
             switch (action) {
                 case 'join':
                     handleJoinRoom(room.id);
+                    break;
+                case 'enter':
+                    window.location.href = `/chat?roomId=${room.id}`;
                     break;
                 case 'leave':
                     handleLeaveRoom(room.id);
@@ -506,19 +565,30 @@ function handleSortChange(sort) {
 }
 
 async function handleJoinRoom(roomId) {
-    const { Http, Toast } = window.SimpleChatServer.utils;
+    const { Http, Toast, Loading, DOM } = window.SimpleChatServer.utils;
+    
+    // 버튼을 찾아 로딩 상태 적용
+    const roomCard = DOM.select(`[data-room-id="${roomId}"]`);
+    const joinBtn = roomCard ? roomCard.querySelector('[data-action="join"]') : null;
     
     try {
+        if (joinBtn) Loading.showButton(joinBtn);
+        
         const response = await Http.post(`/api/rooms/${roomId}/join`);
-        Toast.success('채팅방에 참여했습니다!');
         
-        // 채팅방 목록 새로고침
-        await loadChatRooms();
-        
-        // 채팅 페이지로 이동
-        setTimeout(() => {
-            window.location.href = `/chat?roomId=${roomId}`;
-        }, 1000);
+        if (response.success) {
+            Toast.success('채팅방에 참여했습니다!');
+            
+            // 채팅방 목록 새로고침
+            await loadChatRooms(currentFilter);
+            
+            // 채팅 페이지로 이동
+            setTimeout(() => {
+                window.location.href = `/chat?roomId=${roomId}`;
+            }, 800);
+        } else {
+            throw new Error('Join request failed');
+        }
         
     } catch (error) {
         console.error('Join room error:', error);
@@ -530,9 +600,15 @@ async function handleJoinRoom(roomId) {
             errorMessage = '이미 참여 중인 채팅방입니다.';
         } else if (error.status === 403) {
             errorMessage = '채팅방 참여 권한이 없습니다.';
+        } else if (error.status === 401) {
+            errorMessage = '로그인이 필요합니다.';
+        } else if (error.status >= 500) {
+            errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
         }
         
         Toast.error(errorMessage);
+    } finally {
+        if (joinBtn) Loading.hideButton(joinBtn);
     }
 }
 
@@ -571,10 +647,17 @@ async function handleLeaveRoom(roomId) {
 
 function updateRoomsCount() {
     const { DOM } = window.SimpleChatServer.utils;
-    const roomsCountEl = DOM.select('#roomsCount');
+    const roomsCountText = DOM.select('#roomsCountText');
     
-    if (roomsCountEl) {
-        roomsCountEl.textContent = `${filteredRooms.length}개의 채팅방`;
+    if (roomsCountText) {
+        const totalCount = currentRooms.length;
+        const filteredCount = filteredRooms.length;
+        
+        if (totalCount === filteredCount) {
+            roomsCountText.textContent = `${totalCount}개의 채팅방`;
+        } else {
+            roomsCountText.textContent = `${filteredCount}개의 채팅방 (전체 ${totalCount}개)`;
+        }
     }
 }
 

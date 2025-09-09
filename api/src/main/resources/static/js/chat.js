@@ -296,10 +296,15 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // ChatRoomDetailsDto 구조: { room: ChatRoomDto, participants: [...], ... }
             const room = roomData.room || roomData; // ChatRoomDetailsDto 또는 ChatRoomDto 대응
-            const participantCount = room.currentParticipants || roomData.participants?.length || 0;
+            
+            // 온라인 참여자 수만 표시
+            let onlineParticipantCount = 0;
+            if (roomData.participants && Array.isArray(roomData.participants)) {
+                onlineParticipantCount = roomData.participants.filter(participant => participant.isOnline).length;
+            }
             
             roomName.textContent = room.name || '채팅방';
-            memberCount.textContent = `참여자 ${participantCount}명`;
+            memberCount.textContent = `온라인 ${onlineParticipantCount}명`;
             
             // 페이지 제목 업데이트
             document.title = `${room.name} - SimpleChatServer`;
@@ -997,12 +1002,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 this.websocket.onMessage('JOIN', (data) => {
                     Toast.info(`${data.userName}님이 입장했습니다.`);
-                    this.updateMemberCount(data.memberCount);
+                    // 참여자 정보를 새로고침하여 온라인 사용자 수 업데이트
+                    this.refreshParticipantCount();
                 });
 
                 this.websocket.onMessage('LEAVE', (data) => {
                     Toast.info(`${data.userName}님이 퇴장했습니다.`);
-                    this.updateMemberCount(data.memberCount);
+                    // 참여자 정보를 새로고침하여 온라인 사용자 수 업데이트
+                    this.refreshParticipantCount();
                 });
 
                 // 연결 및 채팅방 입장
@@ -1098,19 +1105,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
         
-        // 멤버 수 업데이트
+        // 멤버 수 업데이트 (온라인 사용자 수로 변경)
         updateMemberCount(count) {
             const memberCount = DOM.select('#memberCount');
-            memberCount.textContent = `참여자 ${count}명`;
+            memberCount.textContent = `온라인 ${count}명`;
         },
         
-        // 참여자 수 새로고침
+        // 참여자 수 새로고침 (온라인 사용자만 카운트)
         async refreshParticipantCount() {
             try {
                 const response = await Http.get(`/api/rooms/${this.currentRoomId}/participants`);
                 if (response.success) {
-                    const participantCount = response.data.length;
-                    this.updateMemberCount(participantCount);
+                    // 온라인인 참여자만 카운트
+                    const onlineParticipantCount = response.data.filter(participant => participant.isOnline).length;
+                    this.updateMemberCount(onlineParticipantCount);
+                    
+                    console.log(`Total participants: ${response.data.length}, Online: ${onlineParticipantCount}`);
                 }
             } catch (error) {
                 console.error('참여자 수 조회 오류:', error);
@@ -1225,32 +1235,57 @@ document.addEventListener('DOMContentLoaded', function() {
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         },
         
-        // 참여자 사이드바 토글
+        // 참여자 사이드바 토글 (접근성 및 UX 개선)
         toggleMembersSidebar() {
             const sidebar = DOM.select('#membersSidebar');
             const overlay = DOM.select('#overlay');
+            const memberListBtn = DOM.select('#memberListBtn');
             
-            if (sidebar.classList.contains('open')) {
+            if (sidebar.classList.contains('show')) {
                 this.hideMembersSidebar();
             }
             else {
-                sidebar.classList.add('open');
+                sidebar.classList.add('show');
+                sidebar.setAttribute('aria-hidden', 'false');
                 overlay.classList.add('show');
                 document.body.style.overflow = 'hidden';
                 
+                // 버튼 상태 업데이트
+                memberListBtn.setAttribute('aria-expanded', 'true');
+                
                 // 참여자 목록 로드
                 this.loadMembers();
+                
+                // 포커스 설정
+                setTimeout(() => {
+                    const firstFocusable = sidebar.querySelector('button, [tabindex]:not([tabindex="-1"])');
+                    if (firstFocusable) {
+                        firstFocusable.focus();
+                    }
+                }, 300);
             }
         },
         
-        // 참여자 사이드바 숨김
+        // 참여자 사이드바 숨김 (접근성 개선)
         hideMembersSidebar() {
             const sidebar = DOM.select('#membersSidebar');
             const overlay = DOM.select('#overlay');
+            const memberListBtn = DOM.select('#memberListBtn');
             
-            sidebar.classList.remove('open');
+            sidebar.classList.remove('show');
+            sidebar.setAttribute('aria-hidden', 'true');
             overlay.classList.remove('show');
             document.body.style.overflow = '';
+            
+            // 버튼 상태 업데이트
+            memberListBtn.setAttribute('aria-expanded', 'false');
+            
+            // 포커스 복원
+            setTimeout(() => {
+                if (memberListBtn) {
+                    memberListBtn.focus();
+                }
+            }, 100);
         },
         
         // 참여자 목록 로드
