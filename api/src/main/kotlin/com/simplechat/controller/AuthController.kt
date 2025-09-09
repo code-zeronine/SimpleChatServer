@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import reactor.core.publisher.Mono
 import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 
 /**
@@ -48,15 +47,13 @@ class AuthController(
             SwaggerApiResponse(responseCode = "409", description = "이미 존재하는 이메일 또는 닉네임")
         ]
     )
-    fun signUp(
+    suspend fun signUp(
         @Parameter(description = "회원가입 요청 데이터", required = true)
         @Valid @RequestBody request: SignUpRequest
-    ): Mono<ResponseEntity<ApiResponse<AuthResponse>>> {
-        return authService.signUp(request)
-            .map { response ->
-                ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponse.success(response, "회원가입이 성공적으로 완료되었습니다."))
-            }
+    ): ResponseEntity<ApiResponse<AuthResponse>> {
+        val response = authService.signUp(request)
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.success(response, "회원가입이 성공적으로 완료되었습니다."))
     }
 
     /**
@@ -74,14 +71,12 @@ class AuthController(
             SwaggerApiResponse(responseCode = "401", description = "인증 실패 (잘못된 이메일 또는 비밀번호)")
         ]
     )
-    fun login(
+    suspend fun login(
         @Parameter(description = "로그인 요청 데이터", required = true)
         @Valid @RequestBody request: LoginRequest
-    ): Mono<ResponseEntity<ApiResponse<AuthResponse>>> {
-        return authService.login(request)
-            .map { response ->
-                ResponseEntity.ok(ApiResponse.success(response, "로그인이 성공적으로 완료되었습니다."))
-            }
+    ): ResponseEntity<ApiResponse<AuthResponse>> {
+        val response = authService.login(request)
+        return ResponseEntity.ok(ApiResponse.success(response, "로그인이 성공적으로 완료되었습니다."))
     }
 
     /**
@@ -99,14 +94,12 @@ class AuthController(
             SwaggerApiResponse(responseCode = "401", description = "유효하지 않은 리프레시 토큰")
         ]
     )
-    fun refreshToken(
+    suspend fun refreshToken(
         @Parameter(description = "토큰 갱신 요청 데이터", required = true)
         @Valid @RequestBody request: RefreshTokenRequest
-    ): Mono<ResponseEntity<ApiResponse<RefreshTokenResponse>>> {
-        return authService.refreshToken(request)
-            .map { response ->
-                ResponseEntity.ok(ApiResponse.success(response, "토큰이 성공적으로 갱신되었습니다."))
-            }
+    ): ResponseEntity<ApiResponse<RefreshTokenResponse>> {
+        val response = authService.refreshToken(request)
+        return ResponseEntity.ok(ApiResponse.success(response, "토큰이 성공적으로 갱신되었습니다."))
     }
 
     /**
@@ -123,14 +116,12 @@ class AuthController(
             SwaggerApiResponse(responseCode = "400", description = "잘못된 이메일 형식")
         ]
     )
-    fun checkEmailExists(
+    suspend fun checkEmailExists(
         @Parameter(description = "확인할 이메일 주소", required = true, example = "user@example.com")
         @RequestParam email: String
-    ): Mono<ResponseEntity<ApiResponse<Map<String, Boolean>>>> {
-        return authService.checkEmailExists(email)
-            .map { exists ->
-                ResponseEntity.ok(ApiResponse.success(mapOf("exists" to exists)))
-            }
+    ): ResponseEntity<ApiResponse<Map<String, Boolean>>> {
+        val exists = authService.checkEmailExists(email)
+        return ResponseEntity.ok(ApiResponse.success(mapOf("exists" to exists)))
     }
 
     /**
@@ -147,14 +138,12 @@ class AuthController(
             SwaggerApiResponse(responseCode = "400", description = "잘못된 닉네임 형식")
         ]
     )
-    fun checkNicknameExists(
+    suspend fun checkNicknameExists(
         @Parameter(description = "확인할 닉네임", required = true, example = "사용자123")
         @RequestParam nickname: String
-    ): Mono<ResponseEntity<ApiResponse<Map<String, Boolean>>>> {
-        return authService.checkNicknameExists(nickname)
-            .map { exists ->
-                ResponseEntity.ok(ApiResponse.success(mapOf("exists" to exists)))
-            }
+    ): ResponseEntity<ApiResponse<Map<String, Boolean>>> {
+        val exists = authService.checkNicknameExists(nickname)
+        return ResponseEntity.ok(ApiResponse.success(mapOf("exists" to exists)))
     }
 
 }

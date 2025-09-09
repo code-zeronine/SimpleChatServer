@@ -40,12 +40,13 @@ data class ChatRoomDto(
     val currentParticipants: Int,
     val createdAt: String,
     val updatedAt: String,
-    val isJoined: Boolean
+    val isJoined: Boolean,
+    val latestMessage: MessageDto? = null // 마지막 메시지 정보 추가
 ) {
     companion object {
         private val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
         
-        fun from(chatRoom: ChatRoom, currentParticipants: Int = 0, isJoined: Boolean = false): ChatRoomDto {
+        fun from(chatRoom: ChatRoom, currentParticipants: Int = 0, isJoined: Boolean = false, latestMessage: MessageDto? = null): ChatRoomDto {
             return ChatRoomDto(
                 id = chatRoom.id,
                 name = chatRoom.name,
@@ -56,7 +57,8 @@ data class ChatRoomDto(
                 currentParticipants = currentParticipants,
                 createdAt = chatRoom.createdAt.format(formatter),
                 updatedAt = chatRoom.updatedAt.format(formatter),
-                isJoined = isJoined
+                isJoined = isJoined,
+                latestMessage = latestMessage
             )
         }
     }

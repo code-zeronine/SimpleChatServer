@@ -15,6 +15,7 @@ import com.simplechat.dto.UpdateChatRoomRequest
 import com.simplechat.infrastructure.service.WebSocketSessionManager
 import com.simplechat.security.JwtAuthenticationHelper
 import com.simplechat.service.ChatRoomService
+import com.simplechat.service.MessageService
 import com.simplechat.service.UserChatRoomService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -22,6 +23,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.reactive.asFlow
+import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -36,8 +44,6 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 
 /**
@@ -52,6 +58,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 class ChatRoomController(
     private val chatRoomService: ChatRoomService,
     private val userChatRoomService: UserChatRoomService,
+    private val messageService: MessageService, // MessageService 의존성 주입
     private val jwtAuthenticationHelper: JwtAuthenticationHelper,
     private val userRepository: UserRepository,
     private val webSocketSessionManager: WebSocketSessionManager,
@@ -73,34 +80,26 @@ class ChatRoomController(
             SwaggerApiResponse(responseCode = "401", description = "인증 실패")
         ]
     )
-    fun createChatRoom(
+    suspend fun createChatRoom(
         @Parameter(description = "JWT 인증 토큰", required = true)
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
         @Parameter(description = "채팅방 생성 요청 데이터", required = true)
         @Valid @RequestBody request: CreateChatRoomRequest
-    ): Mono<ResponseEntity<ApiResponse<ChatRoomDto>>> {
-        return extractUserIdFromToken(authHeader)
-            .flatMap { userId ->
-                chatRoomService.createChatRoom(
-                    name = request.name,
-                    description = request.description,
-                    isPrivate = request.isPrivate,
-                    maxParticipants = request.maxParticipants,
-                    ownerId = userId
-                )
-            }
-            .flatMap { chatRoom ->
-                userChatRoomService.countActiveParticipants(chatRoom.id!!)
-                    .map { participantCount ->
-                        // Creator is always joined
-                        ChatRoomDto.from(chatRoom, participantCount.toInt(), true)
-                    }
-            }
-            .map { chatRoomDto ->
-                ResponseEntity
-                    .status(HttpStatus.CREATED)
-                    .body(ApiResponse.success(chatRoomDto, "채팅방이 성공적으로 생성되었습니다."))
-            }
+    ): ResponseEntity<ApiResponse<ChatRoomDto>> {
+        val userId = extractUserIdFromToken(authHeader)
+        val chatRoom = chatRoomService.createChatRoom(
+            name = request.name,
+            description = request.description,
+            isPrivate = request.isPrivate,
+            maxParticipants = request.maxParticipants,
+            ownerId = userId
+        )
+        val participantCount = userChatRoomService.countActiveParticipants(chatRoom.id!!).awaitSingle()
+        val chatRoomDto = ChatRoomDto.from(chatRoom, participantCount.toInt(), true)
+        
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(ApiResponse.success(chatRoomDto, "채팅방이 성공적으로 생성되었습니다."))
     }
 
     /**
@@ -117,7 +116,7 @@ class ChatRoomController(
             SwaggerApiResponse(responseCode = "401", description = "인증 실패")
         ]
     )
-    fun getChatRooms(
+    suspend fun getChatRooms(
         @Parameter(description = "JWT 인증 토큰", required = true)
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
         @Parameter(description = "페이지 번호 (0부터 시작)", example = "0")
@@ -126,49 +125,51 @@ class ChatRoomController(
         @RequestParam(defaultValue = "20") size: Int,
         @Parameter(description = "필터 (all, joined)", example = "all")
         @RequestParam(defaultValue = "all") filter: String
-    ): Mono<ResponseEntity<ApiResponse<ChatRoomListResponse>>> {
-        return extractUserIdFromToken(authHeader)
-            .flatMap { userId ->
-                val roomsFlux = when (filter) {
-                    "joined" -> userChatRoomService.getUserActiveRooms(userId)
-                        .flatMap { userChatRoom -> chatRoomService.findChatRoomById(userChatRoom.chatRoomId) }
-                    else -> chatRoomService.getPublicRooms(size * (page + 1)) // Fetch all public rooms with pagination
-                }
-
-                val roomsWithDetailsFlux = roomsFlux.flatMap { room ->
-                    val countMono = userChatRoomService.countActiveParticipants(room.id!!)
-                    val isJoinedMono = userChatRoomService.isActiveParticipant(userId, room.id!!)
-                    Mono.zip(countMono, isJoinedMono)
-                        .map { tuple ->
-                            val count = tuple.t1
-                            val isJoined = tuple.t2
-                            ChatRoomDto.from(room, count.toInt(), isJoined)
-                        }
-                }
-
-                val roomsMono = roomsWithDetailsFlux.skip((page * size).toLong()).take(size.toLong()).collectList()
-                
-                val totalCountMono = when (filter) {
-                    "joined" -> userChatRoomService.countUserActiveRooms(userId)
-                    else -> chatRoomRepository.count() // Note: This should ideally be countPublicRooms()
-                }
-
-                Mono.zip(roomsMono, totalCountMono)
+    ): ResponseEntity<ApiResponse<ChatRoomListResponse>> {
+        val userId = extractUserIdFromToken(authHeader)
+        
+        val roomsFlow = when (filter) {
+            "joined" -> {
+                val userRooms = userChatRoomService.getUserActiveRooms(userId)
+                userRooms.flatMap { userChatRoom -> 
+                    chatRoomService.findChatRoomById(userChatRoom.chatRoomId) 
+                }.asFlow()
             }
-            .map { tuple ->
-                val rooms = tuple.t1
-                val totalCount = tuple.t2
-                val hasNext = (page + 1) * size < totalCount
+            else -> chatRoomService.getPublicRooms(size * (page + 1)).asFlow()
+        }
 
-                val response = ChatRoomListResponse(
-                    rooms = rooms,
-                    totalCount = totalCount.toInt(),
-                    page = page,
-                    size = size,
-                    hasNext = hasNext
+        val roomsWithDetails = roomsFlow.map { room ->
+            coroutineScope {
+                val countDeferred = async { userChatRoomService.countActiveParticipants(room.id!!).awaitSingle() }
+                val isJoinedDeferred = async { userChatRoomService.isActiveParticipant(userId, room.id!!).awaitSingle() }
+                val latestMessageDeferred = async { messageService.getRecentMessages(room.id!!, 1).firstOrNull() }
+
+                ChatRoomDto.from(
+                    room,
+                    countDeferred.await().toInt(),
+                    isJoinedDeferred.await(),
+                    latestMessageDeferred.await()
                 )
-                ResponseEntity.ok(ApiResponse.success(response))
             }
+        }.toList()
+
+        val paginatedRooms = roomsWithDetails.drop(page * size).take(size)
+
+        val totalCount = when (filter) {
+            "joined" -> userChatRoomService.countUserActiveRooms(userId).awaitSingle()
+            else -> chatRoomRepository.count().awaitSingle()
+        }
+
+        val hasNext = (page + 1) * size < totalCount
+
+        val response = ChatRoomListResponse(
+            rooms = paginatedRooms,
+            totalCount = totalCount.toInt(),
+            page = page,
+            size = size,
+            hasNext = hasNext
+        )
+        return ResponseEntity.ok(ApiResponse.success(response))
     }
 
     /**
@@ -186,52 +187,41 @@ class ChatRoomController(
             SwaggerApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
         ]
     )
-    fun getChatRoomDetails(
+    suspend fun getChatRoomDetails(
         @Parameter(description = "JWT 인증 토큰", required = true)
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
         @Parameter(description = "채팅방 ID", required = true, example = "1")
         @PathVariable roomId: Long
-    ): Mono<ResponseEntity<ApiResponse<ChatRoomDetailsDto>>> {
-        return extractUserIdFromToken(authHeader)
-            .flatMap { userId ->
-                chatRoomService.getChatRoomDetails(roomId, userId)
-                    .flatMap { details ->
-                        val isJoined = details.userRelationship != null && details.userRelationship.isActive
-                        val roomDto = ChatRoomDto.from(details.room, details.participantCount, isJoined)
+    ): ResponseEntity<ApiResponse<ChatRoomDetailsDto>> {
+        val userId = extractUserIdFromToken(authHeader)
+        val details = chatRoomService.getChatRoomDetails(roomId, userId)
+        
+        val isJoined = details.userRelationship != null && details.userRelationship.isActive
+        val roomDto = ChatRoomDto.from(details.room, details.participantCount, isJoined)
 
-                        val participantsFlux = Flux.fromIterable(details.participants)
-                            .flatMap { ucr ->
-                                val userMono = userRepository.findById(ucr.userId)
-                                val isOnlineMono = Mono.fromCallable { webSocketSessionManager.getUserActiveSessionCount(ucr.userId) > 0 }
-                                Mono.zip(userMono, isOnlineMono)
-                                    .map { tuple -> ParticipantDto.from(ucr, tuple.t1.nickname, tuple.t2) }
-                            }
+        val participants = coroutineScope {
+            details.participants.map { ucr ->
+                async {
+                    val user = userRepository.findById(ucr.userId).awaitSingle()
+                    val isOnline = webSocketSessionManager.getUserActiveSessionCount(ucr.userId) > 0
+                    ParticipantDto.from(ucr, user.nickname, isOnline)
+                }
+            }.map { it.await() }
+        }
 
-                        val ownerMono = userRepository.findById(details.room.createdBy)
-                            .flatMap { user ->
-                                val ownerRelationship = details.participants.find { it.userId == user.id }
-                                val defaultRelationship = details.userRelationship ?: ownerRelationship!!
-                                val isOnlineMono = Mono.fromCallable { webSocketSessionManager.getUserActiveSessionCount(user.id!!) > 0 }
-                                isOnlineMono.map { isOnline ->
-                                    ParticipantDto.from(ownerRelationship ?: defaultRelationship, user.nickname, isOnline)
-                                }
-                            }
+        val ownerRelationship = details.participants.find { it.userId == details.room.createdBy }!!
+        val ownerUser = userRepository.findById(details.room.createdBy).awaitSingle()
+        val isOwnerOnline = webSocketSessionManager.getUserActiveSessionCount(ownerUser.id!!) > 0
+        val ownerDto = ParticipantDto.from(ownerRelationship, ownerUser.nickname, isOwnerOnline)
 
-                        Mono.zip(
-                            participantsFlux.collectList(),
-                            participantsFlux.filter { it.role == ChatRoomRole.ADMIN }.collectList(),
-                            ownerMono
-                        ).map { tuple ->
-                            ChatRoomDetailsDto(
-                                room = roomDto,
-                                participants = tuple.t1,
-                                admins = tuple.t2,
-                                owner = tuple.t3
-                            )
-                        }
-                    }
-            }
-            .map { detailsDto -> ResponseEntity.ok(ApiResponse.success(detailsDto)) }
+        val detailsDto = ChatRoomDetailsDto(
+            room = roomDto,
+            participants = participants,
+            admins = participants.filter { it.role == ChatRoomRole.ADMIN },
+            owner = ownerDto
+        )
+        
+        return ResponseEntity.ok(ApiResponse.success(detailsDto))
     }
 
 
@@ -251,19 +241,15 @@ class ChatRoomController(
             SwaggerApiResponse(responseCode = "409", description = "이미 참여한 채팅방")
         ]
     )
-    fun joinChatRoom(
+    suspend fun joinChatRoom(
         @Parameter(description = "JWT 인증 토큰", required = true)
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
         @Parameter(description = "참여할 채팅방 ID", required = true, example = "1")
         @PathVariable roomId: Long
-    ): Mono<ResponseEntity<ApiResponse<Unit>>> {
-        return extractUserIdFromToken(authHeader)
-            .flatMap { userId ->
-                chatRoomService.joinChatRoom(userId, roomId)
-            }
-            .map {
-                ResponseEntity.ok(ApiResponse.success("채팅방에 성공적으로 참여했습니다."))
-            }
+    ): ResponseEntity<ApiResponse<Unit>> {
+        val userId = extractUserIdFromToken(authHeader)
+        chatRoomService.joinChatRoom(userId, roomId)
+        return ResponseEntity.ok(ApiResponse.success("채팅방에 성공적으로 참여했습니다."))
     }
 
     /**
@@ -281,19 +267,15 @@ class ChatRoomController(
             SwaggerApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
         ]
     )
-    fun leaveChatRoom(
+    suspend fun leaveChatRoom(
         @Parameter(description = "JWT 인증 토큰", required = true)
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
         @Parameter(description = "퇴장할 채팅방 ID", required = true, example = "1")
         @PathVariable roomId: Long
-    ): Mono<ResponseEntity<ApiResponse<Unit>>> {
-        return extractUserIdFromToken(authHeader)
-            .flatMap { userId ->
-                chatRoomService.leaveChatRoom(userId, roomId)
-            }
-            .map {
-                ResponseEntity.ok(ApiResponse.success("채팅방에서 성공적으로 퇴장했습니다."))
-            }
+    ): ResponseEntity<ApiResponse<Unit>> {
+        val userId = extractUserIdFromToken(authHeader)
+        chatRoomService.leaveChatRoom(userId, roomId)
+        return ResponseEntity.ok(ApiResponse.success("채팅방에서 성공적으로 퇴장했습니다."))
     }
 
     /**
@@ -311,33 +293,24 @@ class ChatRoomController(
             SwaggerApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
         ]
     )
-    fun getChatRoomParticipants(
+    suspend fun getChatRoomParticipants(
         @Parameter(description = "JWT 인증 토큰", required = true)
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
         @Parameter(description = "조회할 채팅방 ID", required = true, example = "1")
         @PathVariable roomId: Long
-    ): Mono<ResponseEntity<ApiResponse<List<ParticipantDto>>>> {
-        return extractUserIdFromToken(authHeader)
-            .flatMapMany { userId ->
-                chatRoomService.getRoomParticipants(roomId, userId)
-                    .flatMap { userChatRoom ->
-                        val userMono = userRepository.findById(userChatRoom.userId)
-                        val isOnlineMono = Mono.fromCallable { 
-                            webSocketSessionManager.getUserActiveSessionCount(userChatRoom.userId) > 0
-                        }
-                        
-                        Mono.zip(userMono, isOnlineMono)
-                            .map { tuple -> 
-                                val user = tuple.t1
-                                val isOnline = tuple.t2
-                                ParticipantDto.from(userChatRoom, user.nickname, isOnline)
-                            }
-                    }
-            }
-            .collectList()
-            .map { participants ->
-                ResponseEntity.ok(ApiResponse.success(participants))
-            }
+    ): ResponseEntity<ApiResponse<List<ParticipantDto>>> {
+        val userId = extractUserIdFromToken(authHeader)
+        val participantRelations = chatRoomService.getRoomParticipants(roomId, userId).collectList().awaitSingle()
+        val participants = coroutineScope {
+            participantRelations.map { userChatRoom ->
+                async {
+                    val user = userRepository.findById(userChatRoom.userId).awaitSingle()
+                    val isOnline = webSocketSessionManager.getUserActiveSessionCount(userChatRoom.userId) > 0
+                    ParticipantDto.from(userChatRoom, user.nickname, isOnline)
+                }
+            }.awaitAll()
+        }
+        return ResponseEntity.ok(ApiResponse.success(participants))
     }
 
     /**
@@ -357,26 +330,22 @@ class ChatRoomController(
             SwaggerApiResponse(responseCode = "404", description = "채팅방 또는 사용자를 찾을 수 없음")
         ]
     )
-    fun changeParticipantRole(
+    suspend fun changeParticipantRole(
         @Parameter(description = "JWT 인증 토큰", required = true)
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
         @Parameter(description = "채팅방 ID", required = true, example = "1")
         @PathVariable roomId: Long,
         @Parameter(description = "역할 변경 요청 데이터", required = true)
         @Valid @RequestBody request: ChangeParticipantRoleRequest
-    ): Mono<ResponseEntity<ApiResponse<Unit>>> {
-        return extractUserIdFromToken(authHeader)
-            .flatMap { requesterId ->
-                chatRoomService.changeParticipantRole(
-                    requesterId = requesterId,
-                    targetUserId = request.targetUserId,
-                    roomId = roomId,
-                    newRole = request.newRole
-                )
-            }
-            .map {
-                ResponseEntity.ok(ApiResponse.success("참여자 역할이 성공적으로 변경되었습니다."))
-            }
+    ): ResponseEntity<ApiResponse<Unit>> {
+        val requesterId = extractUserIdFromToken(authHeader)
+        chatRoomService.changeParticipantRole(
+            requesterId = requesterId,
+            targetUserId = request.targetUserId,
+            roomId = roomId,
+            newRole = request.newRole
+        )
+        return ResponseEntity.ok(ApiResponse.success("참여자 역할이 성공적으로 변경되었습니다."))
     }
 
     /**
@@ -397,25 +366,21 @@ class ChatRoomController(
             SwaggerApiResponse(responseCode = "409", description = "추방할 수 없는 사용자 (소유자 등)")
         ]
     )
-    fun kickParticipant(
+    suspend fun kickParticipant(
         @Parameter(description = "JWT 인증 토큰", required = true)
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
         @Parameter(description = "채팅방 ID", required = true, example = "1")
         @PathVariable roomId: Long,
         @Parameter(description = "추방 요청 데이터", required = true)
         @Valid @RequestBody request: KickParticipantRequest
-    ): Mono<ResponseEntity<ApiResponse<Unit>>> {
-        return extractUserIdFromToken(authHeader)
-            .flatMap { requesterId ->
-                chatRoomService.kickParticipant(
-                    requesterId = requesterId,
-                    targetUserId = request.targetUserId,
-                    roomId = roomId
-                )
-            }
-            .map {
-                ResponseEntity.ok(ApiResponse.success("참여자가 성공적으로 추방되었습니다."))
-            }
+    ): ResponseEntity<ApiResponse<Unit>> {
+        val requesterId = extractUserIdFromToken(authHeader)
+        chatRoomService.kickParticipant(
+            requesterId = requesterId,
+            targetUserId = request.targetUserId,
+            roomId = roomId
+        )
+        return ResponseEntity.ok(ApiResponse.success("참여자가 성공적으로 추방되었습니다."))
     }
 
     /**
@@ -435,34 +400,25 @@ class ChatRoomController(
             SwaggerApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
         ]
     )
-    fun updateChatRoom(
+    suspend fun updateChatRoom(
         @Parameter(description = "JWT 인증 토큰", required = true)
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
         @Parameter(description = "수정할 채팅방 ID", required = true, example = "1")
         @PathVariable roomId: Long,
         @Parameter(description = "채팅방 수정 요청 데이터", required = true)
         @Valid @RequestBody request: UpdateChatRoomRequest
-    ): Mono<ResponseEntity<ApiResponse<ChatRoomDto>>> {
-        return extractUserIdFromToken(authHeader)
-            .flatMap { requesterId ->
-                chatRoomService.updateChatRoom(
-                    id = roomId,
-                    name = request.name,
-                    description = request.description,
-                    maxParticipants = request.maxParticipants,
-                    requesterId = requesterId
-                )
-            }
-            .flatMap { updatedRoom ->
-                userChatRoomService.countActiveParticipants(updatedRoom.id!!)
-                    .map { count -> 
-                        // Assume requester is joined
-                        ChatRoomDto.from(updatedRoom, count.toInt(), true) 
-                    }
-            }
-            .map { updatedRoomDto ->
-                ResponseEntity.ok(ApiResponse.success(updatedRoomDto, "채팅방 정보가 성공적으로 업데이트되었습니다."))
-            }
+    ): ResponseEntity<ApiResponse<ChatRoomDto>> {
+        val requesterId = extractUserIdFromToken(authHeader)
+        val updatedRoom = chatRoomService.updateChatRoom(
+            id = roomId,
+            name = request.name,
+            description = request.description,
+            maxParticipants = request.maxParticipants,
+            requesterId = requesterId
+        )
+        val count = userChatRoomService.countActiveParticipants(updatedRoom.id!!).awaitSingle()
+        val updatedRoomDto = ChatRoomDto.from(updatedRoom, count.toInt(), true)
+        return ResponseEntity.ok(ApiResponse.success(updatedRoomDto, "채팅방 정보가 성공적으로 업데이트되었습니다."))
     }
 
     /**
@@ -481,19 +437,15 @@ class ChatRoomController(
             SwaggerApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
         ]
     )
-    fun deleteChatRoom(
+    suspend fun deleteChatRoom(
         @Parameter(description = "JWT 인증 토큰", required = true)
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
         @Parameter(description = "삭제할 채팅방 ID", required = true, example = "1")
         @PathVariable roomId: Long
-    ): Mono<ResponseEntity<ApiResponse<String>>> {
-        return extractUserIdFromToken(authHeader)
-            .flatMap { userId ->
-                chatRoomService.deleteChatRoom(roomId, userId)
-            }
-            .map {
-                ResponseEntity.noContent().build()
-            }
+    ): ResponseEntity<ApiResponse<String>> {
+        val userId = extractUserIdFromToken(authHeader)
+        chatRoomService.deleteChatRoom(roomId, userId)
+        return ResponseEntity.noContent().build()
     }
 
     // === Private Helper Methods ===
@@ -501,11 +453,11 @@ class ChatRoomController(
     /**
      * JWT 토큰에서 사용자 ID를 추출합니다.
      */
-    private fun extractUserIdFromToken(authHeader: String): Mono<Long> {
+    private suspend fun extractUserIdFromToken(authHeader: String): Long {
         return jwtAuthenticationHelper.extractTokenFromHeader(authHeader)
             .flatMap { token ->
                 jwtAuthenticationHelper.validateToken(token)
                     .then(jwtAuthenticationHelper.getUserIdFromToken(token))
-            }
+            }.awaitSingle()
     }
 }

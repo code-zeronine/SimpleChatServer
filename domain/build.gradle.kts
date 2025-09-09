@@ -13,6 +13,7 @@ dependencies {
     implementation("org.springframework:spring-context")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.data:spring-data-mongodb")
+    implementation("io.projectreactor:reactor-core")
     
     // Jackson for WebSocket message serialization
     implementation("com.fasterxml.jackson.core:jackson-core")

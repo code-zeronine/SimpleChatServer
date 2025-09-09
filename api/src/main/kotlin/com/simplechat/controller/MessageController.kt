@@ -15,8 +15,6 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 
 /**
@@ -45,14 +43,14 @@ class MessageController(
             SwaggerApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
         ]
     )
-    fun getMessagesByRoom(
+    suspend fun getMessagesByRoom(
         @Parameter(description = "채팅방 ID", required = true, example = "1")
         @PathVariable roomId: Long,
         @Parameter(description = "페이지 번호 (0부터 시작)", example = "0")
         @RequestParam(defaultValue = "0") page: Int,
         @Parameter(description = "페이지 크기", example = "50")
         @RequestParam(defaultValue = "50") size: Int
-    ): Mono<PagedApiResponse<MessageDto>> {
+    ): PagedApiResponse<MessageDto> {
         require(page >= 0) { "page must be greater than or equal to 0" }
         require(size > 0) { "size must be greater than 0" }
         return messageService.getMessagesByRoom(roomId, page, size)
@@ -71,12 +69,12 @@ class MessageController(
             SwaggerApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
         ]
     )
-    fun getRecentMessages(
+    suspend fun getRecentMessages(
         @Parameter(description = "채팅방 ID", required = true, example = "1")
         @PathVariable roomId: Long,
         @Parameter(description = "조회할 메시지 개수", example = "10")
         @RequestParam(defaultValue = "10") size: Int
-    ): Flux<MessageDto> {
+    ): List<MessageDto> {
         require(size > 0) { "size must be greater than 0" }
         return messageService.getRecentMessages(roomId, size)
     }
@@ -94,12 +92,12 @@ class MessageController(
             SwaggerApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
         ]
     )
-    fun countMessages(
+    suspend fun countMessages(
         @Parameter(description = "채팅방 ID", required = true, example = "1")
         @PathVariable roomId: Long
-    ): Mono<ApiResponse<Map<String, Long>>> {
-        return messageService.countMessages(roomId)
-            .map { ApiResponse.success(mapOf("count" to it)) }
+    ): ApiResponse<Map<String, Long>> {
+        val count = messageService.countMessages(roomId)
+        return ApiResponse.success(mapOf("count" to count))
     }
 
     @GetMapping("/search")
@@ -113,7 +111,7 @@ class MessageController(
             SwaggerApiResponse(responseCode = "400", description = "잘못된 검색 파라미터")
         ]
     )
-    fun searchMessages(
+    suspend fun searchMessages(
         @Parameter(description = "검색할 채팅방 ID", example = "1")
         @RequestParam roomId: Long?,
         @Parameter(description = "검색 키워드", example = "안녕하세요")
@@ -130,7 +128,7 @@ class MessageController(
         @RequestParam(defaultValue = "0") page: Int,
         @Parameter(description = "페이지 크기", example = "50")
         @RequestParam(defaultValue = "50") size: Int
-    ): Mono<PagedApiResponse<MessageDto>> {
+    ): PagedApiResponse<MessageDto> {
         return messageService.searchMessages(roomId, keyword, userId, messageType, startDate, endDate, page, size)
     }
 
@@ -147,21 +145,20 @@ class MessageController(
             SwaggerApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
         ]
     )
-    fun getCacheStats(
+    suspend fun getCacheStats(
         @Parameter(description = "채팅방 ID", required = true, example = "1")
         @PathVariable roomId: Long
-    ): Mono<ApiResponse<Map<String, Any>>> {
-        return messageService.getCacheStats(roomId)
-            .map { stats ->
-                ApiResponse.success(
-                    mapOf(
-                        "roomId" to stats.roomId,
-                        "cacheHits" to stats.hits,
-                        "cacheMisses" to stats.misses,
-                        "hitRate" to String.format("%.2f%%", stats.hitRate)
-                    )
+    ): ApiResponse<Map<String, Any>>? {
+        return messageService.getCacheStats(roomId)?.let { stats ->
+            ApiResponse.success(
+                mapOf(
+                    "roomId" to stats.roomId,
+                    "cacheHits" to stats.hits,
+                    "cacheMisses" to stats.misses,
+                    "hitRate" to String.format("%.2f%%", stats.hitRate)
                 )
-            }
+            )
+        }
     }
 
     @DeleteMapping("/room/{roomId}/cache")
@@ -177,17 +174,13 @@ class MessageController(
             SwaggerApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
         ]
     )
-    fun invalidateCache(
+    suspend fun invalidateCache(
         @Parameter(description = "채팅방 ID", required = true, example = "1")
         @PathVariable roomId: Long
-    ): Mono<ApiResponse<Map<String, String>>> {
-        return messageService.invalidateRoomCache(roomId)
-            .then(
-                Mono.just(
-                    ApiResponse.success(
-                        mapOf("message" to "Cache invalidated successfully for room $roomId")
-                    )
-                )
-            )
+    ): ApiResponse<Map<String, String>> {
+        messageService.invalidateRoomCache(roomId)
+        return ApiResponse.success(
+            mapOf("message" to "Cache invalidated successfully for room $roomId")
+        )
     }
 }

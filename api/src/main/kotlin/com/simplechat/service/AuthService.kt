@@ -16,10 +16,11 @@ import com.simplechat.dto.SignUpRequest
 import com.simplechat.dto.UserDto
 import com.simplechat.infrastructure.config.JwtProperties
 import com.simplechat.infrastructure.security.jwt.JwtTokenProvider
+import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
-import reactor.core.publisher.Mono
 import java.time.format.DateTimeFormatter
 
 /**
@@ -37,125 +38,97 @@ class AuthService(
 
     /**
      * 회원가입 처리
-     *
      */
-    fun signUp(request: SignUpRequest): Mono<AuthResponse> {
-        return validateSignUpRequest(request)
-            .flatMap {
-                createUser(request)
-            }
-            .flatMap { user ->
-                generateAuthResponse(user)
-            }
+    suspend fun signUp(request: SignUpRequest): AuthResponse {
+        validateSignUpRequest(request)
+        val user = createUser(request)
+        return generateAuthResponse(user)
     }
 
     /**
      * 로그인 처리
      */
-    fun login(request: LoginRequest): Mono<AuthResponse> {
-        return userRepository.findByEmail(request.email)
-            .switchIfEmpty(Mono.error(AuthenticationException("이메일 또는 비밀번호가 올바르지 않습니다.", ErrorCode.AUTHENTICATION_FAILED)))
-            .filter { user ->
-                logger.info("Login request: {}, password: [{}], user: {}, user passwordHash: [{}]", request, request.password, user, user.passwordHash)
-                val pwd = passwordEncoder.encode(request.password)
-                logger.info("encoded password: [{}]", pwd)
-                val result = passwordEncoder.matches(request.password, user.passwordHash)
-                logger.info("result: {}", result)
-                result
-            }
-            .switchIfEmpty(Mono.error(AuthenticationException("이메일 또는 비밀번호가 올바르지 않습니다.", ErrorCode.AUTHENTICATION_FAILED)))
-            .flatMap { user ->
-                generateAuthResponse(user)
-            }
+    suspend fun login(request: LoginRequest): AuthResponse {
+        val user = userRepository.findByEmail(request.email).awaitSingleOrNull()
+            ?: throw AuthenticationException("이메일 또는 비밀번호가 올바르지 않습니다.", ErrorCode.AUTHENTICATION_FAILED)
+
+        if (!passwordEncoder.matches(request.password, user.passwordHash)) {
+            throw AuthenticationException("이메일 또는 비밀번호가 올바르지 않습니다.", ErrorCode.AUTHENTICATION_FAILED)
+        }
+        
+        return generateAuthResponse(user)
     }
 
     /**
      * 토큰 갱신 처리
      */
-    fun refreshToken(request: RefreshTokenRequest): Mono<RefreshTokenResponse> {
-        return Mono.fromCallable {
-            // JwtTokenProvider의 refreshAccessToken 메서드 사용
+    suspend fun refreshToken(request: RefreshTokenRequest): RefreshTokenResponse {
+        try {
             val newAccessToken = jwtTokenProvider.refreshAccessToken(request.refreshToken)
                 ?: throw JwtAuthenticationException("토큰 갱신에 실패했습니다. 유효하지 않거나 만료된 리프레시 토큰입니다.", ErrorCode.JWT_AUTHENTICATION_FAILED)
             
-            RefreshTokenResponse(
+            return RefreshTokenResponse(
                 accessToken = newAccessToken,
                 expiresIn = jwtProperties.expiration
             )
-        }.onErrorMap { error ->
-            when (error) {
-                is JwtAuthenticationException -> error
-                else -> JwtAuthenticationException("토큰 갱신 중 오류가 발생했습니다.", ErrorCode.JWT_AUTHENTICATION_FAILED, error)
-            }
+        } catch (e: JwtAuthenticationException) {
+            throw e
+        } catch (e: Exception) {
+            throw JwtAuthenticationException("토큰 갱신 중 오류가 발생했습니다.", ErrorCode.JWT_AUTHENTICATION_FAILED, e)
         }
     }
 
     /**
      * 사용자 검증 (토큰 기반)
      */
-    fun validateUser(token: String): Mono<UserDto> {
-        return Mono.fromCallable {
-            if (!jwtTokenProvider.validateToken(token)) {
-                throw JwtAuthenticationException("유효하지 않은 토큰입니다.", ErrorCode.JWT_AUTHENTICATION_FAILED)
-            }
-            
-            val email = jwtTokenProvider.getEmailFromToken(token)
-            email
-        }.flatMap { email ->
-            userRepository.findByEmail(email)
-                .switchIfEmpty(Mono.error(ResourceNotFoundException("사용자를 찾을 수 없습니다.", ErrorCode.USER_NOT_FOUND)))
-                .map { user -> user.toDto() }
+    suspend fun validateUser(token: String): UserDto {
+        if (!jwtTokenProvider.validateToken(token)) {
+            throw JwtAuthenticationException("유효하지 않은 토큰입니다.", ErrorCode.JWT_AUTHENTICATION_FAILED)
         }
+        val email = jwtTokenProvider.getEmailFromToken(token)
+        val user = userRepository.findByEmail(email).awaitSingleOrNull()
+            ?: throw ResourceNotFoundException("사용자를 찾을 수 없습니다.", ErrorCode.USER_NOT_FOUND)
+        return user.toDto()
     }
 
     /**
      * 이메일 중복 확인
      */
-    fun checkEmailExists(email: String): Mono<Boolean> {
-        return userRepository.existsByEmail(email)
+    suspend fun checkEmailExists(email: String): Boolean {
+        return userRepository.existsByEmail(email).awaitSingle()
     }
 
     /**
      * 닉네임 중복 확인
      */
-    fun checkNicknameExists(nickname: String): Mono<Boolean> {
-        return userRepository.existsByNickname(nickname)
+    suspend fun checkNicknameExists(nickname: String): Boolean {
+        return userRepository.existsByNickname(nickname).awaitSingle()
     }
 
-    fun updateNickname(email: String, newNickname: String): Mono<UserDto> {
-        return userRepository.findByEmail(email)
-            .switchIfEmpty(Mono.error(ResourceNotFoundException("사용자를 찾을 수 없습니다.", ErrorCode.USER_NOT_FOUND)))
-            .flatMap { user ->
-                userRepository.save(user.copy(nickname = newNickname))
-            }
-            .map { it.toDto() }
+    suspend fun updateNickname(email: String, newNickname: String): UserDto {
+        val user = userRepository.findByEmail(email).awaitSingleOrNull()
+            ?: throw ResourceNotFoundException("사용자를 찾을 수 없습니다.", ErrorCode.USER_NOT_FOUND)
+        
+        val updatedUser = userRepository.save(user.copy(nickname = newNickname)).awaitSingle()
+        return updatedUser.toDto()
     }
 
     /**
      * 회원가입 요청 검증
      */
-    private fun validateSignUpRequest(request: SignUpRequest): Mono<Void> {
-        return checkEmailExists(request.email)
-            .flatMap { emailExists ->
-                if (emailExists) {
-                    Mono.error<Void>(ValidationException("이미 사용 중인 이메일입니다.", "email", ErrorCode.DUPLICATE_EMAIL))
-                } else {
-                    checkNicknameExists(request.nickname)
-                        .flatMap { nicknameExists ->
-                            if (nicknameExists) {
-                                Mono.error<Void>(ValidationException("이미 사용 중인 닉네임입니다.", "nickname", ErrorCode.DUPLICATE_NICKNAME))
-                            } else {
-                                Mono.empty<Void>()
-                            }
-                        }
-                }
-            }
+    private suspend fun validateSignUpRequest(request: SignUpRequest) {
+        if (checkEmailExists(request.email)) {
+            throw ValidationException("이미 사용 중인 이메일입니다.", "email", ErrorCode.DUPLICATE_EMAIL)
+        }
+        if (checkNicknameExists(request.nickname)) {
+            throw ValidationException("이미 사용 중인 닉네임입니다.", "nickname", ErrorCode.DUPLICATE_NICKNAME)
+        }
     }
 
     /**
      * 사용자 생성
      */
-    private fun createUser(request: SignUpRequest): Mono<User> {
+    private suspend fun createUser(request: SignUpRequest): User {
         val encodedPassword = passwordEncoder.encode(request.password)
         val user = User(
             email = request.email,
@@ -163,27 +136,26 @@ class AuthService(
             nickname = request.nickname
         )
         
-        return userRepository.save(user)
-            .onErrorMap { exception ->
-                DatabaseException("사용자 생성 중 오류가 발생했습니다.", ErrorCode.DATABASE_ERROR, exception)
-            }
+        try {
+            return userRepository.save(user).awaitSingle()
+        } catch (exception: Exception) {
+            throw DatabaseException("사용자 생성 중 오류가 발생했습니다.", ErrorCode.DATABASE_ERROR, exception)
+        }
     }
 
     /**
      * 인증 응답 생성
      */
-    private fun generateAuthResponse(user: User): Mono<AuthResponse> {
-        return Mono.fromCallable {
-            val accessToken = jwtTokenProvider.generateAccessToken(user.email, user.id!!, listOf("USER"))
-            val refreshToken = jwtTokenProvider.generateRefreshToken(user.email, user.id!!, listOf("USER"))
-            
-            AuthResponse(
-                accessToken = accessToken,
-                refreshToken = refreshToken,
-                expiresIn = jwtProperties.expiration,
-                user = user.toDto()
-            )
-        }
+    private fun generateAuthResponse(user: User): AuthResponse {
+        val accessToken = jwtTokenProvider.generateAccessToken(user.email, user.id!!, listOf("USER"))
+        val refreshToken = jwtTokenProvider.generateRefreshToken(user.email, user.id!!, listOf("USER"))
+        
+        return AuthResponse(
+            accessToken = accessToken,
+            refreshToken = refreshToken,
+            expiresIn = jwtProperties.expiration,
+            user = user.toDto()
+        )
     }
 
     /**

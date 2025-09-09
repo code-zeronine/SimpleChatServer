@@ -11,8 +11,10 @@ import com.simplechat.domain.exception.UserNotFoundException
 import com.simplechat.domain.repository.ChatRoomRepository
 import com.simplechat.domain.repository.UserChatRoomRepository
 import com.simplechat.domain.repository.UserRepository
+import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.stereotype.Service
-import org.springframework.transaction.reactive.TransactionalOperator
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.LocalDateTime
@@ -26,136 +28,123 @@ import java.time.LocalDateTime
 class UserChatRoomService(
     private val userChatRoomRepository: UserChatRoomRepository,
     private val userRepository: UserRepository,
-    private val chatRoomRepository: ChatRoomRepository,
-    private val transactionalOperator: TransactionalOperator
+    private val chatRoomRepository: ChatRoomRepository
 ) {
 
     /**
      * 사용자를 채팅방에 참여시킵니다.
      */
-    fun joinChatRoom(
+    @Transactional
+    suspend fun joinChatRoom(
         userId: Long,
         chatRoomId: Long,
         role: ChatRoomRole = ChatRoomRole.MEMBER,
         invitedBy: Long? = null
-    ): Mono<UserChatRoom> {
-        return validateUserAndChatRoom(userId, chatRoomId)
-            .flatMap { (_, chatRoom) ->
-                checkRoomCapacity(chatRoom)
-                    .then(createUserChatRoomRelationship(userId, chatRoomId, role, invitedBy))
-            }
-            .`as`(transactionalOperator::transactional)
+    ): UserChatRoom {
+        val (_, chatRoom) = validateUserAndChatRoom(userId, chatRoomId)
+        checkRoomCapacity(chatRoom)
+        return createUserChatRoomRelationship(userId, chatRoomId, role, invitedBy)
     }
 
     /**
      * 사용자가 채팅방을 떠납니다.
      */
-    fun leaveChatRoom(userId: Long, chatRoomId: Long): Mono<Void> {
-        return userChatRoomRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
-            .switchIfEmpty(Mono.error(UserChatRoomNotFoundException("사용자-채팅방 관계를 찾을 수 없습니다.")))
-            .flatMap { relationship ->
-                val leftRelationship = relationship.leave()
-                userChatRoomRepository.update(leftRelationship)
-            }
-            .then()
-            .`as`(transactionalOperator::transactional)
+    @Transactional
+    suspend fun leaveChatRoom(userId: Long, chatRoomId: Long) {
+        val relationship = userChatRoomRepository.findByUserIdAndChatRoomId(userId, chatRoomId).awaitSingleOrNull()
+            ?: throw UserChatRoomNotFoundException("사용자-채팅방 관계를 찾을 수 없습니다.")
+        val leftRelationship = relationship.leave()
+        userChatRoomRepository.update(leftRelationship).awaitSingle()
     }
 
     /**
      * 이미 확인된 관계 정보를 사용하여 사용자가 채팅방을 떠납니다.
      */
-    fun leaveChatRoomWithRelationship(relationship: UserChatRoom): Mono<Void> {
+    @Transactional
+    suspend fun leaveChatRoomWithRelationship(relationship: UserChatRoom) {
         val leftRelationship = relationship.leave()
-        return userChatRoomRepository.update(leftRelationship)
-            .then()
-            .`as`(transactionalOperator::transactional)
+        userChatRoomRepository.update(leftRelationship).awaitSingle()
     }
 
     /**
      * 사용자가 채팅방에 다시 참여합니다. (비활성 상태에서 활성 상태로 변경)
      */
-    fun rejoinChatRoom(userId: Long, chatRoomId: Long): Mono<UserChatRoom> {
-        return userChatRoomRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
-            .switchIfEmpty(Mono.error(UserChatRoomNotFoundException("사용자-채팅방 관계를 찾을 수 없습니다.")))
-            .flatMap { relationship ->
-                if (relationship.isActive) {
-                    Mono.just(relationship)
-                } else {
-                    val rejoinedRelationship = relationship.rejoin()
-                    userChatRoomRepository.update(rejoinedRelationship)
-                }
-            }
-            .`as`(transactionalOperator::transactional)
+    @Transactional
+    suspend fun rejoinChatRoom(userId: Long, chatRoomId: Long): UserChatRoom {
+        val relationship = userChatRoomRepository.findByUserIdAndChatRoomId(userId, chatRoomId).awaitSingleOrNull()
+            ?: throw UserChatRoomNotFoundException("사용자-채팅방 관계를 찾을 수 없습니다.")
+        
+        return if (relationship.isActive) {
+            relationship
+        } else {
+            val rejoinedRelationship = relationship.rejoin()
+            userChatRoomRepository.update(rejoinedRelationship).awaitSingle()
+        }
     }
 
     /**
      * 사용자를 채팅방에서 추방합니다.
      */
-    fun kickUserFromChatRoom(
+    @Transactional
+    suspend fun kickUserFromChatRoom(
         requesterId: Long,
         targetUserId: Long,
         chatRoomId: Long
-    ): Mono<Void> {
-        return validateKickPermission(requesterId, targetUserId, chatRoomId)
-            .then(leaveChatRoom(targetUserId, chatRoomId))
-            .`as`(transactionalOperator::transactional)
+    ) {
+        validateKickPermission(requesterId, targetUserId, chatRoomId)
+        leaveChatRoom(targetUserId, chatRoomId)
     }
 
     /**
      * 사용자의 채팅방 역할을 변경합니다.
      */
-    fun changeUserRole(
+    @Transactional
+    suspend fun changeUserRole(
         requesterId: Long,
         targetUserId: Long,
         chatRoomId: Long,
         newRole: ChatRoomRole
-    ): Mono<UserChatRoom> {
-        return validateRoleChangePermission(requesterId, targetUserId, chatRoomId, newRole)
-            .flatMap { targetRelationship ->
-                val updatedRelationship = targetRelationship.changeRole(newRole)
-                userChatRoomRepository.update(updatedRelationship)
-            }
-            .`as`(transactionalOperator::transactional)
+    ): UserChatRoom {
+        val targetRelationship = validateRoleChangePermission(requesterId, targetUserId, chatRoomId, newRole)
+        val updatedRelationship = targetRelationship.changeRole(newRole)
+        return userChatRoomRepository.update(updatedRelationship).awaitSingle()
     }
 
     /**
      * 사용자의 마지막 읽음 시간을 업데이트합니다.
      */
-    fun markAsRead(
+    suspend fun markAsRead(
         userId: Long,
         chatRoomId: Long,
         readTime: LocalDateTime = LocalDateTime.now()
-    ): Mono<UserChatRoom> {
-        return userChatRoomRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
-            .switchIfEmpty(Mono.error(UserChatRoomNotFoundException("사용자-채팅방 관계를 찾을 수 없습니다.")))
-            .flatMap { relationship ->
-                val updatedRelationship = relationship.markAsRead(readTime)
-                userChatRoomRepository.update(updatedRelationship)
-            }
+    ): UserChatRoom {
+        val relationship = userChatRoomRepository.findByUserIdAndChatRoomId(userId, chatRoomId).awaitSingleOrNull()
+            ?: throw UserChatRoomNotFoundException("사용자-채팅방 관계를 찾을 수 없습니다.")
+        
+        val updatedRelationship = relationship.markAsRead(readTime)
+        return userChatRoomRepository.update(updatedRelationship).awaitSingle()
     }
 
     /**
      * 채팅방 음소거 상태를 토글합니다.
      */
-    fun toggleMute(userId: Long, chatRoomId: Long): Mono<UserChatRoom> {
-        return userChatRoomRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
-            .switchIfEmpty(Mono.error(UserChatRoomNotFoundException("사용자-채팅방 관계를 찾을 수 없습니다.")))
-            .flatMap { relationship ->
-                val updatedRelationship = relationship.toggleMute()
-                userChatRoomRepository.update(updatedRelationship)
-            }
+    suspend fun toggleMute(userId: Long, chatRoomId: Long): UserChatRoom {
+        val relationship = userChatRoomRepository.findByUserIdAndChatRoomId(userId, chatRoomId).awaitSingleOrNull()
+            ?: throw UserChatRoomNotFoundException("사용자-채팅방 관계를 찾을 수 없습니다.")
+
+        val updatedRelationship = relationship.toggleMute()
+        return userChatRoomRepository.update(updatedRelationship).awaitSingle()
     }
 
     /**
      * 채팅방 고정 상태를 토글합니다.
      */
-    fun togglePin(userId: Long, chatRoomId: Long): Mono<UserChatRoom> {
-        return userChatRoomRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
-            .switchIfEmpty(Mono.error(UserChatRoomNotFoundException("사용자-채팅방 관계를 찾을 수 없습니다.")))
-            .flatMap { relationship ->
-                val updatedRelationship = relationship.togglePin()
-                userChatRoomRepository.update(updatedRelationship)
-            }
+    suspend fun togglePin(userId: Long, chatRoomId: Long): UserChatRoom {
+        val relationship = userChatRoomRepository.findByUserIdAndChatRoomId(userId, chatRoomId).awaitSingleOrNull()
+            ?: throw UserChatRoomNotFoundException("사용자-채팅방 관계를 찾을 수 없습니다.")
+
+        val updatedRelationship = relationship.togglePin()
+        return userChatRoomRepository.update(updatedRelationship).awaitSingle()
     }
 
     /**
@@ -255,41 +244,35 @@ class UserChatRoomService(
     /**
      * 사용자와 채팅방이 존재하는지 검증합니다.
      */
-    private fun validateUserAndChatRoom(userId: Long, chatRoomId: Long): Mono<Pair<User, ChatRoom>> {
-        val userMono = userRepository.findById(userId)
-            .switchIfEmpty(Mono.error(UserNotFoundException("사용자를 찾을 수 없습니다.")))
+    private suspend fun validateUserAndChatRoom(userId: Long, chatRoomId: Long): Pair<User, ChatRoom> {
+        val user = userRepository.findById(userId).awaitSingleOrNull()
+            ?: throw UserNotFoundException("사용자를 찾을 수 없습니다.")
         
-        val chatRoomMono = chatRoomRepository.findById(chatRoomId)
-            .switchIfEmpty(Mono.error(ChatRoomNotFoundException("채팅방을 찾을 수 없습니다.")))
+        val chatRoom = chatRoomRepository.findById(chatRoomId).awaitSingleOrNull()
+            ?: throw ChatRoomNotFoundException("채팅방을 찾을 수 없습니다.")
         
-        return Mono.zip(userMono, chatRoomMono) { user, chatRoom ->
-            Pair(user, chatRoom)
-        }
+        return Pair(user, chatRoom)
     }
 
     /**
      * 채팅방 참여자 수 제한을 확인합니다.
      */
-    private fun checkRoomCapacity(chatRoom: ChatRoom): Mono<Void> {
-        return userChatRoomRepository.countActiveParticipantsByChatRoomId(chatRoom.id!!)
-            .flatMap { currentParticipants ->
-                if (chatRoom.isAtCapacity(currentParticipants.toInt())) {
-                    Mono.error(RuntimeException("채팅방이 정원에 도달했습니다."))
-                } else {
-                    Mono.empty()
-                }
-            }
+    private suspend fun checkRoomCapacity(chatRoom: ChatRoom) {
+        val currentParticipants = userChatRoomRepository.countActiveParticipantsByChatRoomId(chatRoom.id!!).awaitSingle()
+        if (chatRoom.isAtCapacity(currentParticipants.toInt())) {
+            throw RuntimeException("채팅방이 정원에 도달했습니다.")
+        }
     }
 
     /**
      * 사용자-채팅방 관계를 생성합니다.
      */
-    private fun createUserChatRoomRelationship(
+    private suspend fun createUserChatRoomRelationship(
         userId: Long,
         chatRoomId: Long,
         role: ChatRoomRole,
         invitedBy: Long?
-    ): Mono<UserChatRoom> {
+    ): UserChatRoom {
         val relationship = UserChatRoom(
             userId = userId,
             chatRoomId = chatRoomId,
@@ -299,77 +282,65 @@ class UserChatRoomService(
             invitedBy = invitedBy
         )
         
-        return userChatRoomRepository.save(relationship)
+        return userChatRoomRepository.save(relationship).awaitSingle()
     }
 
     /**
      * 추방 권한을 검증합니다.
      */
-    private fun validateKickPermission(
+    private suspend fun validateKickPermission(
         requesterId: Long,
         targetUserId: Long,
         chatRoomId: Long
-    ): Mono<Void> {
+    ) {
         if (requesterId == targetUserId) {
-            return Mono.error(InsufficientPermissionException("자기 자신을 추방할 수 없습니다."))
+            throw InsufficientPermissionException("자기 자신을 추방할 수 없습니다.")
         }
 
-        val requesterRelationshipMono = userChatRoomRepository.findByUserIdAndChatRoomId(requesterId, chatRoomId)
-            .switchIfEmpty(Mono.error(UserChatRoomNotFoundException("요청자의 채팅방 관계를 찾을 수 없습니다.")))
+        val requesterRelationship = userChatRoomRepository.findByUserIdAndChatRoomId(requesterId, chatRoomId).awaitSingleOrNull()
+            ?: throw UserChatRoomNotFoundException("요청자의 채팅방 관계를 찾을 수 없습니다.")
 
-        val targetRelationshipMono = userChatRoomRepository.findByUserIdAndChatRoomId(targetUserId, chatRoomId)
-            .switchIfEmpty(Mono.error(UserChatRoomNotFoundException("대상 사용자의 채팅방 관계를 찾을 수 없습니다.")))
+        val targetRelationship = userChatRoomRepository.findByUserIdAndChatRoomId(targetUserId, chatRoomId).awaitSingleOrNull()
+            ?: throw UserChatRoomNotFoundException("대상 사용자의 채팅방 관계를 찾을 수 없습니다.")
 
-        return Mono.zip(requesterRelationshipMono, targetRelationshipMono)
-            .flatMap { tuple ->
-                val requesterRelationship = tuple.t1
-                val targetRelationship = tuple.t2
-                if (!requesterRelationship.canKickUser(targetRelationship.role)) {
-                    Mono.error(InsufficientPermissionException("사용자를 추방할 권한이 없습니다."))
-                } else {
-                    Mono.empty()
-                }
-            }
+        if (!requesterRelationship.canKickUser(targetRelationship.role)) {
+            throw InsufficientPermissionException("사용자를 추방할 권한이 없습니다.")
+        }
     }
 
     /**
      * 역할 변경 권한을 검증합니다.
      */
-    private fun validateRoleChangePermission(
+    private suspend fun validateRoleChangePermission(
         requesterId: Long,
         targetUserId: Long,
         chatRoomId: Long,
         newRole: ChatRoomRole
-    ): Mono<UserChatRoom> {
+    ): UserChatRoom {
         if (requesterId == targetUserId) {
-            return Mono.error(InsufficientPermissionException("자신의 역할을 변경할 수 없습니다."))
+            throw InsufficientPermissionException("자신의 역할을 변경할 수 없습니다.")
         }
 
-        val requesterRelationshipMono = userChatRoomRepository.findByUserIdAndChatRoomId(requesterId, chatRoomId)
-            .switchIfEmpty(Mono.error(UserChatRoomNotFoundException("요청자의 채팅방 관계를 찾을 수 없습니다.")))
+        val requesterRelationship = userChatRoomRepository.findByUserIdAndChatRoomId(requesterId, chatRoomId).awaitSingleOrNull()
+            ?: throw UserChatRoomNotFoundException("요청자의 채팅방 관계를 찾을 수 없습니다.")
 
-        val targetRelationshipMono = userChatRoomRepository.findByUserIdAndChatRoomId(targetUserId, chatRoomId)
-            .switchIfEmpty(Mono.error(UserChatRoomNotFoundException("대상 사용자의 채팅방 관계를 찾을 수 없습니다.")))
+        val targetRelationship = userChatRoomRepository.findByUserIdAndChatRoomId(targetUserId, chatRoomId).awaitSingleOrNull()
+            ?: throw UserChatRoomNotFoundException("대상 사용자의 채팅방 관계를 찾을 수 없습니다.")
 
-        return Mono.zip(requesterRelationshipMono, targetRelationshipMono)
-            .flatMap { tuple ->
-                val requesterRelationship = tuple.t1
-                val targetRelationship = tuple.t2
-                if (!requesterRelationship.canChangeRoleOf(targetRelationship.role) ||
-                    !requesterRelationship.canChangeRoleOf(newRole)) {
-                    Mono.error(InsufficientPermissionException("역할을 변경할 권한이 없습니다."))
-                } else {
-                    Mono.just(targetRelationship)
-                }
-            }
+        if (!requesterRelationship.canChangeRoleOf(targetRelationship.role) ||
+            !requesterRelationship.canChangeRoleOf(newRole)) {
+            throw InsufficientPermissionException("역할을 변경할 권한이 없습니다.")
+        }
+        
+        return targetRelationship
     }
     
     /**
      * 채팅방의 모든 사용자-채팅방 관계를 삭제합니다. (채팅방 삭제 시 사용)
      */
-    fun deleteAllByChatRoomId(chatRoomId: Long): Mono<Void> {
-        return userChatRoomRepository.deleteByChatRoomId(chatRoomId)
-            .`as`(transactionalOperator::transactional)
+    @Transactional
+    suspend fun deleteAllByChatRoomId(chatRoomId: Long) {
+        userChatRoomRepository.deleteByChatRoomId(chatRoomId).awaitSingleOrNull()
     }
     
     /**

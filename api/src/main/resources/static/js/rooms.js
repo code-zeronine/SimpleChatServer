@@ -310,9 +310,20 @@ function createRoomCard(room) {
     const isJoined = room.isJoined || false;
     const memberCount = room.currentParticipants || 0;
     const maxMembers = room.maxParticipants || 100;
-    const lastMessage = room.lastMessage || '';
-    const lastActivity = room.lastActivity ? Utils.formatRelativeTime(room.lastActivity) : '방금 전';
     
+    // 마지막 메시지 및 활동 시간 처리
+    let lastMessageContent = '아직 메시지가 없습니다';
+    let lastActivity = room.createdAt ? Utils.formatRelativeTime(room.createdAt) : '방금 전';
+
+    if (room.latestMessage) {
+        const sender = room.latestMessage.userNickname || '사용자';
+        const content = Utils.escapeHtml(room.latestMessage.content);
+        // 메시지 내용이 길 경우 잘라내기
+        const truncatedContent = content.length > 30 ? content.substring(0, 30) + '...' : content;
+        lastMessageContent = `${sender}: ${truncatedContent}`;
+        lastActivity = Utils.formatRelativeTime(room.latestMessage.timestamp);
+    }
+
     const card = DOM.create('div', {
         className: `room-card ${isJoined ? 'joined' : ''}`,
         'data-room-id': room.id
@@ -347,7 +358,7 @@ function createRoomCard(room) {
         
         <div class="room-card-footer">
             <div class="room-last-message">
-                ${lastMessage ? `"${Utils.escapeHtml(lastMessage)}"` : '아직 메시지가 없습니다'}
+                ${lastMessageContent}
             </div>
             <div class="room-actions">
                 <button class="room-action-btn info" data-action="info">

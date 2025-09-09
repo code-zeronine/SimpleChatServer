@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
+import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -17,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import reactor.core.publisher.Mono
 import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 
 /**
@@ -46,18 +46,14 @@ class UserController(
             SwaggerApiResponse(responseCode = "401", description = "인증 실패 또는 만료된 토큰")
         ]
     )
-    fun getCurrentUser(
+    suspend fun getCurrentUser(
         @Parameter(description = "JWT 인증 토큰", required = true)
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String
-    ): Mono<ResponseEntity<ApiResponse<UserDto>>> {
-        return jwtAuthenticationHelper.extractTokenFromHeader(authHeader)
-            .flatMap { token ->
-                jwtAuthenticationHelper.validateToken(token)
-                    .then(authService.validateUser(token))
-            }
-            .map { user ->
-                ResponseEntity.ok(ApiResponse.success(user, "사용자 정보를 성공적으로 조회하였습니다."))
-            }
+    ): ResponseEntity<ApiResponse<UserDto>> {
+        val token = jwtAuthenticationHelper.extractTokenFromHeader(authHeader).awaitSingle()
+        jwtAuthenticationHelper.validateToken(token).awaitSingle()
+        val user = authService.validateUser(token)
+        return ResponseEntity.ok(ApiResponse.success(user, "사용자 정보를 성공적으로 조회하였습니다."))
     }
 
     /**
@@ -75,27 +71,17 @@ class UserController(
             SwaggerApiResponse(responseCode = "401", description = "인증 실패 또는 만료된 토큰")
         ]
     )
-    fun updateProfile(
+    suspend fun updateProfile(
         @Parameter(description = "JWT 인증 토큰", required = true)
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String,
         @Parameter(description = "업데이트할 프로필 정보", required = true)
         @RequestBody updateRequest: Map<String, String>
-    ): Mono<ResponseEntity<ApiResponse<UserDto>>> {
-        val newNickname = updateRequest["nickname"]
-        return jwtAuthenticationHelper.extractTokenFromHeader(authHeader)
-            .flatMap { token ->
-                jwtAuthenticationHelper.validateToken(token)
-                    .then(jwtAuthenticationHelper.getEmailFromToken(token))
-            }
-            .flatMap { email ->
-                if (newNickname == null) {
-                    Mono.error(Exception("Nickname is required"))
-                } else {
-                    authService.updateNickname(email, newNickname)
-                }
-            }
-            .map { updatedUser ->
-                ResponseEntity.ok(ApiResponse.success(updatedUser, "프로필이 성공적으로 수정되었습니다."))
-            }
+    ): ResponseEntity<ApiResponse<UserDto>> {
+        val newNickname = updateRequest["nickname"] ?: throw Exception("Nickname is required")
+        val token = jwtAuthenticationHelper.extractTokenFromHeader(authHeader).awaitSingle()
+        jwtAuthenticationHelper.validateToken(token).awaitSingle()
+        val email = jwtAuthenticationHelper.getEmailFromToken(token).awaitSingle()
+        val updatedUser = authService.updateNickname(email, newNickname)
+        return ResponseEntity.ok(ApiResponse.success(updatedUser, "프로필이 성공적으로 수정되었습니다."))
     }
 }
