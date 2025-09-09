@@ -158,7 +158,7 @@ class ChatRoomController(
         val totalCount = when (filter) {
             "joined" -> userChatRoomService.countUserActiveRooms(userId).awaitSingle()
             else -> chatRoomRepository.count().awaitSingle()
-        }
+        }.toInt()
 
         val hasNext = (page + 1) * size < totalCount
 
@@ -310,7 +310,7 @@ class ChatRoomController(
                 }
             }.awaitAll()
         }
-        return ResponseEntity.ok(ApiResponse.success(participants))
+        return ResponseEntity.ok(ApiResponse.success(participants, "참여자 목록을 성공적으로 조회하였습니다."))
     }
 
     /**
@@ -454,10 +454,11 @@ class ChatRoomController(
      * JWT 토큰에서 사용자 ID를 추출합니다.
      */
     private suspend fun extractUserIdFromToken(authHeader: String): Long {
-        return jwtAuthenticationHelper.extractTokenFromHeader(authHeader)
-            .flatMap { token ->
-                jwtAuthenticationHelper.validateToken(token)
-                    .then(jwtAuthenticationHelper.getUserIdFromToken(token))
-            }.awaitSingle()
+        val token = jwtAuthenticationHelper.extractTokenFromHeader(authHeader)
+            ?: throw IllegalArgumentException("유효하지 않은 인증 헤더입니다.")
+        if (!jwtAuthenticationHelper.validateToken(token)) {
+            throw IllegalArgumentException("유효하지 않은 토큰입니다.")
+        }
+        return jwtAuthenticationHelper.getUserIdFromToken(token)
     }
 }

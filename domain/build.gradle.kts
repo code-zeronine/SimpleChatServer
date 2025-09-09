@@ -15,6 +15,7 @@ dependencies {
     implementation("org.springframework.data:spring-data-mongodb")
     implementation("io.projectreactor:reactor-core")
     
+    
     // Jackson for WebSocket message serialization
     implementation("com.fasterxml.jackson.core:jackson-core")
     implementation("com.fasterxml.jackson.core:jackson-databind")

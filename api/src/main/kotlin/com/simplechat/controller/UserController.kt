@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
-import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -50,8 +49,11 @@ class UserController(
         @Parameter(description = "JWT 인증 토큰", required = true)
         @RequestHeader(HttpHeaders.AUTHORIZATION) authHeader: String
     ): ResponseEntity<ApiResponse<UserDto>> {
-        val token = jwtAuthenticationHelper.extractTokenFromHeader(authHeader).awaitSingle()
-        jwtAuthenticationHelper.validateToken(token).awaitSingle()
+        val token = jwtAuthenticationHelper.extractTokenFromHeader(authHeader)
+            ?: throw IllegalArgumentException("유효하지 않은 인증 헤더입니다.")
+        if (!jwtAuthenticationHelper.validateToken(token)) {
+            throw IllegalArgumentException("유효하지 않은 토큰입니다.")
+        }
         val user = authService.validateUser(token)
         return ResponseEntity.ok(ApiResponse.success(user, "사용자 정보를 성공적으로 조회하였습니다."))
     }
@@ -77,10 +79,13 @@ class UserController(
         @Parameter(description = "업데이트할 프로필 정보", required = true)
         @RequestBody updateRequest: Map<String, String>
     ): ResponseEntity<ApiResponse<UserDto>> {
-        val newNickname = updateRequest["nickname"] ?: throw Exception("Nickname is required")
-        val token = jwtAuthenticationHelper.extractTokenFromHeader(authHeader).awaitSingle()
-        jwtAuthenticationHelper.validateToken(token).awaitSingle()
-        val email = jwtAuthenticationHelper.getEmailFromToken(token).awaitSingle()
+        val newNickname = updateRequest["nickname"] ?: throw IllegalArgumentException("Nickname is required")
+        val token = jwtAuthenticationHelper.extractTokenFromHeader(authHeader)
+            ?: throw IllegalArgumentException("유효하지 않은 인증 헤더입니다.")
+        if (!jwtAuthenticationHelper.validateToken(token)) {
+            throw IllegalArgumentException("유효하지 않은 토큰입니다.")
+        }
+        val email = jwtAuthenticationHelper.getEmailFromToken(token)
         val updatedUser = authService.updateNickname(email, newNickname)
         return ResponseEntity.ok(ApiResponse.success(updatedUser, "프로필이 성공적으로 수정되었습니다."))
     }

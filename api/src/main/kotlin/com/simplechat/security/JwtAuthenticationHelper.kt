@@ -5,10 +5,9 @@ import com.simplechat.infrastructure.security.jwt.JwtTokenProvider
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Component
 import org.springframework.web.server.ServerWebExchange
-import reactor.core.publisher.Mono
 
 /**
- * JWT 인증을 도와주는 헬퍼 클래스
+ * JWT 인증을 도와주는 헬퍼 클래스 (Coroutine 방식)
  */
 @Component
 class JwtAuthenticationHelper(
@@ -18,63 +17,57 @@ class JwtAuthenticationHelper(
     /**
      * ServerWebExchange에서 JWT 토큰을 추출하고 검증
      */
-    fun validateTokenFromExchange(exchange: ServerWebExchange): Mono<String> {
-        return extractTokenFromExchange(exchange)
-            .flatMap { token ->
-                validateToken(token)
-                    .map { token }
-            }
+    suspend fun validateTokenFromExchange(exchange: ServerWebExchange): String {
+        val token = extractTokenFromExchange(exchange)
+        validateToken(token)
+        return token
     }
 
     /**
      * Authorization 헤더에서 토큰을 추출
      */
-    fun extractTokenFromHeader(authHeader: String?): Mono<String> {
+    fun extractTokenFromHeader(authHeader: String?): String? {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return Mono.error(JwtAuthenticationException("Authorization header is missing or invalid"))
+            return null
         }
-        
-        return Mono.just(authHeader.substring(7)) // "Bearer " 제거
+        return authHeader.substring(7) // "Bearer " 제거
     }
 
     /**
      * JWT 토큰 유효성 검증
      */
-    fun validateToken(token: String): Mono<Void> {
-        return Mono.fromCallable {
-            if (!jwtTokenProvider.validateToken(token)) {
-                throw JwtAuthenticationException("Invalid or expired token")
-            }
-        }.then()
+    fun validateToken(token: String): Boolean {
+        return jwtTokenProvider.validateToken(token)
     }
 
     /**
      * 토큰에서 이메일 추출
      */
-    fun getEmailFromToken(token: String): Mono<String> {
-        return Mono.fromCallable {
+    fun getEmailFromToken(token: String): String {
+        return try {
             jwtTokenProvider.getEmailFromToken(token)
-        }.onErrorMap { e ->
-            JwtAuthenticationException("Failed to extract email from token: ${e.message}")
+        } catch (e: Exception) {
+            throw JwtAuthenticationException("Failed to extract email from token: ${e.message}")
         }
     }
 
     /**
      * 토큰에서 사용자 ID 추출
      */
-    fun getUserIdFromToken(token: String): Mono<Long> {
-        return Mono.fromCallable {
+    fun getUserIdFromToken(token: String): Long {
+        return try {
             jwtTokenProvider.getUserIdFromToken(token)
-        }.onErrorMap { e ->
-            JwtAuthenticationException("Failed to extract userId from token: ${e.message}")
+        } catch (e: Exception) {
+            throw JwtAuthenticationException("Failed to extract userId from token: ${e.message}")
         }
     }
 
     /**
      * ServerWebExchange에서 Authorization 헤더 추출
      */
-    private fun extractTokenFromExchange(exchange: ServerWebExchange): Mono<String> {
+    private fun extractTokenFromExchange(exchange: ServerWebExchange): String {
         val authHeader = exchange.request.headers.getFirst(HttpHeaders.AUTHORIZATION)
         return extractTokenFromHeader(authHeader)
+            ?: throw JwtAuthenticationException("Authorization header is missing or invalid")
     }
 }
