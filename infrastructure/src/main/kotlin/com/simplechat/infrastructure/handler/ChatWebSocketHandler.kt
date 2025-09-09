@@ -1,8 +1,8 @@
 package com.simplechat.infrastructure.handler
 
-import com.simplechat.domain.exception.WebSocketAuthenticationException
-import com.simplechat.domain.exception.WebSocketConnectionException
-import com.simplechat.domain.exception.WebSocketErrorCode
+import com.simplechat.domain.exception.websocket.WebSocketAuthenticationException
+import com.simplechat.domain.exception.websocket.WebSocketConnectionException
+import com.simplechat.domain.exception.websocket.WebSocketErrorCode
 import com.simplechat.infrastructure.security.WebSocketAuthService
 import com.simplechat.infrastructure.security.jwt.JwtUserDetails
 import org.slf4j.LoggerFactory

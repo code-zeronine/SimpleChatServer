@@ -1,6 +1,6 @@
 package com.simplechat.infrastructure.monitoring
 
-import com.simplechat.domain.exception.WebSocketErrorCode
+import com.simplechat.domain.exception.websocket.WebSocketErrorCode
 import org.springframework.stereotype.Component
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
@@ -195,77 +195,5 @@ class WebSocketErrorMetrics {
             else -> AlarmStatus.NORMAL
         }
     }
+
 }
-
-/**
- * 에러 심각도
- */
-enum class ErrorSeverity {
-    INFO,
-    WARNING,
-    ERROR,
-    CRITICAL
-}
-
-/**
- * 알람 상태
- */
-enum class AlarmStatus {
-    NORMAL,
-    WARNING,
-    CRITICAL
-}
-
-/**
- * 세션별 에러 연속 발생 추적
- */
-data class ErrorSequence(
-    val sessionId: String,
-    var consecutiveErrors: Int = 0,
-    var lastErrorTime: Instant? = null,
-    var mostFrequentError: String? = null,
-    private val errorHistory: MutableList<String> = mutableListOf()
-) {
-    fun addError(errorCode: WebSocketErrorCode, @Suppress("UNUSED_PARAMETER") severity: ErrorSeverity) {
-        consecutiveErrors++
-        lastErrorTime = Instant.now()
-        errorHistory.add(errorCode.code)
-        
-        // 가장 빈번한 에러 업데이트
-        mostFrequentError = errorHistory.groupingBy { it }
-            .eachCount()
-            .maxByOrNull { it.value }?.key
-        
-        // 연속 에러 기록은 최대 100개까지만 유지
-        if (errorHistory.size > 100) {
-            errorHistory.removeAt(0)
-        }
-    }
-    
-    fun resetConsecutiveErrors() {
-        consecutiveErrors = 0
-    }
-}
-
-/**
- * 전체 에러 통계
- */
-data class ErrorStatistics(
-    val totalErrors: Long,
-    val errorsInLastHour: Int,
-    val errorsInLastMinute: Int,
-    val errorsByCode: Map<String, Long>,
-    val problemSessions: Map<String, Long>,
-    val activeSessionsWithErrors: Int
-)
-
-/**
- * 세션별 에러 정보
- */
-data class SessionErrorInfo(
-    val sessionId: String,
-    val totalErrors: Long,
-    val consecutiveErrors: Int,
-    val lastErrorTime: Instant?,
-    val mostFrequentError: String?
-)

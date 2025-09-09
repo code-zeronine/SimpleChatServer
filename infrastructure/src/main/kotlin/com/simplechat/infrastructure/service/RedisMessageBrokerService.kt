@@ -1,7 +1,7 @@
 package com.simplechat.infrastructure.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.simplechat.domain.message.WebSocketMessage
+import com.simplechat.domain.message.websocket.WebSocketMessage
 import com.simplechat.domain.service.MessageBrokerDomainService
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy

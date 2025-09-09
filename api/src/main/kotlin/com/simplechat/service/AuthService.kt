@@ -1,11 +1,11 @@
 package com.simplechat.service
 
 import com.simplechat.domain.entity.User
-import com.simplechat.domain.exception.AuthenticationException
-import com.simplechat.domain.exception.DatabaseException
+import com.simplechat.domain.exception.auth.AuthenticationException
+import com.simplechat.domain.exception.database.DatabaseException
 import com.simplechat.domain.exception.ErrorCode
-import com.simplechat.domain.exception.JwtAuthenticationException
-import com.simplechat.domain.exception.ResourceNotFoundException
+import com.simplechat.domain.exception.auth.JwtAuthenticationException
+import com.simplechat.domain.exception.entity.ResourceNotFoundException
 import com.simplechat.domain.exception.ValidationException
 import com.simplechat.domain.repository.UserRepository
 import com.simplechat.dto.AuthResponse

@@ -1,6 +1,6 @@
 package com.simplechat.domain.service
 
-import com.simplechat.domain.message.WebSocketMessage
+import com.simplechat.domain.message.websocket.WebSocketMessage
 
 /**
  * 메시지 브로커 도메인 서비스 인터페이스

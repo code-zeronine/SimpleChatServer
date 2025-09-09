@@ -1,16 +1,17 @@
 package com.simplechat.infrastructure.handler
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.simplechat.domain.exception.WebSocketErrorCode
-import com.simplechat.domain.exception.WebSocketException
-import com.simplechat.domain.message.ErrorWebSocketMessage
-import com.simplechat.domain.message.WebSocketMessageType
+import com.simplechat.domain.exception.websocket.WebSocketErrorCode
+import com.simplechat.domain.exception.websocket.WebSocketException
+import com.simplechat.domain.message.websocket.ErrorWebSocketMessage
+import com.simplechat.domain.message.websocket.WebSocketMessageType
 import com.simplechat.infrastructure.monitoring.ErrorSeverity
 import com.simplechat.infrastructure.monitoring.WebSocketErrorMetrics
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Mono
+import java.util.UUID
 
 /**
  * WebSocket 에러 처리를 담당하는 핸들러 클래스
@@ -109,7 +110,7 @@ class WebSocketErrorHandler(
         
         val errorMessage = ErrorWebSocketMessage(
             type = WebSocketMessageType.ERROR,
-            messageId = java.util.UUID.randomUUID().toString(),
+            messageId = UUID.randomUUID().toString(),
             timestamp = System.currentTimeMillis(),
             sessionId = session.id,
             errorCode = errorCode.code,
@@ -171,7 +172,7 @@ class WebSocketErrorHandler(
         
         val errorMessage = ErrorWebSocketMessage(
             type = WebSocketMessageType.ERROR,
-            messageId = java.util.UUID.randomUUID().toString(),
+            messageId = UUID.randomUUID().toString(),
             timestamp = System.currentTimeMillis(),
             sessionId = session.id,
             errorCode = errorCode.code,
@@ -200,7 +201,7 @@ class WebSocketErrorHandler(
         
         val errorMessage = ErrorWebSocketMessage(
             type = WebSocketMessageType.ERROR,
-            messageId = java.util.UUID.randomUUID().toString(),
+            messageId = UUID.randomUUID().toString(),
             timestamp = System.currentTimeMillis(),
             sessionId = session.id,
             errorCode = errorCode.code,
@@ -232,7 +233,7 @@ class WebSocketErrorHandler(
         
         return ErrorWebSocketMessage(
             type = WebSocketMessageType.ERROR,
-            messageId = java.util.UUID.randomUUID().toString(),
+            messageId = UUID.randomUUID().toString(),
             timestamp = System.currentTimeMillis(),
             sessionId = sessionId,
             errorCode = errorCode.code,

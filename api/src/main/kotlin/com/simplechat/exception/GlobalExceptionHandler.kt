@@ -1,12 +1,12 @@
 package com.simplechat.exception
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.simplechat.domain.exception.AuthenticationException
-import com.simplechat.domain.exception.AuthorizationException
-import com.simplechat.domain.exception.BusinessLogicException
-import com.simplechat.domain.exception.DatabaseException
+import com.simplechat.domain.exception.auth.AuthenticationException
+import com.simplechat.domain.exception.auth.AuthorizationException
+import com.simplechat.domain.exception.business.BusinessLogicException
+import com.simplechat.domain.exception.database.DatabaseException
 import com.simplechat.domain.exception.ExternalServiceException
-import com.simplechat.domain.exception.ResourceNotFoundException
+import com.simplechat.domain.exception.entity.ResourceNotFoundException
 import com.simplechat.domain.exception.SimpleChatException
 import com.simplechat.domain.exception.ValidationException
 import com.simplechat.dto.ApiResponse

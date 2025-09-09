@@ -346,27 +346,3 @@ class WebSocketSessionManager {
         }
     }
 }
-
-/**
- * 세션 메타데이터 (캐싱 정보 포함)
- */
-data class SessionMetadata(
-    val sessionId: String,
-    val userId: Long,
-    val chatRoomId: String,
-    val connectedAt: Instant,
-    val lastActivityAt: Instant,
-    val messageCount: Long,
-    val lastMessageAt: Instant?,
-    val status: String = "CONNECTED"
-)
-
-/**
- * 연결 통계
- */
-data class ConnectionStats(
-    val activeConnections: Int,
-    val totalRooms: Int,
-    val totalUsers: Int,
-    val averageSessionsPerUser: Double
-)

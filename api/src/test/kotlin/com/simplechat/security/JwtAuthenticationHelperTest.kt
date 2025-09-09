@@ -1,6 +1,6 @@
 package com.simplechat.security
 
-import com.simplechat.domain.exception.JwtAuthenticationException
+import com.simplechat.domain.exception.auth.JwtAuthenticationException
 import com.simplechat.infrastructure.security.jwt.JwtTokenProvider
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

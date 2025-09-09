@@ -1,14 +1,14 @@
 package com.simplechat.infrastructure.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.simplechat.domain.message.ChatWebSocketMessage
-import com.simplechat.domain.message.ErrorWebSocketMessage
-import com.simplechat.domain.message.JoinWebSocketMessage
-import com.simplechat.domain.message.LeaveWebSocketMessage
+import com.simplechat.domain.message.websocket.ChatWebSocketMessage
+import com.simplechat.domain.message.websocket.ErrorWebSocketMessage
+import com.simplechat.domain.message.websocket.JoinWebSocketMessage
+import com.simplechat.domain.message.websocket.LeaveWebSocketMessage
 import com.simplechat.domain.message.MessageTarget
-import com.simplechat.domain.message.SystemWebSocketMessage
-import com.simplechat.domain.message.TypingWebSocketMessage
-import com.simplechat.domain.message.WebSocketMessage
+import com.simplechat.domain.message.websocket.SystemWebSocketMessage
+import com.simplechat.domain.message.websocket.TypingWebSocketMessage
+import com.simplechat.domain.message.websocket.WebSocketMessage
 import com.simplechat.domain.service.MessageRoutingEngine
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -421,15 +421,3 @@ class MessageRoutingService(
         logger.info("Message routing statistics reset")
     }
 }
-
-/**
- * 실패한 메시지 정보
- */
-data class FailedMessage(
-    val id: String,
-    val target: MessageTarget,
-    val message: WebSocketMessage,
-    val error: String,
-    val failedAt: Instant,
-    val retryCount: Int
-)

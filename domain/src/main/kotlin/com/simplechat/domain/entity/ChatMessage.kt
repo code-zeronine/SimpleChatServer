@@ -78,10 +78,3 @@ data class ChatMessage(
         return "ChatMessage(id=$id, roomId=$roomId, userId=$userId, messageType=$messageType, timestamp=$timestamp)"
     }
 }
-
-enum class MessageType {
-    TEXT,
-    SYSTEM,
-    JOIN,
-    LEAVE
-}

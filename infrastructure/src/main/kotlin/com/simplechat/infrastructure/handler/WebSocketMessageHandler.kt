@@ -2,13 +2,14 @@ package com.simplechat.infrastructure.handler
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.simplechat.domain.entity.ChatMessage
-import com.simplechat.domain.message.ChatWebSocketMessage
-import com.simplechat.domain.message.JoinWebSocketMessage
-import com.simplechat.domain.message.LeaveWebSocketMessage
-import com.simplechat.domain.message.SystemWebSocketMessage
-import com.simplechat.domain.message.TypingWebSocketMessage
-import com.simplechat.domain.message.WebSocketMessage
-import com.simplechat.domain.message.WebSocketMessageType
+import com.simplechat.domain.exception.websocket.WebSocketErrorCode
+import com.simplechat.domain.message.websocket.ChatWebSocketMessage
+import com.simplechat.domain.message.websocket.JoinWebSocketMessage
+import com.simplechat.domain.message.websocket.LeaveWebSocketMessage
+import com.simplechat.domain.message.websocket.SystemWebSocketMessage
+import com.simplechat.domain.message.websocket.TypingWebSocketMessage
+import com.simplechat.domain.message.websocket.WebSocketMessage
+import com.simplechat.domain.message.websocket.WebSocketMessageType
 import com.simplechat.domain.service.ChatMessageDomainService
 import com.simplechat.domain.service.MessageBrokerDomainService
 import com.simplechat.infrastructure.service.RedisMessageBrokerService
@@ -139,13 +140,13 @@ class WebSocketMessageHandler(
                     if (error.message?.contains("Message too large") == true) {
                         errorHandler.handleError(
                             session,
-                            com.simplechat.domain.exception.WebSocketErrorCode.WS_MESSAGE_TOO_LARGE,
+                            WebSocketErrorCode.WS_MESSAGE_TOO_LARGE,
                             error.message
                         )
                     } else {
                         errorHandler.handleError(
                             session,
-                            com.simplechat.domain.exception.WebSocketErrorCode.WS_MESSAGE_VALIDATION_FAILED,
+                            WebSocketErrorCode.WS_MESSAGE_VALIDATION_FAILED,
                             error.message
                         )
                     }
@@ -224,7 +225,7 @@ class WebSocketMessageHandler(
                     log.warn("Unhandled message type: {} from session {}", messageDto.type, session.id)
                     errorHandler.handleError(
                         session,
-                        com.simplechat.domain.exception.WebSocketErrorCode.WS_MESSAGE_TYPE_UNSUPPORTED,
+                        WebSocketErrorCode.WS_MESSAGE_TYPE_UNSUPPORTED,
                         "지원되지 않는 메시지 타입: ${messageDto.type}"
                     )
                 }
@@ -233,7 +234,7 @@ class WebSocketMessageHandler(
             log.error("Message type mismatch for session {}: {}", session.id, e.message)
             errorHandler.handleError(
                 session,
-                com.simplechat.domain.exception.WebSocketErrorCode.WS_MESSAGE_MALFORMED,
+                WebSocketErrorCode.WS_MESSAGE_MALFORMED,
                 "메시지 형식이 올바르지 않습니다"
             )
         } catch (e: Exception) {
@@ -267,7 +268,7 @@ class WebSocketMessageHandler(
                 log.error("Failed to save or broadcast chat message: {}", error.message, error)
                 errorHandler.handleError(
                     session,
-                    com.simplechat.domain.exception.WebSocketErrorCode.WS_MESSAGE_DELIVERY_FAILED,
+                    WebSocketErrorCode.WS_MESSAGE_DELIVERY_FAILED,
                     "메시지 전송에 실패했습니다: ${error.message}"
                 )
             }
@@ -290,7 +291,7 @@ class WebSocketMessageHandler(
             log.error("Failed to broadcast typing message: {}", error.message)
             errorHandler.handleError(
                 session,
-                com.simplechat.domain.exception.WebSocketErrorCode.WS_MESSAGE_DELIVERY_FAILED,
+                WebSocketErrorCode.WS_MESSAGE_DELIVERY_FAILED,
                 "타이핑 상태 전송에 실패했습니다"
             )
         }

@@ -3,15 +3,15 @@ package com.simplechat.dto
 // WebSocket message types have been moved to domain.message package
 // This file is kept for API layer specific DTOs only
 
-import com.simplechat.domain.message.AckWebSocketMessage
-import com.simplechat.domain.message.ChatWebSocketMessage
-import com.simplechat.domain.message.ErrorWebSocketMessage
-import com.simplechat.domain.message.HeartbeatWebSocketMessage
-import com.simplechat.domain.message.JoinWebSocketMessage
-import com.simplechat.domain.message.LeaveWebSocketMessage
-import com.simplechat.domain.message.SystemWebSocketMessage
-import com.simplechat.domain.message.TypingWebSocketMessage
-import com.simplechat.domain.message.WebSocketMessage
+import com.simplechat.domain.message.websocket.AckWebSocketMessage
+import com.simplechat.domain.message.websocket.ChatWebSocketMessage
+import com.simplechat.domain.message.websocket.ErrorWebSocketMessage
+import com.simplechat.domain.message.websocket.HeartbeatWebSocketMessage
+import com.simplechat.domain.message.websocket.JoinWebSocketMessage
+import com.simplechat.domain.message.websocket.LeaveWebSocketMessage
+import com.simplechat.domain.message.websocket.SystemWebSocketMessage
+import com.simplechat.domain.message.websocket.TypingWebSocketMessage
+import com.simplechat.domain.message.websocket.WebSocketMessage
 
 /**
  * WebSocket 메시지를 위한 API 계층 어댑터
