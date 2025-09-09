@@ -3,105 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="SimpleChatServer 채팅방 목록">
+    <meta name="description" content="SimpleChatServer 채팅방 목록 - 실시간 채팅 및 커뮤니티">
     <title>채팅방 - SimpleChatServer</title>
+    <meta name="theme-color" content="#6366f1">
     <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3e%3cpath fill='currentColor' d='M256 32C114.6 32 0 125.1 0 240c0 49.6 21.4 95 57 130.7C44.5 421.1 2.7 466 2.2 466.5c-2.2 2.3-2.8 5.7-1.5 8.7S4.8 480 8 480c66.3 0 116-31.8 146.3-74.9c28.8 12.1 60.9 18.9 94.7 18.9c141.4 0 256-93.1 256-208S397.4 32 256 32z'/%3e%3c/svg%3e">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="/static/css/rooms.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div id="app">
-        <header class="header">
+        <header class="header" role="banner">
             <div class="container">
                 <div class="header-left">
                     <h1 class="logo">
-                        <i class="fas fa-comments logo-icon"></i>
+                        <i class="fas fa-comments logo-icon" aria-hidden="true"></i>
                         SimpleChatServer
                     </h1>
                 </div>
-                <div class="header-right">
+                <nav class="header-right" role="navigation">
                     <div class="user-info" id="userInfo">
+                        <div class="user-avatar" id="userAvatar" aria-label="사용자 아바타">U</div>
                         <span class="user-name" id="userName">사용자</span>
-                        <button class="btn btn-secondary btn-small" id="logoutBtn">로그아웃</button>
+                        <button class="btn btn-secondary btn-small" id="logoutBtn" 
+                                title="로그아웃" aria-label="로그아웃">
+                            <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                            로그아웃
+                        </button>
                     </div>
-                </div>
+                </nav>
             </div>
         </header>
 
-        <main class="main-content">
+        <main class="main-content" role="main">
             <div class="container">
-                <div class="rooms-header">
+                <header class="rooms-header">
                     <div class="rooms-title">
                         <h2>채팅방</h2>
-                        <span class="rooms-count" id="roomsCount">0개의 채팅방</span>
+                        <div class="rooms-count" id="roomsCount" role="status" aria-live="polite">
+                            <span id="roomsCountText">0개의 채팅방</span>
+                        </div>
                     </div>
                     <div class="rooms-actions">
-                        <div class="search-box">
+                        <div class="search-box" role="search">
+                            <label for="searchInput" class="sr-only">채팅방 검색</label>
                             <input 
-                                type="text" 
+                                type="search" 
                                 id="searchInput" 
                                 class="search-input" 
                                 placeholder="채팅방 검색..."
+                                autocomplete="off"
+                                aria-describedby="searchHelp"
                             >
-                            <button class="search-btn" id="searchBtn">
-                                <i class="fas fa-search"></i>
+                            <button class="search-btn" id="searchBtn" 
+                                    title="검색" aria-label="채팅방 검색">
+                                <i class="fas fa-search" aria-hidden="true"></i>
                             </button>
+                            <div id="searchHelp" class="sr-only">채팅방 이름으로 검색할 수 있습니다</div>
                         </div>
-                        <button class="btn btn-primary" id="createRoomBtn">
-                            <i class="fas fa-plus"></i>
-                            채팅방 만들기
+                        <button class="btn btn-primary" id="createRoomBtn" 
+                                aria-label="새 채팅방 만들기">
+                            <i class="fas fa-plus" aria-hidden="true"></i>
+                            <span class="btn-text">채팅방 만들기</span>
                         </button>
                     </div>
-                </div>
+                </header>
 
-                <div class="rooms-filters">
-                    <div class="filter-tabs">
-                        <button class="filter-tab active" data-filter="all">모든 채팅방</button>
-                        <button class="filter-tab" data-filter="joined">참여 중</button>
-                        <button class="filter-tab" data-filter="public">공개 채팅방</button>
-                        <button class="filter-tab" data-filter="private">비공개 채팅방</button>
+                <section class="rooms-filters" role="toolbar" aria-label="채팅방 필터 및 정렬">
+                    <div class="filter-tabs" role="tablist" aria-label="채팅방 필터">
+                        <button class="filter-tab active" data-filter="all" role="tab" 
+                                aria-selected="true" aria-controls="roomsGrid">
+                            모든 채팅방
+                        </button>
+                        <button class="filter-tab" data-filter="joined" role="tab" 
+                                aria-selected="false" aria-controls="roomsGrid">
+                            참여 중
+                        </button>
+                        <button class="filter-tab" data-filter="public" role="tab" 
+                                aria-selected="false" aria-controls="roomsGrid">
+                            공개 채팅방
+                        </button>
+                        <button class="filter-tab" data-filter="private" role="tab" 
+                                aria-selected="false" aria-controls="roomsGrid">
+                            비공개 채팅방
+                        </button>
                     </div>
                     <div class="sort-options">
-                        <select id="sortSelect" class="sort-select">
+                        <label for="sortSelect" class="sr-only">정렬 기준</label>
+                        <select id="sortSelect" class="sort-select" aria-label="정렬 기준 선택">
                             <option value="recent">최근 활동순</option>
                             <option value="name">이름순</option>
                             <option value="members">참여자 많은순</option>
                             <option value="created">생성일순</option>
                         </select>
                     </div>
-                </div>
+                </section>
 
-                <div class="rooms-grid" id="roomsGrid">
+                <section class="rooms-grid" id="roomsGrid" role="region" 
+                         aria-label="채팅방 목록" aria-live="polite">
                     <!-- 채팅방 카드들이 여기에 동적으로 생성됩니다 -->
-                    <div class="loading-spinner" id="loadingSpinner">
-                        <i class="fas fa-spinner fa-spin fa-3x"></i>
+                    <div class="loading-spinner" id="loadingSpinner" role="status" aria-label="로딩 중">
+                        <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
                         <p>채팅방 목록을 불러오는 중...</p>
                     </div>
-                </div>
+                </section>
 
                 <!-- 빈 상태 표시 -->
-                <div class="empty-state" id="emptyState" style="display: none;">
-                    <div class="empty-icon"><i class="fas fa-comments"></i></div>
+                <section class="empty-state" id="emptyState" style="display: none;" 
+                         role="region" aria-label="빈 상태">
+                    <div class="empty-icon" aria-hidden="true">
+                        <i class="fas fa-comments"></i>
+                    </div>
                     <h3>채팅방이 없습니다</h3>
                     <p>첫 번째 채팅방을 만들어보세요!</p>
-                    <button class="btn btn-primary" id="createFirstRoomBtn">채팅방 만들기</button>
-                </div>
+                    <button class="btn btn-primary" id="createFirstRoomBtn" 
+                            aria-label="첫 번째 채팅방 만들기">
+                        <i class="fas fa-plus" aria-hidden="true"></i>
+                        채팅방 만들기
+                    </button>
+                </section>
             </div>
         </main>
 
         <!-- 채팅방 생성 모달 -->
-        <div class="modal" id="createRoomModal">
-            <div class="modal-backdrop"></div>
+        <div class="modal" id="createRoomModal" role="dialog" 
+             aria-labelledby="createRoomModalTitle" aria-hidden="true">
+            <div class="modal-backdrop" aria-hidden="true"></div>
             <div class="modal-content">
-                <div class="modal-header">
-                    <h3>새 채팅방 만들기</h3>
-                    <button class="modal-close" id="closeCreateRoomModal"><i class="fas fa-times"></i></button>
-                </div>
+                <header class="modal-header">
+                    <h3 id="createRoomModalTitle">새 채팅방 만들기</h3>
+                    <button class="modal-close" id="closeCreateRoomModal" 
+                            aria-label="모달 닫기" title="닫기">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                    </button>
+                </header>
                 <div class="modal-body">
-                    <form id="createRoomForm" class="create-room-form">
+                    <form id="createRoomForm" class="create-room-form" novalidate>
                         <div class="form-group">
-                            <label for="roomName" class="form-label">채팅방 이름</label>
+                            <label for="roomName" class="form-label">
+                                채팅방 이름 <span class="required" aria-label="필수">*</span>
+                            </label>
                             <input 
                                 type="text" 
                                 id="roomName" 
@@ -110,8 +154,11 @@
                                 placeholder="채팅방 이름을 입력하세요"
                                 required
                                 maxlength="50"
+                                aria-describedby="roomNameError roomNameHint"
+                                autocomplete="off"
                             >
-                            <div class="form-error" id="roomNameError"></div>
+                            <div class="form-hint" id="roomNameHint">최대 50자</div>
+                            <div class="form-error" id="roomNameError" role="alert" aria-live="polite"></div>
                         </div>
 
                         <div class="form-group">
@@ -123,25 +170,28 @@
                                 placeholder="채팅방에 대한 설명을 입력하세요"
                                 rows="3"
                                 maxlength="200"
+                                aria-describedby="roomDescriptionHint"
                             ></textarea>
-                            <div class="form-hint">최대 200자</div>
+                            <div class="form-hint" id="roomDescriptionHint">최대 200자</div>
                         </div>
 
-                        <div class="form-group">
-                            <label class="form-label">채팅방 설정</label>
-                            <div class="form-options">
+                        <fieldset class="form-group">
+                            <legend class="form-label">채팅방 설정</legend>
+                            <div class="form-options" role="group">
                                 <label class="checkbox-label">
-                                    <input type="checkbox" id="isPublic" name="isPublic" checked>
+                                    <input type="checkbox" id="isPublic" name="isPublic" checked 
+                                           aria-describedby="isPublicDesc">
                                     <span class="checkbox-text">공개 채팅방</span>
-                                    <small class="option-desc">모든 사용자가 참여할 수 있습니다</small>
+                                    <small class="option-desc" id="isPublicDesc">모든 사용자가 참여할 수 있습니다</small>
                                 </label>
                                 <label class="checkbox-label">
-                                    <input type="checkbox" id="allowSearch" name="allowSearch" checked>
+                                    <input type="checkbox" id="allowSearch" name="allowSearch" checked 
+                                           aria-describedby="allowSearchDesc">
                                     <span class="checkbox-text">검색 허용</span>
-                                    <small class="option-desc">검색 결과에 노출됩니다</small>
+                                    <small class="option-desc" id="allowSearchDesc">검색 결과에 노출됩니다</small>
                                 </label>
                             </div>
-                        </div>
+                        </fieldset>
 
                         <div class="form-group">
                             <label for="maxMembers" class="form-label">최대 참여자 수</label>
@@ -153,49 +203,83 @@
                                 value="100"
                                 min="2"
                                 max="1000"
+                                aria-describedby="maxMembersHint"
                             >
-                            <div class="form-hint">2명 ~ 1000명</div>
+                            <div class="form-hint" id="maxMembersHint">2명 ~ 1000명</div>
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" id="cancelCreateRoom">취소</button>
-                    <button type="submit" form="createRoomForm" class="btn btn-primary" id="submitCreateRoom">
+                <footer class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelCreateRoom">
+                        취소
+                    </button>
+                    <button type="submit" form="createRoomForm" class="btn btn-primary" 
+                            id="submitCreateRoom" aria-describedby="submitCreateRoomStatus">
                         <span class="btn-text">채팅방 만들기</span>
-                        <span class="btn-loading" style="display: none;">
+                        <span class="btn-loading" style="display: none;" aria-hidden="true">
                             <i class="fas fa-spinner fa-spin"></i>
                             생성 중...
                         </span>
                     </button>
-                </div>
+                    <div id="submitCreateRoomStatus" class="sr-only" aria-live="polite"></div>
+                </footer>
             </div>
         </div>
 
         <!-- 채팅방 상세 정보 모달 -->
-        <div class="modal" id="roomDetailModal">
-            <div class="modal-backdrop"></div>
+        <div class="modal" id="roomDetailModal" role="dialog" 
+             aria-labelledby="roomDetailTitle" aria-hidden="true">
+            <div class="modal-backdrop" aria-hidden="true"></div>
             <div class="modal-content modal-large">
-                <div class="modal-header">
+                <header class="modal-header">
                     <h3 id="roomDetailTitle">채팅방 정보</h3>
-                    <button class="modal-close" id="closeRoomDetailModal"><i class="fas fa-times"></i></button>
-                </div>
+                    <button class="modal-close" id="closeRoomDetailModal" 
+                            aria-label="모달 닫기" title="닫기">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                    </button>
+                </header>
                 <div class="modal-body">
-                    <div class="room-detail-content" id="roomDetailContent">
+                    <div class="room-detail-content" id="roomDetailContent" role="region" 
+                         aria-label="채팅방 상세 정보">
                         <!-- 채팅방 상세 정보가 여기에 동적으로 생성됩니다 -->
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" id="closeRoomDetail">닫기</button>
-                    <button type="button" class="btn btn-primary" id="joinRoomBtn">
+                <footer class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="closeRoomDetail">
+                        닫기
+                    </button>
+                    <button type="button" class="btn btn-primary" id="joinRoomBtn" 
+                            aria-describedby="joinRoomStatus">
                         채팅방 참여
                     </button>
-                </div>
+                    <div id="joinRoomStatus" class="sr-only" aria-live="polite"></div>
+                </footer>
             </div>
         </div>
 
         <!-- 토스트 메시지 -->
-        <div id="toastContainer" class="toast-container"></div>
+        <div id="toastContainer" class="toast-container" role="alert" aria-live="assertive"></div>
     </div>
+
+    <!-- Screen Reader Only Styles -->
+    <style>
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        
+        .required {
+            color: #ef4444;
+            font-weight: 600;
+        }
+    </style>
 
     <script src="/static/js/main.js"></script>
     <script src="/static/js/rooms.js"></script>
