@@ -40,6 +40,10 @@ dependencies {
     implementation("io.r2dbc:r2dbc-pool")
     runtimeOnly("org.postgresql:postgresql")
     
+    // Micrometer for custom metrics
+    implementation("io.micrometer:micrometer-core")
+    implementation("io.micrometer:micrometer-registry-prometheus")
+    
     // Test dependencies
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")

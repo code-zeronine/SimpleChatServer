@@ -1,12 +1,14 @@
 package com.simplechat.infrastructure.service
 
 import com.simplechat.domain.entity.ChatMessage
+import com.simplechat.infrastructure.monitoring.CustomMetricsService
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Duration
+import java.time.Instant
 
 /**
  * 메시지 캐싱 전용 서비스
@@ -18,7 +20,8 @@ import java.time.Duration
  */
 @Service
 class MessageCacheService(
-    private val reactiveRedisTemplate: ReactiveRedisTemplate<String, Any>
+    private val reactiveRedisTemplate: ReactiveRedisTemplate<String, Any>,
+    private val customMetricsService: CustomMetricsService
 ) {
 
     private val logger = LoggerFactory.getLogger(MessageCacheService::class.java)
@@ -37,6 +40,7 @@ class MessageCacheService(
      */
     fun getRecentMessages(roomId: Long, size: Int = DEFAULT_RECENT_MESSAGES_SIZE): Flux<ChatMessage> {
         val cacheKey = createRecentMessagesCacheKey(roomId)
+        val startTime = Instant.now()
         
         return reactiveRedisTemplate.opsForList()
             .range(cacheKey, 0, size - 1L)
@@ -45,11 +49,14 @@ class MessageCacheService(
                 logger.debug("Fetching recent messages from cache: roomId={}, size={}", roomId, size)
             }
             .doOnComplete {
+                customMetricsService.recordCacheHit()
+                customMetricsService.recordCacheLookupTime(Duration.between(startTime, Instant.now()))
                 incrementCacheHit(roomId)
                 logger.debug("Cache hit for recent messages: roomId={}", roomId)
             }
             .onErrorResume { error ->
                 logger.warn("Cache miss for recent messages: roomId={}, error={}", roomId, error.message)
+                customMetricsService.recordCacheMiss()
                 incrementCacheMiss(roomId)
                 Flux.empty()
             }

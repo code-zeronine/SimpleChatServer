@@ -1,5 +1,6 @@
 package com.simplechat.infrastructure.service
 
+import com.simplechat.infrastructure.monitoring.CustomMetricsService
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
@@ -19,7 +20,9 @@ import java.util.concurrent.atomic.AtomicLong
  * 사용자별, 채팅방별 세션 관리, 캐싱, 고급 라우팅 기능 제공
  */
 @Service
-class WebSocketSessionManager {
+class WebSocketSessionManager(
+    private val customMetricsService: CustomMetricsService
+) {
 
     private val logger = LoggerFactory.getLogger(WebSocketSessionManager::class.java)
 
@@ -82,6 +85,9 @@ class WebSocketSessionManager {
         // 통계 업데이트
         totalSessionsCreated.incrementAndGet()
         
+        // 메트릭 업데이트
+        customMetricsService.incrementWebSocketConnection()
+        
         logger.info("Session added: {} (user: {}, room: {}) [Total: {}]", 
             sessionId, userId, chatRoomId, sessions.size)
     }
@@ -113,6 +119,9 @@ class WebSocketSessionManager {
         
         // 통계 업데이트
         totalSessionsDestroyed.incrementAndGet()
+        
+        // 메트릭 업데이트
+        customMetricsService.decrementWebSocketConnection()
         
         logger.info("Session removed: {} (user: {}, room: {}) [Remaining: {}]", 
             sessionId, userId, chatRoomId, sessions.size)
@@ -229,6 +238,9 @@ class WebSocketSessionManager {
                 messageCount = metadata.messageCount + 1,
                 lastMessageAt = Instant.now()
             )
+            
+            // WebSocket 메시지 메트릭 업데이트
+            customMetricsService.recordWebSocketMessage()
         }
     }
 

@@ -7,6 +7,7 @@ import com.simplechat.domain.message.websocket.ErrorWebSocketMessage
 import com.simplechat.domain.message.websocket.WebSocketMessageType
 import com.simplechat.infrastructure.monitoring.ErrorSeverity
 import com.simplechat.infrastructure.monitoring.WebSocketErrorMetrics
+import com.simplechat.infrastructure.monitoring.CustomMetricsService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketSession
@@ -22,7 +23,8 @@ import java.util.UUID
 @Component
 class WebSocketErrorHandler(
     private val objectMapper: ObjectMapper,
-    private val errorMetrics: WebSocketErrorMetrics
+    private val errorMetrics: WebSocketErrorMetrics,
+    private val customMetricsService: CustomMetricsService
 ) {
     
     private val logger = LoggerFactory.getLogger(WebSocketErrorHandler::class.java)
@@ -73,6 +75,7 @@ class WebSocketErrorHandler(
         
         // 메트릭스에 에러 기록
         errorMetrics.recordError(session.id, errorCode, severity)
+        customMetricsService.recordWebSocketError()
         
         val errorMessage = createErrorMessage(
             sessionId = session.id,
