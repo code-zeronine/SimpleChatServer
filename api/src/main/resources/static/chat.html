@@ -6,6 +6,9 @@
     <meta name="description" content="SimpleChatServer 실시간 채팅">
     <title>채팅 - SimpleChatServer</title>
     <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3e%3cpath fill='currentColor' d='M256 32C114.6 32 0 125.1 0 240c0 49.6 21.4 95 57 130.7C44.5 421.1 2.7 466 2.2 466.5c-2.2 2.3-2.8 5.7-1.5 8.7S4.8 480 8 480c66.3 0 116-31.8 146.3-74.9c28.8 12.1 60.9 18.9 94.7 18.9c141.4 0 256-93.1 256-208S397.4 32 256 32z'/%3e%3c/svg%3e">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="/static/css/chat.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -16,47 +19,49 @@
         <header class="header">
             <div class="container">
                 <div class="header-left">
-                    <button class="back-btn" id="backBtn" title="채팅방 목록으로">
-                        <i class="fas fa-arrow-left"></i>
+                    <button class="back-btn" id="backBtn" title="채팅방 목록으로" aria-label="채팅방 목록으로 돌아가기">
+                        <i class="fas fa-arrow-left" aria-hidden="true"></i>
                     </button>
-                    <h1 class="logo">
-                        <i class="fas fa-comments logo-icon"></i>
-                        <span class="room-name" id="roomName">채팅방</span>
-                    </h1>
+                    <div class="logo">
+                        <i class="fas fa-comments logo-icon" aria-hidden="true"></i>
+                        <h1 class="room-name" id="roomName">채팅방</h1>
+                    </div>
                 </div>
-                <div class="header-right">
-                    <div class="room-status">
-                        <span class="member-count" id="memberCount">참여자 0명</span>
-                        <span class="connection-status" id="connectionStatus">연결 중...</span>
+                <nav class="header-right" role="navigation">
+                    <div class="room-status" aria-live="polite">
+                        <span class="member-count" id="memberCount" role="status">참여자 0명</span>
+                        <span class="connection-status" id="connectionStatus" role="status">연결 중...</span>
                     </div>
                     <div class="header-actions">
-                        <button class="btn btn-secondary btn-small" id="roomSettingsBtn" title="채팅방 설정">
-                            <i class="fas fa-cog"></i>
+                        <button class="btn btn-secondary btn-small" id="roomSettingsBtn" title="채팅방 설정" aria-label="채팅방 설정">
+                            <i class="fas fa-cog" aria-hidden="true"></i>
                         </button>
-                        <button class="btn btn-secondary btn-small" id="memberListBtn" title="참여자 목록">
-                            <i class="fas fa-users"></i>
+                        <button class="btn btn-secondary btn-small" id="memberListBtn" title="참여자 목록" aria-label="참여자 목록 보기">
+                            <i class="fas fa-users" aria-hidden="true"></i>
                         </button>
                     </div>
-                </div>
+                </nav>
             </div>
         </header>
 
         <!-- 메시지 영역 -->
-        <main class="chat-main">
-            <div class="messages-container" id="messagesContainer">
-                <div class="messages-list" id="messagesList">
+        <main class="chat-main" role="main">
+            <section class="messages-container" id="messagesContainer" aria-label="채팅 메시지">
+                <div class="messages-list" id="messagesList" role="log" aria-live="polite" aria-label="메시지 목록">
                     <!-- 환영 메시지 -->
-                    <div class="system-message">
+                    <article class="system-message" role="banner">
                         <div class="system-message-content">
-                            <span class="welcome-icon"><i class="fas fa-hand-sparkles"></i></span>
+                            <span class="welcome-icon" aria-hidden="true">
+                                <i class="fas fa-hand-sparkles"></i>
+                            </span>
                             <p>채팅방에 오신 것을 환영합니다!</p>
                             <small>메시지를 입력하여 대화를 시작하세요.</small>
                         </div>
-                    </div>
+                    </article>
 
                     <!-- 로딩 인디케이터 -->
-                    <div class="loading-messages" id="loadingMessages" style="display: none;">
-                        <div class="loading-spinner">
+                    <div class="loading-messages" id="loadingMessages" style="display: none;" role="status" aria-live="polite">
+                        <div class="loading-spinner" aria-hidden="true">
                             <i class="fas fa-spinner fa-spin fa-2x"></i>
                         </div>
                         <p>이전 메시지를 불러오는 중...</p>
@@ -66,104 +71,141 @@
                 </div>
 
                 <!-- 스크롤 다운 버튼 -->
-                <button class="scroll-down-btn" id="scrollDownBtn" style="display: none;">
-                    <span class="scroll-icon"><i class="fas fa-arrow-down"></i></span>
-                    <span class="unread-count" id="unreadCount">0</span>
+                <button class="scroll-down-btn" id="scrollDownBtn" style="display: none;" 
+                        title="아래로 스크롤" aria-label="새 메시지로 스크롤">
+                    <span class="scroll-icon" aria-hidden="true">
+                        <i class="fas fa-arrow-down"></i>
+                    </span>
+                    <span class="unread-count" id="unreadCount" aria-label="읽지 않은 메시지">0</span>
                 </button>
-            </div>
+            </section>
         </main>
 
         <!-- 메시지 입력 영역 -->
-        <footer class="chat-input-area">
+        <footer class="chat-input-area" role="form">
             <div class="input-container">
-                <div class="input-wrapper">
+                <form class="input-wrapper" id="messageForm">
                     <!-- 파일 첨부 버튼 -->
-                    <button class="attachment-btn" id="attachmentBtn" title="파일 첨부">
-                        <i class="fas fa-paperclip"></i>
+                    <button type="button" class="attachment-btn" id="attachmentBtn" 
+                            title="파일 첨부" aria-label="파일 첨부">
+                        <i class="fas fa-paperclip" aria-hidden="true"></i>
                     </button>
 
                     <!-- 메시지 입력창 -->
                     <div class="message-input-wrapper">
+                        <label for="messageInput" class="sr-only">메시지 입력</label>
                         <textarea 
                             id="messageInput" 
                             class="message-input"
                             placeholder="메시지를 입력하세요..."
                             rows="1"
                             maxlength="1000"
+                            aria-describedby="messageCounter"
+                            required
                         ></textarea>
                         <div class="input-actions">
-                            <button class="emoji-btn" id="emojiBtn" title="이모지">
-                                <i class="far fa-smile"></i>
+                            <button type="button" class="emoji-btn" id="emojiBtn" 
+                                    title="이모지" aria-label="이모지 선택">
+                                <i class="far fa-smile" aria-hidden="true"></i>
                             </button>
                         </div>
                     </div>
 
                     <!-- 전송 버튼 -->
-                    <button class="send-btn" id="sendBtn" title="전송" disabled>
-                        <i class="fas fa-paper-plane"></i>
+                    <button type="submit" class="send-btn" id="sendBtn" 
+                            title="메시지 전송" aria-label="메시지 전송" disabled>
+                        <i class="fas fa-paper-plane" aria-hidden="true"></i>
                     </button>
-                </div>
+                </form>
 
                 <!-- 메시지 카운터 -->
-                <div class="message-counter" id="messageCounter">
+                <div class="message-counter" id="messageCounter" role="status" aria-live="polite">
                     <span class="char-count">0</span>/1000
                 </div>
             </div>
         </footer>
 
         <!-- 파일 첨부 모달 -->
-        <div class="modal" id="attachmentModal">
-            <div class="modal-backdrop"></div>
+        <div class="modal" id="attachmentModal" role="dialog" aria-labelledby="attachmentModalTitle" aria-hidden="true">
+            <div class="modal-backdrop" aria-hidden="true"></div>
             <div class="modal-content">
-                <div class="modal-header">
-                    <h3>파일 첨부</h3>
-                    <button class="modal-close" id="closeAttachmentModal"><i class="fas fa-times"></i></button>
-                </div>
+                <header class="modal-header">
+                    <h3 id="attachmentModalTitle">파일 첨부</h3>
+                    <button class="modal-close" id="closeAttachmentModal" 
+                            aria-label="모달 닫기" title="닫기">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                    </button>
+                </header>
                 <div class="modal-body">
-                    <div class="file-drop-area" id="fileDropArea">
-                        <div class="drop-icon"><i class="fas fa-folder-open"></i></div>
-                        <p>파일을 여기로 드래그하거나 클릭하여 선택하세요</p>
-                        <input type="file" id="fileInput" multiple accept="image/*,application/pdf,.txt,.doc,.docx">
-                        <button class="btn btn-secondary" id="selectFileBtn">파일 선택</button>
+                    <div class="file-drop-area" id="fileDropArea" 
+                         role="button" tabindex="0" aria-describedby="fileDropDesc">
+                        <div class="drop-icon" aria-hidden="true">
+                            <i class="fas fa-folder-open"></i>
+                        </div>
+                        <p id="fileDropDesc">파일을 여기로 드래그하거나 클릭하여 선택하세요</p>
+                        <input type="file" id="fileInput" multiple 
+                               accept="image/*,application/pdf,.txt,.doc,.docx"
+                               aria-describedby="fileDropDesc">
+                        <button type="button" class="btn btn-secondary" id="selectFileBtn">파일 선택</button>
                     </div>
-                    <div class="file-list" id="fileList"></div>
+                    <div class="file-list" id="fileList" role="list" aria-label="선택된 파일 목록"></div>
                 </div>
-                <div class="modal-footer">
+                <footer class="modal-footer">
                     <button type="button" class="btn btn-secondary" id="cancelAttachment">취소</button>
                     <button type="button" class="btn btn-primary" id="uploadFiles" disabled>
                         <span class="btn-text">전송</span>
-                        <span class="btn-loading" style="display: none;">
+                        <span class="btn-loading" style="display: none;" aria-hidden="true">
                             <i class="fas fa-spinner fa-spin"></i>
                             업로드 중...
                         </span>
                     </button>
-                </div>
+                </footer>
             </div>
         </div>
 
         <!-- 참여자 목록 사이드바 -->
-        <aside class="members-sidebar" id="membersSidebar">
-            <div class="sidebar-header">
+        <aside class="members-sidebar" id="membersSidebar" role="complementary" aria-label="참여자 목록">
+            <header class="sidebar-header">
                 <h3>참여자 목록</h3>
-                <button class="sidebar-close" id="closeMembersSidebar"><i class="fas fa-times"></i></button>
-            </div>
+                <button class="sidebar-close" id="closeMembersSidebar" 
+                        aria-label="참여자 목록 닫기" title="닫기">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </header>
             <div class="sidebar-content">
-                <div class="members-list" id="membersList">
+                <ul class="members-list" id="membersList" role="list" aria-label="현재 참여자">
                     <!-- 참여자 목록이 여기에 동적으로 생성됩니다 -->
-                </div>
+                </ul>
             </div>
         </aside>
 
         <!-- 오버레이 -->
-        <div class="overlay" id="overlay"></div>
+        <div class="overlay" id="overlay" aria-hidden="true"></div>
 
         <!-- 토스트 메시지 -->
-        <div id="toastContainer" class="toast-container"></div>
+        <div id="toastContainer" class="toast-container" role="alert" aria-live="assertive"></div>
     </div>
 
-    <!-- 히든 파일 입력 -->
-    <input type="file" id="hiddenFileInput" style="display: none;" multiple>
+    <!-- 숨겨진 유틸리티 요소 -->
+    <div class="sr-only" aria-hidden="true">
+        <input type="file" id="hiddenFileInput" multiple tabindex="-1">
+    </div>
 
+    <!-- Screen Reader Only Styles -->
+    <style>
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+    
     <script src="/static/js/main.js"></script>
     <script src="/static/js/websocket-client.js"></script>
     <script src="/static/js/chat.js"></script>

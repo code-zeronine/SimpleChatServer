@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
         
-        // 이벤트 리스너 설정
+        // 이벤트 리스너 설정 (접근성 및 키보드 내비게이션 개선)
         setupEventListeners() {
             // 뒤로가기 버튼
             const backBtn = DOM.select('#backBtn');
@@ -112,10 +112,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.location.href = '/rooms';
             });
             
-            // 메시지 입력창
+            // 메시지 입력창 및 폼
             const messageInput = DOM.select('#messageInput');
+            const messageForm = DOM.select('#messageForm');
+            
             DOM.on(messageInput, 'input', this.handleMessageInput.bind(this));
             DOM.on(messageInput, 'keydown', this.handleKeyDown.bind(this));
+            DOM.on(messageInput, 'paste', this.handlePaste.bind(this));
+            
+            // 폼 제출 이벤트 (Enter 키 처리)
+            DOM.on(messageForm, 'submit', (e) => {
+                e.preventDefault();
+                this.sendMessage();
+            });
             
             // 전송 버튼
             const sendBtn = DOM.select('#sendBtn');
@@ -137,11 +146,67 @@ document.addEventListener('DOMContentLoaded', function() {
             const messagesList = DOM.select('#messagesList');
             DOM.on(messagesList, 'scroll', this.handleScroll.bind(this));
             
+            // 키보드 단축키 설정
+            this.setupKeyboardShortcuts();
+            
             // 모달 이벤트들
             this.setupModalEvents();
             
             // 파일 드래그 앤 드롭
             this.setupFileDropEvents();
+        },
+        
+        // 키보드 단축키 설정
+        setupKeyboardShortcuts() {
+            DOM.on(document, 'keydown', (e) => {
+                // Ctrl/Cmd + Enter: 메시지 전송
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    this.sendMessage();
+                }
+                
+                // Alt + M: 참여자 목록 토글
+                if (e.altKey && e.key === 'm') {
+                    e.preventDefault();
+                    this.toggleMembersSidebar();
+                }
+                
+                // Alt + F: 파일 첨부 모달
+                if (e.altKey && e.key === 'f') {
+                    e.preventDefault();
+                    this.showAttachmentModal();
+                }
+                
+                // Page Down: 스크롤 다운
+                if (e.key === 'PageDown' && e.target === document.body) {
+                    e.preventDefault();
+                    this.scrollToBottom();
+                }
+            });
+        },
+        
+        // 붙여넣기 처리 (파일 포함)
+        handlePaste(event) {
+            const items = event.clipboardData?.items;
+            if (!items) return;
+            
+            const files = [];
+            for (const item of items) {
+                if (item.kind === 'file') {
+                    const file = item.getAsFile();
+                    if (file) {
+                        files.push(file);
+                    }
+                }
+            }
+            
+            if (files.length > 0) {
+                event.preventDefault();
+                this.showAttachmentModal();
+                setTimeout(() => {
+                    this.handleFileSelection(files);
+                }, 300);
+            }
         },
         
         // 모달 이벤트 설정
@@ -955,24 +1020,40 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Legacy message handler called:', data.type);
         },
         
-        // 연결 상태 업데이트
+        // 연결 상태 업데이트 (시각적 피드백 강화)
         updateConnectionStatus(status) {
             const statusEl = DOM.select('#connectionStatus');
-            statusEl.classList.remove('connected', 'connecting', 'disconnected');
+            const inputWrapper = DOM.select('.input-wrapper');
+            const sendBtn = DOM.select('#sendBtn');
+            
+            // 기존 상태 클래스 제거
+            statusEl.classList.remove('connected', 'connecting', 'disconnected', 'error');
+            inputWrapper.classList.remove('connection-error', 'connection-warning');
+            
             statusEl.classList.add(status);
             
             switch (status) {
                 case 'connected':
                     statusEl.textContent = '온라인';
+                    statusEl.setAttribute('aria-label', '온라인 상태');
                     break;
                 case 'connecting':
                     statusEl.textContent = '연결 중...';
+                    statusEl.setAttribute('aria-label', '연결 시도 중');
+                    inputWrapper.classList.add('connection-warning');
                     break;
                 case 'disconnected':
                     statusEl.textContent = '연결 끊김';
+                    statusEl.setAttribute('aria-label', '연결 끊김 상태');
+                    inputWrapper.classList.add('connection-error');
+                    sendBtn.disabled = true;
                     break;
                 case 'error':
                     statusEl.textContent = '연결 오류';
+                    statusEl.setAttribute('aria-label', '연결 오류 상태');
+                    inputWrapper.classList.add('connection-error');
+                    sendBtn.disabled = true;
+                    Toast.error('서버와의 연결에 문제가 발생했습니다.');
                     break;
             }
         },
