@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory
 import org.springframework.data.redis.core.ReactiveRedisTemplate
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate
 import org.springframework.data.redis.listener.ReactiveRedisMessageListenerContainer
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer
 import org.springframework.data.redis.serializer.RedisSerializationContext
@@ -67,6 +68,17 @@ class MessagingConfig {
             .hashValue(stringSerializer)
             .build()
         return ReactiveRedisTemplate(factory, serializationContext)
+    }
+
+    /**
+     * JWT 세션 서비스 전용 ReactiveStringRedisTemplate
+     * MessagingConfig의 빈과 구분하기 위해 별도 이름 사용
+     */
+    @Bean("jwtSessionRedisTemplate")
+    fun jwtSessionRedisTemplate(
+        connectionFactory: ReactiveRedisConnectionFactory
+    ): ReactiveStringRedisTemplate {
+        return ReactiveStringRedisTemplate(connectionFactory)
     }
 
     // ===========================================
