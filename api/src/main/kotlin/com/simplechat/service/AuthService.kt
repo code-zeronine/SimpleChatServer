@@ -1,12 +1,12 @@
 package com.simplechat.service
 
 import com.simplechat.domain.entity.User
-import com.simplechat.domain.exception.auth.AuthenticationException
-import com.simplechat.domain.exception.database.DatabaseException
 import com.simplechat.domain.exception.ErrorCode
-import com.simplechat.domain.exception.auth.JwtAuthenticationException
-import com.simplechat.domain.exception.entity.ResourceNotFoundException
 import com.simplechat.domain.exception.ValidationException
+import com.simplechat.domain.exception.auth.AuthenticationException
+import com.simplechat.domain.exception.auth.JwtAuthenticationException
+import com.simplechat.domain.exception.database.DatabaseException
+import com.simplechat.domain.exception.entity.ResourceNotFoundException
 import com.simplechat.domain.repository.UserRepository
 import com.simplechat.dto.auth.AuthResponse
 import com.simplechat.dto.auth.LoginRequest
@@ -15,7 +15,10 @@ import com.simplechat.dto.auth.RefreshTokenResponse
 import com.simplechat.dto.auth.SignUpRequest
 import com.simplechat.dto.auth.UserDto
 import com.simplechat.dto.session.UserSessionInfo
+import com.simplechat.infrastructure.config.DuplicateLoginConfig
+import com.simplechat.infrastructure.config.DuplicateLoginConfigAction
 import com.simplechat.infrastructure.config.JwtProperties
+import com.simplechat.infrastructure.security.jwt.JwtSessionService
 import com.simplechat.infrastructure.security.jwt.JwtTokenProvider
 import com.simplechat.infrastructure.session.WebSocketSessionManager
 import com.simplechat.infrastructure.session.model.NewLoginInfo
@@ -39,7 +42,9 @@ class AuthService(
     private val jwtProperties: JwtProperties,
     private val sessionInvalidationService: SessionInvalidationService,
     private val webSocketSessionManager: WebSocketSessionManager,
-    private val webSocketMessageHandler: WebSocketMessageHandler
+    private val webSocketMessageHandler: WebSocketMessageHandler,
+    private val duplicateLoginConfig: DuplicateLoginConfig,
+    private val jwtSessionService: JwtSessionService
 ) {
 
     private val logger = LoggerFactory.getLogger(AuthService::class.java)
@@ -64,24 +69,9 @@ class AuthService(
             throw AuthenticationException("이메일 또는 비밀번호가 올바르지 않습니다.", ErrorCode.AUTHENTICATION_FAILED)
         }
         
-        // 중복 로그인 감지
-        val duplicateLoginResult = webSocketSessionManager.detectDuplicateLogin(user.id!!)
-        if (duplicateLoginResult.hasDuplicateLogin) {
-            logger.info("Duplicate login detected for user: {} (existing sessions: {})", 
-                user.id, duplicateLoginResult.existingSessionCount)
-            
-            // 중복 로그인 알림 전송
-            val newLoginInfo = NewLoginInfo(
-                loginTime = Instant.now(),
-                ipAddress = null, // HTTP 요청에서 추출 가능
-                userAgent = null  // HTTP 요청에서 추출 가능
-            )
-            
-            // 기존 세션들에게 알림 전송
-            webSocketSessionManager.notifyDuplicateLogin(user.id!!, newLoginInfo, webSocketMessageHandler)
-            
-            // 선택: 기존 세션들을 강제 로그아웃 (설정에 따라)
-            // sessionInvalidationService.invalidateAllUserSessions(user.id!!)
+        // JWT 기반 중복 로그인 감지 및 제어
+        if (duplicateLoginConfig.enabled) {
+            handleJwtBasedDuplicateLogin(user.id!!, user.email, null, null)
         }
         
         return generateAuthResponse(user)
@@ -172,11 +162,26 @@ class AuthService(
     }
 
     /**
-     * 인증 응답 생성
+     * 인증 응답 생성 및 JWT 세션 등록
      */
-    private fun generateAuthResponse(user: User): AuthResponse {
+    private suspend fun generateAuthResponse(user: User): AuthResponse {
         val accessToken = jwtTokenProvider.generateAccessToken(user.email, user.id!!, listOf("USER"))
         val refreshToken = jwtTokenProvider.generateRefreshToken(user.email, user.id!!, listOf("USER"))
+        
+        // JWT 세션 등록
+        try {
+            jwtSessionService.registerSession(
+                token = accessToken,
+                userId = user.id!!,
+                email = user.email,
+                expirationDuration = java.time.Duration.ofMillis(jwtProperties.expiration)
+            ).awaitSingleOrNull()
+            
+            logger.debug("JWT session registered successfully for user: {}", user.id)
+        } catch (e: Exception) {
+            logger.error("Failed to register JWT session for user {}: {}", user.id, e.message)
+            // 세션 등록 실패해도 로그인은 계속 진행
+        }
         
         return AuthResponse(
             accessToken = accessToken,
@@ -236,23 +241,136 @@ class AuthService(
             throw AuthenticationException("이메일 또는 비밀번호가 올바르지 않습니다.", ErrorCode.AUTHENTICATION_FAILED)
         }
         
-        // 중복 로그인 감지
-        val duplicateLoginResult = webSocketSessionManager.detectDuplicateLogin(user.id!!)
-        if (duplicateLoginResult.hasDuplicateLogin) {
-            logger.info("Duplicate login detected for user: {} from IP: {} (existing sessions: {})", 
-                user.id, ipAddress ?: "unknown", duplicateLoginResult.existingSessionCount)
-            
-            // 중복 로그인 알림 전송 (클라이언트 정보 포함)
-            val newLoginInfo = NewLoginInfo(
-                loginTime = Instant.now(),
-                ipAddress = ipAddress,
-                userAgent = userAgent
-            )
-            
-            webSocketSessionManager.notifyDuplicateLogin(user.id!!, newLoginInfo, webSocketMessageHandler)
+        // JWT 기반 중복 로그인 감지 및 제어
+        if (duplicateLoginConfig.enabled) {
+            handleJwtBasedDuplicateLogin(user.id!!, user.email, ipAddress, userAgent)
         }
         
         return generateAuthResponse(user)
+    }
+
+    /**
+     * JWT 기반 중복 로그인 처리 로직
+     */
+    private suspend fun handleJwtBasedDuplicateLogin(
+        userId: Long,
+        @Suppress("UNUSED_PARAMETER") email: String,
+        ipAddress: String?,
+        userAgent: String?
+    ) {
+        // 현재 활성 JWT 세션 수 조회
+        val activeSessionCount = jwtSessionService.getActiveSessionCount(userId).awaitSingle()
+        
+        logger.debug("User {} has {} active JWT sessions", userId, activeSessionCount)
+        
+        val newLoginInfo = NewLoginInfo(
+            loginTime = Instant.now(),
+            ipAddress = ipAddress,
+            userAgent = userAgent
+        )
+
+        when (duplicateLoginConfig.action) {
+            DuplicateLoginConfigAction.DENY_NEW_LOGIN -> {
+                // 최대 세션 수 체크 (0은 무제한)
+                if (duplicateLoginConfig.maxConcurrentSessions in 1..activeSessionCount) {
+                    
+                    logger.warn("Login denied for user {} - max JWT sessions exceeded ({}/{})", 
+                        userId, activeSessionCount, duplicateLoginConfig.maxConcurrentSessions)
+                    
+                    throw AuthenticationException(
+                        "동시 로그인 세션 수를 초과했습니다. 기존 세션을 종료한 후 다시 시도하세요. (현재: ${activeSessionCount}/${duplicateLoginConfig.maxConcurrentSessions})",
+                        ErrorCode.MAX_SESSION_EXCEEDED
+                    )
+                }
+            }
+            
+            DuplicateLoginConfigAction.FORCE_LOGOUT_OTHERS -> {
+                logger.info("Force logging out other JWT sessions for user: {}", userId)
+                
+                // 모든 기존 JWT 세션 무효화
+                val invalidatedCount = jwtSessionService.invalidateAllSessions(userId).awaitSingle()
+                logger.info("Invalidated {} JWT sessions for user: {}", invalidatedCount, userId)
+                
+                // WebSocket 세션도 무효화
+                sessionInvalidationService.invalidateAllUserSessions(userId)
+                
+                // 알림도 전송
+                webSocketSessionManager.notifyDuplicateLogin(userId, newLoginInfo, webSocketMessageHandler)
+            }
+            
+            DuplicateLoginConfigAction.NOTIFY_ONLY -> {
+                // 기존 세션들에게 알림만 전송
+                if (activeSessionCount > 0) {
+                    webSocketSessionManager.notifyDuplicateLogin(userId, newLoginInfo, webSocketMessageHandler)
+                }
+            }
+            
+            DuplicateLoginConfigAction.ASK_USER_CHOICE -> {
+                // 사용자에게 선택권 제공 알림 전송
+                if (activeSessionCount > 0) {
+                    webSocketSessionManager.notifyDuplicateLogin(userId, newLoginInfo, webSocketMessageHandler)
+                }
+                
+                // 실제 구현에서는 클라이언트에서 응답을 기다리는 로직이 필요
+                // 현재는 알림만 전송하고 로그인 허용
+                logger.info("User choice required for duplicate login - user: {} (active sessions: {})", userId, activeSessionCount)
+            }
+        }
+    }
+
+    /**
+     * 기존 WebSocket 기반 중복 로그인 처리 로직 (호환성 유지)
+     */
+    private suspend fun handleDuplicateLogin(
+        userId: Long, 
+        duplicateLoginResult: com.simplechat.infrastructure.session.model.DuplicateLoginResult,
+        ipAddress: String?,
+        userAgent: String?
+    ) {
+        val newLoginInfo = NewLoginInfo(
+            loginTime = Instant.now(),
+            ipAddress = ipAddress,
+            userAgent = userAgent
+        )
+
+        when (duplicateLoginConfig.action) {
+            DuplicateLoginConfigAction.DENY_NEW_LOGIN -> {
+                // 최대 세션 수 체크 (0은 무제한)
+                if (duplicateLoginConfig.maxConcurrentSessions > 0 && 
+                    duplicateLoginResult.existingSessionCount >= duplicateLoginConfig.maxConcurrentSessions) {
+                    
+                    logger.warn("Login denied for user {} - max sessions exceeded ({}/{})", 
+                        userId, duplicateLoginResult.existingSessionCount, duplicateLoginConfig.maxConcurrentSessions)
+                    
+                    throw AuthenticationException(
+                        "동시 로그인 세션 수를 초과했습니다. 기존 세션을 종료한 후 다시 시도하세요. (현재: ${duplicateLoginResult.existingSessionCount}/${duplicateLoginConfig.maxConcurrentSessions})",
+                        ErrorCode.MAX_SESSION_EXCEEDED
+                    )
+                }
+            }
+            
+            DuplicateLoginConfigAction.FORCE_LOGOUT_OTHERS -> {
+                logger.info("Force logging out other sessions for user: {}", userId)
+                sessionInvalidationService.invalidateAllUserSessions(userId)
+                
+                // 알림도 전송
+                webSocketSessionManager.notifyDuplicateLogin(userId, newLoginInfo, webSocketMessageHandler)
+            }
+            
+            DuplicateLoginConfigAction.NOTIFY_ONLY -> {
+                // 기존 세션들에게 알림만 전송
+                webSocketSessionManager.notifyDuplicateLogin(userId, newLoginInfo, webSocketMessageHandler)
+            }
+            
+            DuplicateLoginConfigAction.ASK_USER_CHOICE -> {
+                // 사용자에게 선택권 제공 알림 전송
+                webSocketSessionManager.notifyDuplicateLogin(userId, newLoginInfo, webSocketMessageHandler)
+                
+                // 실제 구현에서는 클라이언트에서 응답을 기다리는 로직이 필요
+                // 현재는 알림만 전송하고 로그인 허용
+                logger.info("User choice required for duplicate login - user: {}", userId)
+            }
+        }
     }
 
     /**

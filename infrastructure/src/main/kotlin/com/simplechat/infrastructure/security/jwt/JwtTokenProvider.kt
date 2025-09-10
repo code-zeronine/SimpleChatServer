@@ -33,12 +33,14 @@ class JwtTokenProvider(
     fun generateAccessToken(email: String, userId: Long, roles: List<String> = emptyList()): String {
         val now = Date()
         val expiryDate = Date(now.time + jwtProperties.expiration)
+        val jti = UUID.randomUUID().toString() // 고유 토큰 ID 생성
 
         return Jwts.builder()
             .subject(email)
             .issuer(jwtProperties.issuer)
             .issuedAt(now)
             .expiration(expiryDate)
+            .id(jti) // JTI 클레임 추가
             .claim("userId", userId)
             .claim("roles", roles)
             .claim("type", "access")
@@ -76,12 +78,14 @@ class JwtTokenProvider(
     fun generateRefreshToken(email: String, userId: Long, roles: List<String> = emptyList()): String {
         val now = Date()
         val expiryDate = Date(now.time + jwtProperties.refreshExpiration)
+        val jti = UUID.randomUUID().toString() // 고유 토큰 ID 생성
 
         return Jwts.builder()
             .subject(email)
             .issuer(jwtProperties.issuer)
             .issuedAt(now)
             .expiration(expiryDate)
+            .id(jti) // JTI 클레임 추가
             .claim("userId", userId)
             .claim("roles", roles)
             .claim("type", "refresh")
@@ -152,6 +156,18 @@ class JwtTokenProvider(
             roles?.filterIsInstance<String>() ?: emptyList()
         } catch (e: Exception) {
             emptyList()
+        }
+    }
+
+    /**
+     * 토큰에서 JTI(JWT ID) 추출
+     */
+    fun getJtiFromToken(token: String): String? {
+        return try {
+            val claims = parseToken(token)
+            claims.id
+        } catch (e: Exception) {
+            null
         }
     }
 

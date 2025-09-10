@@ -24,7 +24,7 @@ import java.nio.charset.StandardCharsets
 class SecurityConfig {
 
     @Bean
-    @Profile("dev")
+    @Profile("dev", "test")
     fun developmentSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
         return http
             .cors { cors -> cors.configurationSource(corsConfigurationSource()) }

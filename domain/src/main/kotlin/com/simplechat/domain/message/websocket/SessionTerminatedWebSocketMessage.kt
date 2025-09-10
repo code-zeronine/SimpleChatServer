@@ -1,7 +1,5 @@
 package com.simplechat.domain.message.websocket
 
-import java.time.Instant
-
 /**
  * 세션 종료 WebSocket 메시지
  */

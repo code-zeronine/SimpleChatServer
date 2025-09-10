@@ -1,5 +1,7 @@
 package com.simplechat.security
 
+import com.simplechat.SimpleChatServerApplication
+import com.simplechat.config.IntegrationTestBase
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
@@ -11,10 +13,10 @@ import org.springframework.test.web.reactive.server.WebTestClient
 /**
  * Spring Security WebFlux 설정 통합 테스트 (개발 환경)
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes = [SimpleChatServerApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
-@ActiveProfiles("dev")
-class SecurityConfigIntegrationTest {
+@ActiveProfiles("test")
+class SecurityConfigIntegrationTest : IntegrationTestBase() {
 
     @Autowired
     private lateinit var webTestClient: WebTestClient
@@ -23,7 +25,7 @@ class SecurityConfigIntegrationTest {
     fun `should allow access to auth endpoints in dev profile`() {
         // 개발 환경에서는 모든 요청이 허용됨
         webTestClient.get()
-            .uri("/api/auth/check-email?email=test@example.com")
+            .uri("/api/auth/check-email?email=eve@simplechat.com")
             .exchange()
             .expectStatus().isOk
     }
@@ -33,7 +35,7 @@ class SecurityConfigIntegrationTest {
         // CORS 설정이 활성화되어 있는지 간단히 확인
         // Origin 헤더 없이 요청해도 정상 작동해야 함
         webTestClient.get()
-            .uri("/api/auth/check-email?email=test@example.com")
+            .uri("/api/auth/check-email?email=eve@simplechat.com")
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -45,7 +47,7 @@ class SecurityConfigIntegrationTest {
         // CSRF가 비활성화되어 있어야 함
         val loginRequest = """
             {
-                "email": "test@example.com",
+                "email": "eve@simplechat.com",
                 "password": "password123"
             }
         """.trimIndent()

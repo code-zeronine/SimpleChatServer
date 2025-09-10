@@ -1,7 +1,5 @@
 package com.simplechat.domain.message.websocket
 
-import java.time.Instant
-
 /**
  * 중복 로그인 감지 WebSocket 메시지
  */

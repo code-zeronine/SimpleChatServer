@@ -1,11 +1,11 @@
 package com.simplechat.infrastructure.messaging.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.simplechat.domain.message.MessageTarget
 import com.simplechat.domain.message.websocket.ChatWebSocketMessage
 import com.simplechat.domain.message.websocket.ErrorWebSocketMessage
 import com.simplechat.domain.message.websocket.JoinWebSocketMessage
 import com.simplechat.domain.message.websocket.LeaveWebSocketMessage
-import com.simplechat.domain.message.MessageTarget
 import com.simplechat.domain.message.websocket.SystemWebSocketMessage
 import com.simplechat.domain.message.websocket.TypingWebSocketMessage
 import com.simplechat.domain.message.websocket.WebSocketMessage

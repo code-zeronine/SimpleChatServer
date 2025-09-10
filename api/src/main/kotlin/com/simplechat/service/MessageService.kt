@@ -4,9 +4,9 @@ import com.simplechat.domain.entity.ChatMessage
 import com.simplechat.domain.entity.MessageType
 import com.simplechat.domain.repository.ChatMessageRepository
 import com.simplechat.domain.repository.UserRepository
-import com.simplechat.dto.message.MessageDto
 import com.simplechat.dto.common.PagedApiResponse
 import com.simplechat.dto.common.PaginationInfo
+import com.simplechat.dto.message.MessageDto
 import com.simplechat.infrastructure.messaging.service.MessageCacheService
 import com.simplechat.util.SearchHighlighter
 import kotlinx.coroutines.async

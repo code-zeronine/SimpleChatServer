@@ -13,12 +13,9 @@ spring:
   main:
     allow-bean-definition-overriding: true
     lazy-initialization: true  # 지연 초기화로 Redis 연결 오류 회피
-    
-  # Redis 자동 구성 비활성화
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+
+  r2dbc:
+    initialization-mode: always
 
 # 로깅 설정 - 테스트 시 너무 많은 로그를 방지
 logging:
@@ -54,3 +51,9 @@ server:
   error:
     include-stacktrace: always
     include-message: always
+
+# 중복 로그인 설정 - 테스트용
+duplicate-login:
+  enabled: false  # 테스트에서는 비활성화
+  action: NOTIFY_ONLY
+  max-concurrent-sessions: 1

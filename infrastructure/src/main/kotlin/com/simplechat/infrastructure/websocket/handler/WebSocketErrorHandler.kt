@@ -6,15 +6,15 @@ import com.simplechat.domain.exception.websocket.WebSocketErrorCode
 import com.simplechat.domain.exception.websocket.WebSocketException
 import com.simplechat.domain.message.websocket.ErrorWebSocketMessage
 import com.simplechat.domain.message.websocket.WebSocketMessageType
-import com.simplechat.infrastructure.monitoring.model.ErrorSeverity
-import com.simplechat.infrastructure.monitoring.service.WebSocketErrorMetrics
-import com.simplechat.infrastructure.monitoring.service.CustomMetricsService
 import com.simplechat.infrastructure.monitoring.model.AlarmStatus
+import com.simplechat.infrastructure.monitoring.model.ErrorSeverity
+import com.simplechat.infrastructure.monitoring.service.CustomMetricsService
+import com.simplechat.infrastructure.monitoring.service.WebSocketErrorMetrics
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Mono
-import java.util.UUID
+import java.util.*
 
 /**
  * WebSocket 에러 처리를 담당하는 핸들러 클래스

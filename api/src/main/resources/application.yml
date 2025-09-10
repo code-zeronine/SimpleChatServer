@@ -131,7 +131,7 @@ simplechat:
       logout-grace-period-seconds: 10
 
       # 동일 IP 주소에서의 중복 로그인 허용 여부
-      allow-same-ip-login: true
+      allow-same-ip-login: false
 
       # 관리자는 중복 로그인 제한 제외 여부
       exclude-admin-users: true

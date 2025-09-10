@@ -68,6 +68,12 @@ websocket:
   endpoint: /ws
   allowed-origins: "http://localhost:3000,http://localhost:8080"
 
+# 중복 로그인 설정 - 개발용
+duplicate-login:
+  enabled: true
+  action: DENY_NEW_LOGIN  # 새로운 로그인 거부
+  max-concurrent-sessions: 1
+
 # Development specific settings
 server:
   error:

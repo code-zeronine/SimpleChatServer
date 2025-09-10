@@ -1,11 +1,11 @@
 package com.simplechat.controller
 
-import com.simplechat.dto.common.ApiResponse
 import com.simplechat.dto.auth.AuthResponse
 import com.simplechat.dto.auth.LoginRequest
 import com.simplechat.dto.auth.RefreshTokenRequest
 import com.simplechat.dto.auth.RefreshTokenResponse
 import com.simplechat.dto.auth.SignUpRequest
+import com.simplechat.dto.common.ApiResponse
 import com.simplechat.service.AuthService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter

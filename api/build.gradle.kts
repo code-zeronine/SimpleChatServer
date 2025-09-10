@@ -34,6 +34,7 @@ dependencies {
     testImplementation("com.ninja-squad:springmockk:4.0.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:${rootProject.ext["kotlinCoroutinesVersion"]}")
     testImplementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
+    testImplementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:mongodb:1.19.3")
     testImplementation("org.testcontainers:postgresql:1.19.3")

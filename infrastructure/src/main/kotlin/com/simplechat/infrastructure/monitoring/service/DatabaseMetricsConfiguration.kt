@@ -2,13 +2,13 @@ package com.simplechat.infrastructure.monitoring.service
 
 import io.micrometer.core.instrument.MeterRegistry
 import io.r2dbc.pool.ConnectionPool
+import jakarta.annotation.PostConstruct
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration
 import org.springframework.boot.autoconfigure.AutoConfigureAfter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import jakarta.annotation.PostConstruct
-import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Duration

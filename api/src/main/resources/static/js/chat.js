@@ -608,13 +608,7 @@ document.addEventListener('DOMContentLoaded', function() {
             messageEl.className = `message ${isOwn ? 'mine' : ''}`;
             messageEl.dataset.messageId = message.id;
             
-            // 다른 사용자의 메시지인 경우만 작성자 표시
-            if (!isOwn && userName) {
-                const authorEl = document.createElement('span');
-                authorEl.className = 'message-author';
-                authorEl.textContent = userName;
-                messageEl.appendChild(authorEl);
-            }
+            // 개별 메시지에서는 작성자 표시하지 않음 (그룹 레벨에서 이미 표시됨)
             
             const contentEl = document.createElement('span');
             contentEl.className = 'message-content';

@@ -15,6 +15,8 @@ enum class ErrorCode(val code: String, val message: String) {
     JWT_AUTHENTICATION_FAILED("AUTH-002", "JWT 인증에 실패했습니다."),
     ACCESS_DENIED("AUTH-003", "접근이 거부되었습니다."),
     INSUFFICIENT_PERMISSION("AUTH-004", "권한이 부족합니다."),
+    MAX_SESSION_EXCEEDED("AUTH-005", "최대 동시 세션 수를 초과했습니다."),
+    DUPLICATE_LOGIN_DENIED("AUTH-006", "중복 로그인이 거부되었습니다."),
 
     // Resource
     RESOURCE_NOT_FOUND("RES-001", "리소스를 찾을 수 없습니다."),
