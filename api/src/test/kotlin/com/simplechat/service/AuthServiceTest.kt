@@ -3,6 +3,8 @@ package com.simplechat.service
 import com.simplechat.domain.repository.UserRepository
 import com.simplechat.infrastructure.config.JwtProperties
 import com.simplechat.infrastructure.security.jwt.JwtTokenProvider
+import com.simplechat.infrastructure.session.WebSocketSessionManager
+import com.simplechat.infrastructure.websocket.handler.WebSocketMessageHandler
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -19,6 +21,9 @@ class AuthServiceTest {
     private lateinit var passwordEncoder: PasswordEncoder
     private lateinit var jwtTokenProvider: JwtTokenProvider
     private lateinit var jwtProperties: JwtProperties
+    private lateinit var sessionInvalidationService: SessionInvalidationService
+    private lateinit var webSocketSessionManager: WebSocketSessionManager
+    private lateinit var webSocketMessageHandler: WebSocketMessageHandler
     private lateinit var authService: AuthService
 
     @BeforeEach
@@ -26,12 +31,23 @@ class AuthServiceTest {
         userRepository = mockk()
         passwordEncoder = mockk()
         jwtTokenProvider = mockk()
+        sessionInvalidationService = mockk()
+        webSocketSessionManager = mockk()
+        webSocketMessageHandler = mockk()
         jwtProperties = JwtProperties().apply {
             expiration = 3600000L
             refreshExpiration = 604800000L
             issuer = "test-issuer"
         }
-        authService = AuthService(userRepository, passwordEncoder, jwtTokenProvider, jwtProperties)
+        authService = AuthService(
+            userRepository, 
+            passwordEncoder, 
+            jwtTokenProvider, 
+            jwtProperties,
+            sessionInvalidationService,
+            webSocketSessionManager,
+            webSocketMessageHandler
+        )
     }
 
     @Test

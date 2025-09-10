@@ -21,7 +21,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo
     JsonSubTypes.Type(value = HeartbeatWebSocketMessage::class, name = "HEARTBEAT"),
     JsonSubTypes.Type(value = SystemWebSocketMessage::class, name = "SYSTEM"),
     JsonSubTypes.Type(value = ErrorWebSocketMessage::class, name = "ERROR"),
-    JsonSubTypes.Type(value = AckWebSocketMessage::class, name = "ACK")
+    JsonSubTypes.Type(value = AckWebSocketMessage::class, name = "ACK"),
+    JsonSubTypes.Type(value = DuplicateLoginWebSocketMessage::class, name = "DUPLICATE_LOGIN_DETECTED"),
+    JsonSubTypes.Type(value = SessionTerminatedWebSocketMessage::class, name = "SESSION_TERMINATED")
 )
 sealed class WebSocketMessage {
     abstract val type: WebSocketMessageType

@@ -1,6 +1,5 @@
 package com.simplechat.controller
 
-import com.simplechat.dto.UserDto
 import com.simplechat.security.JwtAuthenticationHelper
 import com.simplechat.service.AuthService
 import io.mockk.mockk

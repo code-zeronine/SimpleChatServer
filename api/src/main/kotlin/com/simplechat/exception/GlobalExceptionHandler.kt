@@ -9,7 +9,7 @@ import com.simplechat.domain.exception.ExternalServiceException
 import com.simplechat.domain.exception.entity.ResourceNotFoundException
 import com.simplechat.domain.exception.SimpleChatException
 import com.simplechat.domain.exception.ValidationException
-import com.simplechat.dto.ApiResponse
+import com.simplechat.dto.common.ApiResponse
 import org.slf4j.LoggerFactory
 import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler
 import org.springframework.core.annotation.Order

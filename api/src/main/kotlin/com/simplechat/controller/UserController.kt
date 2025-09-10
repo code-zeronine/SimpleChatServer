@@ -1,7 +1,7 @@
 package com.simplechat.controller
 
-import com.simplechat.dto.ApiResponse
-import com.simplechat.dto.UserDto
+import com.simplechat.dto.common.ApiResponse
+import com.simplechat.dto.auth.UserDto
 import com.simplechat.security.JwtAuthenticationHelper
 import com.simplechat.service.AuthService
 import io.swagger.v3.oas.annotations.Operation

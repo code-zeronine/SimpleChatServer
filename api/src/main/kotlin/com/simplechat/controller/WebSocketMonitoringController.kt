@@ -1,8 +1,8 @@
 package com.simplechat.controller
 
-import com.simplechat.dto.ApiResponse
+import com.simplechat.dto.common.ApiResponse
 import com.simplechat.infrastructure.security.WebSocketAuthService
-import com.simplechat.infrastructure.service.WebSocketSessionManager
+import com.simplechat.infrastructure.session.WebSocketSessionManager
 import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize

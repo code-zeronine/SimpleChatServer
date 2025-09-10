@@ -4,16 +4,17 @@ import com.simplechat.domain.entity.ChatMessage
 import com.simplechat.domain.entity.MessageType
 import com.simplechat.domain.repository.ChatMessageRepository
 import com.simplechat.domain.repository.UserRepository
-import com.simplechat.dto.MessageDto
-import com.simplechat.dto.PagedApiResponse
-import com.simplechat.dto.PaginationInfo
-import com.simplechat.infrastructure.service.MessageCacheService
+import com.simplechat.dto.message.MessageDto
+import com.simplechat.dto.common.PagedApiResponse
+import com.simplechat.dto.common.PaginationInfo
+import com.simplechat.infrastructure.messaging.service.MessageCacheService
 import com.simplechat.util.SearchHighlighter
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.time.ZoneId
 import java.time.ZoneOffset
 
 @Service
@@ -205,7 +206,7 @@ class MessageService(
             content = this.content,
             // CRITICAL FIX: LocalDateTime stored in DB should be interpreted as system timezone (KST)
             // then converted to UTC timestamp for consistent client handling
-            timestamp = this.timestamp.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli(),
+            timestamp = this.timestamp.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
             highlightedContent = searchHighlighter.highlightKeyword(this.content, searchKeyword),
             messageType = this.messageType.name
         )
@@ -220,7 +221,7 @@ class MessageService(
             content = this.content,
             // CRITICAL FIX: LocalDateTime stored in DB should be interpreted as system timezone (KST)
             // then converted to UTC timestamp for consistent frontend handling
-            timestamp = this.timestamp.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli(),
+            timestamp = this.timestamp.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
             highlightedContent = searchHighlighter.highlightKeyword(this.content, searchKeyword),
             messageType = this.messageType.name
         )

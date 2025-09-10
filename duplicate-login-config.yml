@@ -1,0 +1,34 @@
+# 중복 로그인 제어 설정 (application.yml에 추가)
+simplechat:
+  security:
+    duplicate-login:
+      # 중복 로그인 제어 활성화
+      enabled: true
+      
+      # 중복 로그인 감지 시 동작 방식
+      # NOTIFY_ONLY: 알림만 전송
+      # FORCE_LOGOUT_OTHERS: 기존 세션들 강제 로그아웃  
+      # DENY_NEW_LOGIN: 새로운 로그인 시도 거부
+      # ASK_USER_CHOICE: 사용자에게 선택권 제공
+      action: NOTIFY_ONLY
+      
+      # 최대 동시 세션 수 (0 = 무제한)
+      max-concurrent-sessions: 0
+      
+      # 중복 로그인 알림 유효 기간 (초)
+      notification-timeout-seconds: 300
+      
+      # 강제 로그아웃 시 유예 시간 (초)
+      logout-grace-period-seconds: 10
+      
+      # 동일 IP 주소에서의 중복 로그인 허용 여부
+      allow-same-ip-login: true
+      
+      # 관리자는 중복 로그인 제한 제외 여부
+      exclude-admin-users: true
+      
+      # 세션 만료 시간 (초) - 비활성 세션 정리용
+      session-timeout-seconds: 1800
+      
+      # 로그인 이력 보관 기간 (일)
+      login-history-retention-days: 30

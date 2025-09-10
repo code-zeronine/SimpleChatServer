@@ -1,8 +1,8 @@
 package com.simplechat.controller
 
-import com.simplechat.dto.ApiResponse
-import com.simplechat.dto.MessageDto
-import com.simplechat.dto.PagedApiResponse
+import com.simplechat.dto.common.ApiResponse
+import com.simplechat.dto.message.MessageDto
+import com.simplechat.dto.common.PagedApiResponse
 import com.simplechat.service.MessageService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter

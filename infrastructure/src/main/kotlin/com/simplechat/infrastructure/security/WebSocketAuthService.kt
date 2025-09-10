@@ -3,7 +3,7 @@ package com.simplechat.infrastructure.security
 import com.simplechat.infrastructure.config.WebSocketProperties
 import com.simplechat.infrastructure.security.jwt.JwtTokenProvider
 import com.simplechat.infrastructure.security.jwt.JwtUserDetails
-import com.simplechat.infrastructure.service.WebSocketSessionManager
+import com.simplechat.infrastructure.session.WebSocketSessionManager
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken

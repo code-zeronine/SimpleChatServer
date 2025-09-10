@@ -1,8 +1,8 @@
 package com.simplechat.controller
 
-import com.simplechat.dto.AuthResponse
-import com.simplechat.dto.SignUpRequest
-import com.simplechat.dto.UserDto
+import com.simplechat.dto.auth.AuthResponse
+import com.simplechat.dto.auth.SignUpRequest
+import com.simplechat.dto.auth.UserDto
 import com.simplechat.service.AuthService
 import io.mockk.coEvery
 import io.mockk.mockk

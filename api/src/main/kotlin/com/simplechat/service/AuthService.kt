@@ -8,19 +8,24 @@ import com.simplechat.domain.exception.auth.JwtAuthenticationException
 import com.simplechat.domain.exception.entity.ResourceNotFoundException
 import com.simplechat.domain.exception.ValidationException
 import com.simplechat.domain.repository.UserRepository
-import com.simplechat.dto.AuthResponse
-import com.simplechat.dto.LoginRequest
-import com.simplechat.dto.RefreshTokenRequest
-import com.simplechat.dto.RefreshTokenResponse
-import com.simplechat.dto.SignUpRequest
-import com.simplechat.dto.UserDto
+import com.simplechat.dto.auth.AuthResponse
+import com.simplechat.dto.auth.LoginRequest
+import com.simplechat.dto.auth.RefreshTokenRequest
+import com.simplechat.dto.auth.RefreshTokenResponse
+import com.simplechat.dto.auth.SignUpRequest
+import com.simplechat.dto.auth.UserDto
+import com.simplechat.dto.session.UserSessionInfo
 import com.simplechat.infrastructure.config.JwtProperties
 import com.simplechat.infrastructure.security.jwt.JwtTokenProvider
+import com.simplechat.infrastructure.session.WebSocketSessionManager
+import com.simplechat.infrastructure.session.model.NewLoginInfo
+import com.simplechat.infrastructure.websocket.handler.WebSocketMessageHandler
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import java.time.Instant
 import java.time.format.DateTimeFormatter
 
 /**
@@ -31,7 +36,10 @@ class AuthService(
     private val userRepository: UserRepository,
     private val passwordEncoder: PasswordEncoder,
     private val jwtTokenProvider: JwtTokenProvider,
-    private val jwtProperties: JwtProperties
+    private val jwtProperties: JwtProperties,
+    private val sessionInvalidationService: SessionInvalidationService,
+    private val webSocketSessionManager: WebSocketSessionManager,
+    private val webSocketMessageHandler: WebSocketMessageHandler
 ) {
 
     private val logger = LoggerFactory.getLogger(AuthService::class.java)
@@ -46,7 +54,7 @@ class AuthService(
     }
 
     /**
-     * 로그인 처리
+     * 로그인 처리 (중복 로그인 제어 포함)
      */
     suspend fun login(request: LoginRequest): AuthResponse {
         val user = userRepository.findByEmail(request.email).awaitSingleOrNull()
@@ -54,6 +62,26 @@ class AuthService(
 
         if (!passwordEncoder.matches(request.password, user.passwordHash)) {
             throw AuthenticationException("이메일 또는 비밀번호가 올바르지 않습니다.", ErrorCode.AUTHENTICATION_FAILED)
+        }
+        
+        // 중복 로그인 감지
+        val duplicateLoginResult = webSocketSessionManager.detectDuplicateLogin(user.id!!)
+        if (duplicateLoginResult.hasDuplicateLogin) {
+            logger.info("Duplicate login detected for user: {} (existing sessions: {})", 
+                user.id, duplicateLoginResult.existingSessionCount)
+            
+            // 중복 로그인 알림 전송
+            val newLoginInfo = NewLoginInfo(
+                loginTime = Instant.now(),
+                ipAddress = null, // HTTP 요청에서 추출 가능
+                userAgent = null  // HTTP 요청에서 추출 가능
+            )
+            
+            // 기존 세션들에게 알림 전송
+            webSocketSessionManager.notifyDuplicateLogin(user.id!!, newLoginInfo, webSocketMessageHandler)
+            
+            // 선택: 기존 세션들을 강제 로그아웃 (설정에 따라)
+            // sessionInvalidationService.invalidateAllUserSessions(user.id!!)
         }
         
         return generateAuthResponse(user)
@@ -156,6 +184,75 @@ class AuthService(
             expiresIn = jwtProperties.expiration,
             user = user.toDto()
         )
+    }
+
+    /**
+     * 사용자의 활성 세션 정보 조회
+     */
+    suspend fun getUserActiveSessions(email: String): UserSessionInfo {
+        val user = userRepository.findByEmail(email).awaitSingleOrNull()
+            ?: throw ResourceNotFoundException("사용자를 찾을 수 없습니다.", ErrorCode.USER_NOT_FOUND)
+        
+        return sessionInvalidationService.getUserSessionInfo(user.id!!)
+    }
+
+    /**
+     * 특정 세션 강제 로그아웃
+     */
+    suspend fun forceLogoutSession(email: String, sessionId: String): Boolean {
+        val user = userRepository.findByEmail(email).awaitSingleOrNull()
+            ?: throw ResourceNotFoundException("사용자를 찾을 수 없습니다.", ErrorCode.USER_NOT_FOUND)
+        
+        // 해당 세션이 사용자의 세션인지 확인
+        val userSessionInfo = sessionInvalidationService.getUserSessionInfo(user.id!!)
+        userSessionInfo.sessions.find { it.sessionId == sessionId }
+            ?: throw ValidationException("해당 세션을 찾을 수 없습니다.", "sessionId", ErrorCode.RESOURCE_NOT_FOUND)
+        
+        return sessionInvalidationService.invalidateSession(sessionId)
+    }
+
+    /**
+     * 모든 다른 세션 강제 로그아웃 (현재 세션 제외)
+     */
+    suspend fun forceLogoutAllOtherSessions(email: String, currentSessionId: String? = null): Int {
+        val user = userRepository.findByEmail(email).awaitSingleOrNull()
+            ?: throw ResourceNotFoundException("사용자를 찾을 수 없습니다.", ErrorCode.USER_NOT_FOUND)
+        
+        return if (currentSessionId != null) {
+            sessionInvalidationService.invalidateOtherUserSessions(user.id!!, currentSessionId)
+        } else {
+            sessionInvalidationService.invalidateAllUserSessions(user.id!!)
+        }
+    }
+
+    /**
+     * IP 주소와 User-Agent를 포함한 고급 로그인 처리
+     */
+    suspend fun loginWithClientInfo(request: LoginRequest, ipAddress: String?, userAgent: String?): AuthResponse {
+        val user = userRepository.findByEmail(request.email).awaitSingleOrNull()
+            ?: throw AuthenticationException("이메일 또는 비밀번호가 올바르지 않습니다.", ErrorCode.AUTHENTICATION_FAILED)
+
+        if (!passwordEncoder.matches(request.password, user.passwordHash)) {
+            throw AuthenticationException("이메일 또는 비밀번호가 올바르지 않습니다.", ErrorCode.AUTHENTICATION_FAILED)
+        }
+        
+        // 중복 로그인 감지
+        val duplicateLoginResult = webSocketSessionManager.detectDuplicateLogin(user.id!!)
+        if (duplicateLoginResult.hasDuplicateLogin) {
+            logger.info("Duplicate login detected for user: {} from IP: {} (existing sessions: {})", 
+                user.id, ipAddress ?: "unknown", duplicateLoginResult.existingSessionCount)
+            
+            // 중복 로그인 알림 전송 (클라이언트 정보 포함)
+            val newLoginInfo = NewLoginInfo(
+                loginTime = Instant.now(),
+                ipAddress = ipAddress,
+                userAgent = userAgent
+            )
+            
+            webSocketSessionManager.notifyDuplicateLogin(user.id!!, newLoginInfo, webSocketMessageHandler)
+        }
+        
+        return generateAuthResponse(user)
     }
 
     /**
