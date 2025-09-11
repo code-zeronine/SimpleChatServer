@@ -65,7 +65,7 @@ class SecurityConfig {
                     .pathMatchers("/api/health", "/api/ping").permitAll()
                     .pathMatchers("/actuator/health").permitAll()
                     .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                    .pathMatchers("/api/auth/signup", "/api/auth/login", "/api/auth/check-email", "/api/auth/check-nickname").permitAll()
+                    .pathMatchers("/api/auth/signup", "/api/auth/login", "/api/auth/logout", "/api/auth/check-email", "/api/auth/check-nickname").permitAll()
                     .pathMatchers("/api/auth/refresh").authenticated() // 토큰 갱신은 인증 필요
                     .pathMatchers("/api/users/**").authenticated() // 사용자 관련 API는 인증 필요
                     .anyExchange().authenticated() // Production: Require authentication for all other endpoints

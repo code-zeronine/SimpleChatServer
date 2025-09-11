@@ -406,11 +406,11 @@ function createScrollTopButton() {
 /**
  * 로그아웃 처리
  */
-function handleLogout() {
+async function handleLogout() {
     const { Auth, Toast } = window.SimpleChatServer.utils;
     
     if (confirm('로그아웃 하시겠습니까?')) {
-        Auth.logout();
+        await Auth.logout();
         Toast.success('로그아웃되었습니다.');
     }
 }

@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -144,6 +145,46 @@ class AuthController(
     ): ResponseEntity<ApiResponse<Map<String, Boolean>>> {
         val exists = authService.checkNicknameExists(nickname)
         return ResponseEntity.ok(ApiResponse.success(mapOf("exists" to exists)))
+    }
+
+    /**
+     * 로그아웃 엔드포인트
+     */
+    @PostMapping("/logout")
+    @Operation(
+        summary = "로그아웃",
+        description = "현재 세션을 무효화하고 Redis에서 JWT 토큰 정보를 삭제합니다."
+    )
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "로그아웃 성공"),
+            SwaggerApiResponse(responseCode = "401", description = "인증되지 않은 요청")
+        ]
+    )
+    suspend fun logout(
+        @Parameter(description = "JWT 액세스 토큰", required = true)
+        @RequestHeader(value = "Authorization", required = true) authHeader: String?
+    ): ResponseEntity<ApiResponse<Map<String, String>>> {
+        // Authorization 헤더에서 Bearer 토큰 추출
+        val token = authHeader?.let { header ->
+            when {
+                header.startsWith("Bearer ", ignoreCase = true) -> header.substring(7).trim()
+                header.isNotBlank() -> header.trim() // Bearer 없이 토큰만 있는 경우도 처리
+                else -> null
+            }
+        }
+        
+        // 토큰이 없는 경우에도 로그아웃 성공으로 처리 (보안상 이유)
+        if (token.isNullOrBlank()) {
+            return ResponseEntity.ok(
+                ApiResponse.success(
+                    mapOf("message" to "로그아웃이 완료되었습니다. (토큰이 제공되지 않았거나 이미 만료되었을 수 있습니다.)")
+                )
+            )
+        }
+        
+        val result = authService.logout(token)
+        return ResponseEntity.ok(ApiResponse.success(mapOf("message" to result)))
     }
 
 }

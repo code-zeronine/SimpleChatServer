@@ -426,9 +426,23 @@ const ThemeManager = {
  */
 const Auth = {
     isAuthenticated: () => !!Storage.getToken(),
-    logout: () => {
-        Storage.clear();
-        Router.navigate('/login?logout=success');
+    logout: async () => {
+        try {
+            const token = Storage.getToken();
+            if (token) {
+                // 백엔드 로그아웃 API 호출
+                await Http.post('/api/auth/logout', {}, {
+                    'Authorization': `Bearer ${token}`
+                });
+            }
+        } catch (error) {
+            console.warn('Logout API call failed:', error);
+            // API 호출 실패해도 로컬 로그아웃은 진행
+        } finally {
+            // 로컬 스토리지 정리
+            Storage.clear();
+            Router.navigate('/login?logout=success');
+        }
     },
     requireAuth: () => {
         if (!Auth.isAuthenticated()) {

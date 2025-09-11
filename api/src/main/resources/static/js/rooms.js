@@ -526,11 +526,11 @@ function applyFiltersAndSort() {
 /**
  * 이벤트 핸들러들
  */
-function handleLogout() {
+async function handleLogout() {
     const { Auth } = window.SimpleChatServer.utils;
     
     if (confirm('로그아웃 하시겠습니까?')) {
-        Auth.logout();
+        await Auth.logout();
     }
 }
 

@@ -123,6 +123,63 @@ class AuthService(
         return userRepository.existsByNickname(nickname).awaitSingle()
     }
 
+    /**
+     * 로그아웃 처리 - Redis JWT 세션 무효화
+     */
+    suspend fun logout(token: String): String {
+        try {
+            logger.debug("Attempting logout with token: {}", token.take(20) + "...")
+            
+            // Redis에서 JWT 세션 무효화 (토큰 유효성에 관계없이 실행)
+            val sessionInvalidated = jwtSessionService.invalidateSession(token).awaitSingle()
+            logger.debug("JWT session invalidation result: {}", sessionInvalidated)
+            
+            // 토큰이 유효한 경우에만 사용자 정보 추출 및 WebSocket 세션 정리
+            var webSocketSessionsInvalidated = 0
+            var userId: Long? = null
+            
+            try {
+                if (jwtTokenProvider.validateToken(token)) {
+                    val email = jwtTokenProvider.getEmailFromToken(token)
+                    val user = userRepository.findByEmail(email).awaitSingleOrNull()
+                    
+                    if (user != null) {
+                        userId = user.id!!
+                        // WebSocket 세션도 무효화 (해당 사용자의 모든 세션)
+                        webSocketSessionsInvalidated = sessionInvalidationService.invalidateAllUserSessions(userId)
+                        logger.debug("WebSocket sessions invalidated for user {}: {}", userId, webSocketSessionsInvalidated)
+                    }
+                }
+            } catch (e: Exception) {
+                // 토큰이 만료되었거나 유효하지 않아도 무시하고 계속 진행
+                logger.debug("Token validation failed during logout (this is normal for expired tokens): {}", e.message)
+                
+                // 만료된 토큰에서도 사용자 ID를 추출해서 WebSocket 세션 정리를 시도
+                try {
+                    val userIdFromExpiredToken = jwtTokenProvider.getUserIdFromToken(token)
+                    webSocketSessionsInvalidated = sessionInvalidationService.invalidateAllUserSessions(userIdFromExpiredToken)
+                    userId = userIdFromExpiredToken
+                    logger.debug("WebSocket sessions invalidated for user {} using expired token: {}", userId, webSocketSessionsInvalidated)
+                } catch (expiredTokenException: Exception) {
+                    logger.debug("Could not extract user ID from expired token: {}", expiredTokenException.message)
+                }
+            }
+            
+            logger.info("Logout completed. User: {}, JWT session invalidated: {}, WebSocket sessions closed: {}", 
+                userId ?: "unknown", sessionInvalidated, webSocketSessionsInvalidated)
+            
+            return if (sessionInvalidated) {
+                "로그아웃이 성공적으로 완료되었습니다."
+            } else {
+                "로그아웃 처리되었습니다. (기존 세션이 이미 만료되었을 수 있습니다.)"
+            }
+        } catch (e: Exception) {
+            logger.error("Unexpected error during logout: {}", e.message, e)
+            // 로그아웃에서는 어떤 오류가 발생해도 성공으로 처리 (보안상 이유)
+            return "로그아웃 처리가 완료되었습니다."
+        }
+    }
+
     suspend fun updateNickname(email: String, newNickname: String): UserDto {
         val user = userRepository.findByEmail(email).awaitSingleOrNull()
             ?: throw ResourceNotFoundException("사용자를 찾을 수 없습니다.", ErrorCode.USER_NOT_FOUND)
@@ -272,7 +329,7 @@ class AuthService(
         when (duplicateLoginConfig.action) {
             DuplicateLoginConfigAction.DENY_NEW_LOGIN -> {
                 // 최대 세션 수 체크 (0은 무제한)
-                if (duplicateLoginConfig.maxConcurrentSessions in 1..activeSessionCount) {
+                if (duplicateLoginConfig.maxConcurrentSessions > 0 && activeSessionCount >= duplicateLoginConfig.maxConcurrentSessions) {
                     
                     logger.warn("Login denied for user {} - max JWT sessions exceeded ({}/{})", 
                         userId, activeSessionCount, duplicateLoginConfig.maxConcurrentSessions)
