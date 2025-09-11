@@ -1,8 +1,8 @@
 package com.simplechat.infrastructure.config
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.simplechat.infrastructure.websocket.handler.ChatWebSocketHandler
 import com.simplechat.infrastructure.security.WebSocketAuthService
+import com.simplechat.infrastructure.websocket.handler.ChatWebSocketHandler
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

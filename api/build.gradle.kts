@@ -1,5 +1,10 @@
 plugins {
     id("org.springframework.boot")
+    kotlin("jvm")
+}
+
+repositories {
+    mavenCentral()
 }
 
 dependencies {
@@ -28,16 +33,17 @@ dependencies {
     implementation("io.netty:netty-resolver-dns-native-macos:4.1.123.Final:osx-x86_64")
     
     // Test dependencies
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("io.mockk:mockk:1.13.8")
     testImplementation("com.ninja-squad:springmockk:4.0.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:${rootProject.ext["kotlinCoroutinesVersion"]}")
-    testImplementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
-    testImplementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
-    testImplementation("org.springframework.boot:spring-boot-testcontainers")
-    testImplementation("org.testcontainers:mongodb:1.19.3")
-    testImplementation("org.testcontainers:postgresql:1.19.3")
-    testImplementation("org.testcontainers:junit-jupiter:1.19.3")
-    testImplementation("com.redis:testcontainers-redis:2.2.2")
+    
+    // Kotest
+    testImplementation("io.kotest:kotest-runner-junit5:5.9.1")
+    testImplementation("io.kotest:kotest-assertions-core:5.9.1")
+    testImplementation("io.kotest:kotest-property:5.9.1")
+    testImplementation("io.kotest.extensions:kotest-extensions-spring:1.1.3")
+    
+    // Spring Boot Test (minimal, for @SpringBootTest)
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
