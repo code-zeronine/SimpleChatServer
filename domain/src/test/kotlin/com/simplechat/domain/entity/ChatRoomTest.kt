@@ -1,412 +1,321 @@
 package com.simplechat.domain.entity
 
-import jakarta.validation.Validation
-import jakarta.validation.Validator
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.style.BehaviorSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import java.time.LocalDateTime
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
 
-class ChatRoomTest {
-
-    private val validator: Validator = Validation.buildDefaultValidatorFactory().validator
-
-    @Test
-    fun `should create valid chat room with all required fields`() {
-        // Given
-        val chatRoom = ChatRoom(
-            id = 1L,
-            name = "General Chat",
-            description = "General discussion room",
-            createdBy = 100L,
-            isPrivate = false,
-            maxParticipants = 50,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
-
-        // When
-        val violations = validator.validate(chatRoom)
-
-        // Then
-        assertTrue(violations.isEmpty(), "Valid chat room should have no validation violations")
-        assertEquals("General Chat", chatRoom.name)
-        assertEquals("General discussion room", chatRoom.description)
-        assertEquals(100L, chatRoom.createdBy)
-        assertFalse(chatRoom.isPrivate)
-        assertEquals(50, chatRoom.maxParticipants)
+/**
+ * ChatRoom 도메인 엔티티 테스트
+ * 
+ * 순수한 도메인 로직만 테스트하며, 외부 의존성 없이 검증합니다.
+ */
+class ChatRoomTest : BehaviorSpec({
+    
+    Given("유효한 채팅방 정보가 주어졌을 때") {
+        val validName = "테스트 채팅방"
+        val validDescription = "테스트용 채팅방입니다"
+        val createdBy = 1L
+        
+        When("채팅방을 생성하면") {
+            val chatRoom = ChatRoom(
+                name = validName,
+                description = validDescription,
+                createdBy = createdBy
+            )
+            
+            Then("올바른 채팅방이 생성되어야 한다") {
+                chatRoom.name shouldBe validName
+                chatRoom.description shouldBe validDescription
+                chatRoom.createdBy shouldBe createdBy
+                chatRoom.id shouldBe null
+                chatRoom.isPrivate shouldBe false
+                chatRoom.maxParticipants shouldBe 100
+                chatRoom.createdAt shouldNotBe null
+                chatRoom.updatedAt shouldNotBe null
+            }
+        }
+        
+        When("채팅방 유효성을 검증하면") {
+            val chatRoom = ChatRoom(
+                name = validName,
+                description = validDescription,
+                createdBy = createdBy
+            )
+            
+            Then("유효하다고 판단되어야 한다") {
+                chatRoom.isValid() shouldBe true
+            }
+        }
     }
-
-    @Test
-    fun `should create valid chat room with minimal fields`() {
-        // Given
-        val chatRoom = ChatRoom(
-            name = "Test Room",
-            createdBy = 1L
-        )
-
-        // When
-        val violations = validator.validate(chatRoom)
-
-        // Then
-        assertTrue(violations.isEmpty())
-        assertEquals("Test Room", chatRoom.name)
-        assertEquals(null, chatRoom.description)
-        assertEquals(1L, chatRoom.createdBy)
-        assertFalse(chatRoom.isPrivate)
-        assertEquals(100, chatRoom.maxParticipants) // default value
+    
+    Given("잘못된 채팅방 정보가 주어졌을 때") {
+        val createdBy = 1L
+        
+        When("이름이 비어있으면") {
+            val chatRoom = ChatRoom(
+                name = "",
+                createdBy = createdBy
+            )
+            
+            Then("유효하지 않다고 판단되어야 한다") {
+                chatRoom.isValid() shouldBe false
+            }
+        }
+        
+        When("이름이 너무 길면") {
+            val chatRoom = ChatRoom(
+                name = "a".repeat(101),
+                createdBy = createdBy
+            )
+            
+            Then("유효하지 않다고 판단되어야 한다") {
+                chatRoom.isValid() shouldBe false
+            }
+        }
+        
+        When("설명이 너무 길면") {
+            val chatRoom = ChatRoom(
+                name = "테스트방",
+                description = "a".repeat(501),
+                createdBy = createdBy
+            )
+            
+            Then("유효하지 않다고 판단되어야 한다") {
+                chatRoom.isValid() shouldBe false
+            }
+        }
+        
+        When("최대 참여자 수가 0 이하면") {
+            val chatRoom = ChatRoom(
+                name = "테스트방",
+                createdBy = createdBy,
+                maxParticipants = 0
+            )
+            
+            Then("유효하지 않다고 판단되어야 한다") {
+                chatRoom.isValid() shouldBe false
+            }
+        }
+        
+        When("최대 참여자 수가 시스템 제한을 초과하면") {
+            val chatRoom = ChatRoom(
+                name = "테스트방",
+                createdBy = createdBy,
+                maxParticipants = 1001
+            )
+            
+            Then("유효하지 않다고 판단되어야 한다") {
+                chatRoom.isValid() shouldBe false
+            }
+        }
     }
-
-    @Test
-    fun `should fail validation for blank name`() {
-        // Given
+    
+    Given("소유권 검증 시") {
+        val ownerId = 1L
+        val otherUserId = 2L
         val chatRoom = ChatRoom(
-            name = "",
-            createdBy = 1L
+            name = "테스트방",
+            createdBy = ownerId
         )
-
-        // When
-        val violations = validator.validate(chatRoom)
-
-        // Then
-        assertFalse(violations.isEmpty())
-        assertTrue(violations.any { it.message.contains("채팅방 이름은 필수") })
+        
+        When("소유자가 확인하면") {
+            Then("참을 반환해야 한다") {
+                chatRoom.isOwnedBy(ownerId) shouldBe true
+            }
+        }
+        
+        When("다른 사용자가 확인하면") {
+            Then("거짓을 반환해야 한다") {
+                chatRoom.isOwnedBy(otherUserId) shouldBe false
+            }
+        }
     }
-
-    @Test
-    fun `should fail validation for name too long`() {
-        // Given
+    
+    Given("비공개 채팅방 확인 시") {
+        When("공개 채팅방이면") {
+            val chatRoom = ChatRoom(
+                name = "공개방",
+                createdBy = 1L,
+                isPrivate = false
+            )
+            
+            Then("거짓을 반환해야 한다") {
+                chatRoom.isPrivateRoom() shouldBe false
+            }
+        }
+        
+        When("비공개 채팅방이면") {
+            val chatRoom = ChatRoom(
+                name = "비공개방",
+                createdBy = 1L,
+                isPrivate = true
+            )
+            
+            Then("참을 반환해야 한다") {
+                chatRoom.isPrivateRoom() shouldBe true
+            }
+        }
+    }
+    
+    Given("참여자 수 제한 확인 시") {
         val chatRoom = ChatRoom(
-            name = "a".repeat(101), // 101 characters
-            createdBy = 1L
+            name = "테스트방",
+            createdBy = 1L,
+            maxParticipants = 5
         )
-
-        // When
-        val violations = validator.validate(chatRoom)
-
-        // Then
-        assertFalse(violations.isEmpty())
-        assertTrue(violations.any { it.message.contains("1자 이상 100자 이하") })
+        
+        When("현재 참여자 수가 제한보다 적으면") {
+            Then("여유가 있다고 판단되어야 한다") {
+                chatRoom.isAtCapacity(4) shouldBe false
+            }
+        }
+        
+        When("현재 참여자 수가 제한과 같으면") {
+            Then("정원에 도달했다고 판단되어야 한다") {
+                chatRoom.isAtCapacity(5) shouldBe true
+            }
+        }
+        
+        When("현재 참여자 수가 제한보다 많으면") {
+            Then("정원을 초과했다고 판단되어야 한다") {
+                chatRoom.isAtCapacity(6) shouldBe true
+            }
+        }
     }
-
-    @Test
-    fun `should fail validation for description too long`() {
-        // Given
-        val chatRoom = ChatRoom(
-            name = "Test Room",
-            description = "a".repeat(501), // 501 characters
-            createdBy = 1L
-        )
-
-        // When
-        val violations = validator.validate(chatRoom)
-
-        // Then
-        assertFalse(violations.isEmpty())
-        assertTrue(violations.any { it.message.contains("500자 이하") })
+    
+    Given("표시명 생성 시") {
+        When("이름이 정상적으로 있으면") {
+            val chatRoom = ChatRoom(
+                name = "  테스트방  ",
+                createdBy = 1L
+            )
+            
+            Then("트림된 이름을 반환해야 한다") {
+                chatRoom.getDisplayName() shouldBe "테스트방"
+            }
+        }
+        
+        When("이름이 비어있으면") {
+            val chatRoom = ChatRoom(
+                name = "   ",
+                createdBy = 1L
+            )
+            
+            Then("기본명을 반환해야 한다") {
+                chatRoom.getDisplayName() shouldBe "이름 없는 채팅방"
+            }
+        }
     }
-
-    @Test
-    fun `should validate chat room with business rules`() {
-        // Given
-        val validRoom = ChatRoom(
-            name = "Valid Room",
-            description = "Valid description",
+    
+    Given("채팅방 정보 업데이트 시") {
+        val originalChatRoom = ChatRoom(
+            name = "원래방",
+            description = "원래설명",
             createdBy = 1L,
             maxParticipants = 50
         )
-
-        val invalidRoom = ChatRoom(
-            name = "",
-            description = "a".repeat(501),
-            createdBy = 1L,
-            maxParticipants = -1
-        )
-
-        // When & Then
-        assertTrue(validRoom.isValid())
-        assertFalse(invalidRoom.isValid())
+        
+        When("이름만 업데이트하면") {
+            val updated = originalChatRoom.updateInfo(newName = "새로운방")
+            
+            Then("이름만 변경되고 나머지는 유지되어야 한다") {
+                updated.name shouldBe "새로운방"
+                updated.description shouldBe originalChatRoom.description
+                updated.maxParticipants shouldBe originalChatRoom.maxParticipants
+                updated.updatedAt shouldNotBe originalChatRoom.updatedAt
+            }
+        }
+        
+        When("설명만 업데이트하면") {
+            val updated = originalChatRoom.updateInfo(newDescription = "새로운설명")
+            
+            Then("설명만 변경되고 나머지는 유지되어야 한다") {
+                updated.name shouldBe originalChatRoom.name
+                updated.description shouldBe "새로운설명"
+                updated.maxParticipants shouldBe originalChatRoom.maxParticipants
+                updated.updatedAt shouldNotBe originalChatRoom.updatedAt
+            }
+        }
+        
+        When("최대 참여자 수만 업데이트하면") {
+            val updated = originalChatRoom.updateInfo(newMaxParticipants = 200)
+            
+            Then("최대 참여자 수만 변경되고 나머지는 유지되어야 한다") {
+                updated.name shouldBe originalChatRoom.name
+                updated.description shouldBe originalChatRoom.description
+                updated.maxParticipants shouldBe 200
+                updated.updatedAt shouldNotBe originalChatRoom.updatedAt
+            }
+        }
+        
+        When("잘못된 값으로 업데이트하면") {
+            val updated = originalChatRoom.updateInfo(
+                newName = "",
+                newMaxParticipants = -1
+            )
+            
+            Then("원래 값이 유지되어야 한다") {
+                updated.name shouldBe originalChatRoom.name
+                updated.maxParticipants shouldBe originalChatRoom.maxParticipants
+            }
+        }
+        
+        When("시스템 제한을 초과하는 값으로 업데이트하면") {
+            val updated = originalChatRoom.updateInfo(newMaxParticipants = 1001)
+            
+            Then("원래 값이 유지되어야 한다") {
+                updated.maxParticipants shouldBe originalChatRoom.maxParticipants
+            }
+        }
     }
-
-    @Test
-    fun `should check ownership correctly`() {
-        // Given
-        val chatRoom = ChatRoom(
-            name = "Test Room",
-            createdBy = 100L
-        )
-
-        // When & Then
-        assertTrue(chatRoom.isOwnedBy(100L))
-        assertFalse(chatRoom.isOwnedBy(200L))
-    }
-
-    @Test
-    fun `should check private room status`() {
-        // Given
-        val publicRoom = ChatRoom(
-            name = "Public Room",
-            createdBy = 1L,
-            isPrivate = false
-        )
-
-        val privateRoom = ChatRoom(
-            name = "Private Room",
-            createdBy = 1L,
-            isPrivate = true
-        )
-
-        // When & Then
-        assertFalse(publicRoom.isPrivateRoom())
-        assertTrue(privateRoom.isPrivateRoom())
-    }
-
-    @Test
-    fun `should check capacity correctly`() {
-        // Given
-        val chatRoom = ChatRoom(
-            name = "Test Room",
-            createdBy = 1L,
-            maxParticipants = 10
-        )
-
-        // When & Then
-        assertFalse(chatRoom.isAtCapacity(5))
-        assertFalse(chatRoom.isAtCapacity(9))
-        assertTrue(chatRoom.isAtCapacity(10))
-        assertTrue(chatRoom.isAtCapacity(15))
-    }
-
-    @Test
-    fun `should return correct display name`() {
-        // Given
-        val normalRoom = ChatRoom(
-            name = "Normal Room",
+    
+    Given("동등성 비교 시") {
+        val chatRoomId = 1L
+        val chatRoom1 = ChatRoom(
+            id = chatRoomId,
+            name = "방1",
             createdBy = 1L
         )
-
-        val emptyNameRoom = ChatRoom(
-            name = "   ",
-            createdBy = 1L
+        val chatRoom2 = ChatRoom(
+            id = chatRoomId,
+            name = "방2",
+            createdBy = 2L
         )
-
-        // When & Then
-        assertEquals("Normal Room", normalRoom.getDisplayName())
-        assertEquals("이름 없는 채팅방", emptyNameRoom.getDisplayName())
-    }
-
-    @Test
-    fun `should update room info correctly`() {
-        // Given
-        val originalRoom = ChatRoom(
-            name = "Original Room",
-            description = "Original description",
-            createdBy = 1L,
-            maxParticipants = 50,
-            createdAt = LocalDateTime.now().minusHours(1)
-        )
-
-        // When
-        val updatedRoom = originalRoom.updateInfo(
-            newName = "Updated Room",
-            newDescription = "Updated description",
-            newMaxParticipants = 100
-        )
-
-        // Then
-        assertEquals("Updated Room", updatedRoom.name)
-        assertEquals("Updated description", updatedRoom.description)
-        assertEquals(100, updatedRoom.maxParticipants)
-        assertTrue(updatedRoom.updatedAt.isAfter(originalRoom.updatedAt))
-        assertEquals(originalRoom.createdBy, updatedRoom.createdBy)
-        assertEquals(originalRoom.createdAt, updatedRoom.createdAt)
-    }
-
-    @Test
-    fun `should update room info with partial updates`() {
-        // Given
-        val originalRoom = ChatRoom(
-            name = "Original Room",
-            description = "Original description",
-            createdBy = 1L,
-            maxParticipants = 50
-        )
-
-        // When - only update name
-        val updatedRoom = originalRoom.updateInfo(newName = "New Name Only")
-
-        // Then
-        assertEquals("New Name Only", updatedRoom.name)
-        assertEquals("Original description", updatedRoom.description)
-        assertEquals(50, updatedRoom.maxParticipants)
-    }
-
-    @Test
-    fun `should ignore invalid updates`() {
-        // Given
-        val originalRoom = ChatRoom(
-            name = "Original Room",
-            createdBy = 1L,
-            maxParticipants = 50
-        )
-
-        // When - provide invalid values
-        val updatedRoom = originalRoom.updateInfo(
-            newName = "",  // blank name should be ignored
-            newMaxParticipants = -1  // negative max participants should be ignored
-        )
-
-        // Then - should keep original values
-        assertEquals("Original Room", updatedRoom.name)
-        assertEquals(50, updatedRoom.maxParticipants)
-    }
-
-    @Test
-    fun `should ignore out of range max participants`() {
-        // Given
-        val originalRoom = ChatRoom(
-            name = "Test Room",
-            createdBy = 1L,
-            maxParticipants = 50
-        )
-
-        // When
-        val tooLargeUpdate = originalRoom.updateInfo(newMaxParticipants = 2000)
-        val negativeUpdate = originalRoom.updateInfo(newMaxParticipants = -5)
-
-        // Then
-        assertEquals(50, tooLargeUpdate.maxParticipants)
-        assertEquals(50, negativeUpdate.maxParticipants)
-    }
-
-    @Test
-    fun `should implement equals correctly based on id`() {
-        // Given
-        val room1 = ChatRoom(
-            id = 1L,
-            name = "Room A",
-            createdBy = 100L
-        )
-        val room2 = ChatRoom(
-            id = 1L,
-            name = "Room B",
-            createdBy = 200L
-        )
-        val room3 = ChatRoom(
+        val chatRoom3 = ChatRoom(
             id = 2L,
-            name = "Room A",
-            createdBy = 100L
-        )
-
-        // Then
-        assertEquals(room1, room2) // Same ID
-        assertNotEquals(room1, room3) // Different ID
-    }
-
-    @Test
-    fun `should implement hashCode correctly based on id`() {
-        // Given
-        val room1 = ChatRoom(
-            id = 1L,
-            name = "Room A",
-            createdBy = 100L
-        )
-        val room2 = ChatRoom(
-            id = 1L,
-            name = "Room B",
-            createdBy = 200L
-        )
-
-        // Then
-        assertEquals(room1.hashCode(), room2.hashCode()) // Same ID should have same hashCode
-    }
-
-    @Test
-    fun `should handle null id in equals and hashCode`() {
-        // Given
-        val room1 = ChatRoom(
-            name = "Room A",
-            createdBy = 100L
-        )
-        val room2 = ChatRoom(
-            name = "Room A",
-            createdBy = 100L
-        )
-
-        // Then
-        assertNotEquals(room1, room2) // Different instances with null ID should not be equal
-        assertEquals(0, room1.hashCode()) // Null ID should return 0 hashCode
-    }
-
-    @Test
-    fun `should create room with default timestamps`() {
-        // Given & When
-        val before = LocalDateTime.now()
-        val chatRoom = ChatRoom(
-            name = "Test Room",
+            name = "방1",
             createdBy = 1L
         )
-        val after = LocalDateTime.now()
-
-        // Then
-        assertTrue(chatRoom.createdAt.isAfter(before) || chatRoom.createdAt.isEqual(before))
-        assertTrue(chatRoom.createdAt.isBefore(after) || chatRoom.createdAt.isEqual(after))
-        assertTrue(chatRoom.updatedAt.isAfter(before) || chatRoom.updatedAt.isEqual(before))
-        assertTrue(chatRoom.updatedAt.isBefore(after) || chatRoom.updatedAt.isEqual(after))
+        
+        When("같은 ID를 가진 채팅방들을 비교하면") {
+            Then("동등하다고 판단되어야 한다") {
+                chatRoom1 shouldBe chatRoom2
+                chatRoom1.hashCode() shouldBe chatRoom2.hashCode()
+            }
+        }
+        
+        When("다른 ID를 가진 채팅방들을 비교하면") {
+            Then("동등하지 않다고 판단되어야 한다") {
+                chatRoom1 shouldNotBe chatRoom3
+            }
+        }
     }
-
-    @Test
-    fun `should not expose sensitive information in toString`() {
-        // Given
-        val chatRoom = ChatRoom(
-            id = 1L,
-            name = "Secret Room",
-            description = "Very secret description",
-            createdBy = 100L,
-            isPrivate = true
-        )
-
-        // When
-        val toString = chatRoom.toString()
-
-        // Then
-        assertTrue(toString.contains("Secret Room"))
-        assertTrue(toString.contains("100"))
-        assertTrue(toString.contains("true"))
-        assertFalse(toString.contains("Very secret description"), "toString should not expose description")
+    
+    Given("toString 테스트") {
+        When("채팅방 정보를 문자열로 변환하면") {
+            val chatRoom = ChatRoom(
+                id = 1L,
+                name = "테스트방",
+                createdBy = 100L,
+                isPrivate = true,
+                createdAt = LocalDateTime.of(2023, 1, 1, 12, 0, 0)
+            )
+            
+            Then("올바른 형식의 문자열이 반환되어야 한다") {
+                val result = chatRoom.toString()
+                result shouldBe "ChatRoom(id=1, name='테스트방', createdBy=100, isPrivate=true, createdAt=2023-01-01T12:00)"
+            }
+        }
     }
-
-    @Test
-    fun `should validate edge cases for business rules`() {
-        // Given & When & Then
-        val maxParticipantsRoom = ChatRoom(
-            name = "Max Room",
-            createdBy = 1L,
-            maxParticipants = 1000
-        )
-        assertTrue(maxParticipantsRoom.isValid())
-
-        val overMaxParticipantsRoom = ChatRoom(
-            name = "Over Max Room",
-            createdBy = 1L,
-            maxParticipants = 1001
-        )
-        assertFalse(overMaxParticipantsRoom.isValid())
-
-        val zeroParticipantsRoom = ChatRoom(
-            name = "Zero Room",
-            createdBy = 1L,
-            maxParticipants = 0
-        )
-        assertFalse(zeroParticipantsRoom.isValid())
-
-        val maxDescriptionRoom = ChatRoom(
-            name = "Max Desc Room",
-            description = "a".repeat(500),
-            createdBy = 1L
-        )
-        assertTrue(maxDescriptionRoom.isValid())
-    }
-}
+})

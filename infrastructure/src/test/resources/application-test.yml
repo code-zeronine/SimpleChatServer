@@ -1,0 +1,14 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/testdb
+    username: test
+    password: test
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/testdb
+
+logging:
+  level:
+    com.simplechat: DEBUG
+    org.springframework.data.r2dbc: DEBUG
+    org.testcontainers: INFO

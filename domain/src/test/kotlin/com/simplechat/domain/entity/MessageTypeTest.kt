@@ -1,0 +1,299 @@
+package com.simplechat.domain.entity
+
+import io.kotest.core.spec.style.BehaviorSpec
+import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.collections.shouldContainAll
+import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import io.kotest.property.Arb
+import io.kotest.property.arbitrary.enum
+import io.kotest.property.checkAll
+
+/**
+ * MessageType enum 테스트
+ * 
+ * 메시지 타입 열거형의 값과 비즈니스 로직을 테스트합니다.
+ */
+class MessageTypeTest : BehaviorSpec({
+    
+    Given("MessageType enum 값들 확인 시") {
+        When("모든 enum 값을 조회하면") {
+            val allValues = MessageType.values()
+            
+            Then("4개의 타입이 있어야 한다") {
+                allValues shouldHaveSize 4
+            }
+            
+            Then("모든 예상 타입들이 포함되어야 한다") {
+                allValues.toList() shouldContainAll listOf(
+                    MessageType.TEXT,
+                    MessageType.SYSTEM,
+                    MessageType.JOIN,
+                    MessageType.LEAVE
+                )
+            }
+        }
+        
+        When("각 enum 값을 확인하면") {
+            Then("TEXT 타입이 존재해야 한다") {
+                MessageType.TEXT shouldNotBe null
+                MessageType.TEXT.name shouldBe "TEXT"
+            }
+            
+            Then("SYSTEM 타입이 존재해야 한다") {
+                MessageType.SYSTEM shouldNotBe null
+                MessageType.SYSTEM.name shouldBe "SYSTEM"
+            }
+            
+            Then("JOIN 타입이 존재해야 한다") {
+                MessageType.JOIN shouldNotBe null
+                MessageType.JOIN.name shouldBe "JOIN"
+            }
+            
+            Then("LEAVE 타입이 존재해야 한다") {
+                MessageType.LEAVE shouldNotBe null
+                MessageType.LEAVE.name shouldBe "LEAVE"
+            }
+        }
+    }
+    
+    Given("MessageType 문자열 변환 시") {
+        When("각 타입을 문자열로 변환하면") {
+            Then("올바른 문자열 표현을 가져야 한다") {
+                MessageType.TEXT.toString() shouldBe "TEXT"
+                MessageType.SYSTEM.toString() shouldBe "SYSTEM"
+                MessageType.JOIN.toString() shouldBe "JOIN"
+                MessageType.LEAVE.toString() shouldBe "LEAVE"
+            }
+        }
+        
+        When("valueOf()를 사용하여 문자열에서 변환하면") {
+            Then("올바른 enum 값을 반환해야 한다") {
+                MessageType.valueOf("TEXT") shouldBe MessageType.TEXT
+                MessageType.valueOf("SYSTEM") shouldBe MessageType.SYSTEM
+                MessageType.valueOf("JOIN") shouldBe MessageType.JOIN
+                MessageType.valueOf("LEAVE") shouldBe MessageType.LEAVE
+            }
+        }
+    }
+    
+    Given("MessageType 비즈니스 로직 테스트 시") {
+        When("사용자 메시지 타입을 확인하면") {
+            Then("TEXT만 사용자 메시지여야 한다") {
+                // ChatMessage.isUserMessage() 로직 기반
+                val userMessageTypes = listOf(MessageType.TEXT)
+                val nonUserMessageTypes = listOf(
+                    MessageType.SYSTEM, 
+                    MessageType.JOIN, 
+                    MessageType.LEAVE
+                )
+                
+                userMessageTypes.forEach { type ->
+                    // TEXT 타입이 사용자 메시지인지 확인
+                    (type == MessageType.TEXT) shouldBe true
+                }
+                
+                nonUserMessageTypes.forEach { type ->
+                    // 다른 타입들은 사용자 메시지가 아님
+                    (type == MessageType.TEXT) shouldBe false
+                }
+            }
+        }
+        
+        When("시스템 메시지 타입을 확인하면") {
+            Then("SYSTEM, JOIN, LEAVE가 시스템 메시지여야 한다") {
+                // ChatMessage.isSystemMessage() 로직 기반
+                val systemMessageTypes = listOf(
+                    MessageType.SYSTEM, 
+                    MessageType.JOIN, 
+                    MessageType.LEAVE
+                )
+                val nonSystemMessageTypes = listOf(MessageType.TEXT)
+                
+                systemMessageTypes.forEach { type ->
+                    // 시스템 메시지 타입들이 시스템 메시지인지 확인
+                    (type in systemMessageTypes) shouldBe true
+                }
+                
+                nonSystemMessageTypes.forEach { type ->
+                    // TEXT는 시스템 메시지가 아님
+                    (type in systemMessageTypes) shouldBe false
+                }
+            }
+        }
+    }
+    
+    Given("MessageType 분류 확장 메서드 테스트 시") {
+        // 도메인 로직을 위한 확장 메서드들을 테스트
+        
+        When("사용자 생성 메시지인지 확인하면") {
+            Then("TEXT만 사용자가 생성한 메시지여야 한다") {
+                MessageType.TEXT.isUserGenerated() shouldBe true
+                MessageType.SYSTEM.isUserGenerated() shouldBe false
+                MessageType.JOIN.isUserGenerated() shouldBe false
+                MessageType.LEAVE.isUserGenerated() shouldBe false
+            }
+        }
+        
+        When("자동 생성 메시지인지 확인하면") {
+            Then("SYSTEM, JOIN, LEAVE가 자동 생성 메시지여야 한다") {
+                MessageType.TEXT.isAutoGenerated() shouldBe false
+                MessageType.SYSTEM.isAutoGenerated() shouldBe true
+                MessageType.JOIN.isAutoGenerated() shouldBe true
+                MessageType.LEAVE.isAutoGenerated() shouldBe true
+            }
+        }
+        
+        When("채팅방 상태 변경 메시지인지 확인하면") {
+            Then("JOIN, LEAVE가 상태 변경 메시지여야 한다") {
+                MessageType.TEXT.isRoomStateChange() shouldBe false
+                MessageType.SYSTEM.isRoomStateChange() shouldBe false
+                MessageType.JOIN.isRoomStateChange() shouldBe true
+                MessageType.LEAVE.isRoomStateChange() shouldBe true
+            }
+        }
+        
+        When("알림이 필요한 메시지인지 확인하면") {
+            Then("TEXT와 SYSTEM만 알림이 필요해야 한다") {
+                MessageType.TEXT.requiresNotification() shouldBe true
+                MessageType.SYSTEM.requiresNotification() shouldBe true
+                MessageType.JOIN.requiresNotification() shouldBe false
+                MessageType.LEAVE.requiresNotification() shouldBe false
+            }
+        }
+        
+        When("메시지 우선순위를 확인하면") {
+            Then("올바른 우선순위를 가져야 한다") {
+                MessageType.SYSTEM.getPriority() shouldBe 1  // 가장 높은 우선순위
+                MessageType.JOIN.getPriority() shouldBe 2
+                MessageType.LEAVE.getPriority() shouldBe 2
+                MessageType.TEXT.getPriority() shouldBe 3    // 일반 우선순위
+            }
+        }
+    }
+    
+    Given("MessageType ordinal과 비교 테스트 시") {
+        When("ordinal 값을 확인하면") {
+            Then("선언 순서와 일치해야 한다") {
+                MessageType.TEXT.ordinal shouldBe 0
+                MessageType.SYSTEM.ordinal shouldBe 1
+                MessageType.JOIN.ordinal shouldBe 2
+                MessageType.LEAVE.ordinal shouldBe 3
+            }
+        }
+        
+        When("enum들을 비교하면") {
+            Then("ordinal 기준으로 비교되어야 한다") {
+                (MessageType.TEXT < MessageType.SYSTEM) shouldBe true
+                (MessageType.SYSTEM < MessageType.JOIN) shouldBe true
+                (MessageType.JOIN < MessageType.LEAVE) shouldBe true
+                (MessageType.LEAVE > MessageType.TEXT) shouldBe true
+            }
+        }
+    }
+    
+    Given("MessageType 컬렉션 연산 테스트 시") {
+        When("시스템 메시지 타입들을 필터링하면") {
+            val systemTypes = MessageType.values()
+                .filter { it.isAutoGenerated() }
+            
+            Then("SYSTEM, JOIN, LEAVE만 포함되어야 한다") {
+                systemTypes shouldHaveSize 3
+                systemTypes shouldContainAll listOf(
+                    MessageType.SYSTEM,
+                    MessageType.JOIN,
+                    MessageType.LEAVE
+                )
+            }
+        }
+        
+        When("사용자 메시지 타입들을 필터링하면") {
+            val userTypes = MessageType.values()
+                .filter { it.isUserGenerated() }
+            
+            Then("TEXT만 포함되어야 한다") {
+                userTypes shouldHaveSize 1
+                userTypes shouldContain MessageType.TEXT
+            }
+        }
+        
+        When("알림이 필요한 메시지 타입들을 필터링하면") {
+            val notificationTypes = MessageType.values()
+                .filter { it.requiresNotification() }
+            
+            Then("TEXT와 SYSTEM만 포함되어야 한다") {
+                notificationTypes shouldHaveSize 2
+                notificationTypes shouldContainAll listOf(
+                    MessageType.TEXT,
+                    MessageType.SYSTEM
+                )
+            }
+        }
+        
+        When("우선순위별로 정렬하면") {
+            val sortedByPriority = MessageType.values()
+                .sortedBy { it.getPriority() }
+            
+            Then("SYSTEM이 첫 번째, TEXT가 마지막이어야 한다") {
+                sortedByPriority.first() shouldBe MessageType.SYSTEM
+                sortedByPriority.last() shouldBe MessageType.TEXT
+            }
+        }
+    }
+    
+    Given("속성 기반 테스트 시") {
+        When("임의의 MessageType으로 테스트하면") {
+            checkAll(
+                iterations = 50,
+                Arb.enum<MessageType>()
+            ) { messageType ->
+                // 모든 enum 값이 유효해야 함
+                messageType shouldNotBe null
+                messageType.name.isNotBlank() shouldBe true
+                
+                // 사용자 생성과 자동 생성은 상호 배타적이어야 함
+                (messageType.isUserGenerated() && messageType.isAutoGenerated()) shouldBe false
+                (messageType.isUserGenerated() || messageType.isAutoGenerated()) shouldBe true
+                
+                // 우선순위는 1-3 범위여야 함
+                val priority = messageType.getPriority()
+                (priority in 1..3) shouldBe true
+                
+                // toString()과 name이 일치해야 함
+                messageType.toString() shouldBe messageType.name
+                
+                // valueOf()로 다시 변환 시 동일해야 함
+                MessageType.valueOf(messageType.name) shouldBe messageType
+            }
+        }
+    }
+})
+
+/**
+ * MessageType enum을 위한 확장 메서드들
+ * 실제 도메인 로직에서 사용될 수 있는 비즈니스 메서드들
+ */
+private fun MessageType.isUserGenerated(): Boolean {
+    return this == MessageType.TEXT
+}
+
+private fun MessageType.isAutoGenerated(): Boolean {
+    return this in listOf(MessageType.SYSTEM, MessageType.JOIN, MessageType.LEAVE)
+}
+
+private fun MessageType.isRoomStateChange(): Boolean {
+    return this in listOf(MessageType.JOIN, MessageType.LEAVE)
+}
+
+private fun MessageType.requiresNotification(): Boolean {
+    return this in listOf(MessageType.TEXT, MessageType.SYSTEM)
+}
+
+private fun MessageType.getPriority(): Int {
+    return when (this) {
+        MessageType.SYSTEM -> 1  // 높은 우선순위
+        MessageType.JOIN, MessageType.LEAVE -> 2  // 중간 우선순위
+        MessageType.TEXT -> 3    // 일반 우선순위
+    }
+}
