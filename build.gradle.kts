@@ -46,6 +46,10 @@ subprojects {
     }
     
     tasks.withType<Test> {
+        jvmArgs(
+            "-XX:+EnableDynamicAgentLoading",
+            "-Xshare:off"
+        )
         useJUnitPlatform()
     }
 }

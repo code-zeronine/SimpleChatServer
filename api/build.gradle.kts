@@ -47,3 +47,18 @@ dependencies {
     // Spring Boot Test (minimal, for @SpringBootTest)
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
+
+tasks.withType<Test> {
+    jvmArgs(
+        "-XX:+EnableDynamicAgentLoading",
+        "-Xshare:off"
+    )
+    useJUnitPlatform()
+}
+
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    jvmArgs(
+        "-XX:+EnableDynamicAgentLoading",
+        "-Xshare:off"
+    )
+}
